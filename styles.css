@@ -205,8 +205,11 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
   border-radius: 50%;
   transform: rotate(-12deg);
 }
-.card__info { display: flex; flex-direction: column; gap: 1px; padding: 10px 12px 12px; }
+.card__info { display: flex; flex-direction: column; gap: 1px; min-width: 0; padding: 10px 12px 12px; }
 .card__info small {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   font-size: 0.66rem;
   font-weight: 700;
   letter-spacing: 0.12em;

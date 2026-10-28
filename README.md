@@ -16,4 +16,9 @@ Stop photos come from Wikimedia Commons (cropped and resized), see `credit` in `
 - Markthal: DaHuzyBru, CC BY-SA 4.0
 - Kubuswoningen: Choinowski, CC BY-SA 4.0
 - Erasmusbrug: Michielverbeek, CC BY-SA 4.0
+- Rechtbank: Marcel Douwe Dekker, CC BY-SA 2.0
 - Euromast: W. Bulach, CC BY-SA 4.0
+- Het Park: Jan Geerling, CC BY-SA 4.0
+- Politiebureau: Jan Geerling, CC BY-SA 4.0
+- Stadhuis: Ttzavaras, CC BY-SA 4.0
+- Centrale Bibliotheek: Frans Berkelaar, CC BY-SA 2.0
