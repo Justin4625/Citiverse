@@ -48,6 +48,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   box-shadow: 0 3px 0 rgba(43, 58, 85, 0.15);
 }
 .hud__status {
+  min-width: 0;
   margin: 0;
   padding: 6px 12px;
   font-size: 0.8rem;
@@ -56,6 +57,25 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 
 /* ---------- Buttons ---------- */
+.test-toggle {
+  flex: none;
+  margin-left: auto;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 3px solid #fff;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 900;
+  background: var(--card);
+  box-shadow: 0 3px 0 rgba(43, 58, 85, 0.15);
+  pointer-events: auto;
+}
+.test-toggle[aria-pressed='true'] {
+  color: #fff;
+  background: #ff9f1c;
+  box-shadow: 0 3px 0 #d97f00;
+}
+
 .collect {
   position: fixed;
   left: 50%;
@@ -89,6 +109,21 @@ button { font: inherit; color: inherit; cursor: pointer; }
   background: var(--done);
   box-shadow: 0 5px 0 #7440d6, 0 8px 18px rgba(43, 58, 85, 0.25);
 }
+
+.reset {
+  position: fixed;
+  top: calc(64px + env(safe-area-inset-top));
+  right: 16px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 3px solid #fff;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 900;
+  background: var(--card);
+  box-shadow: 0 3px 0 rgba(43, 58, 85, 0.15);
+}
+.reset[hidden] { display: none; }
 
 /* ---------- Stamp book sheet ---------- */
 .sheet {
@@ -147,15 +182,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .stamp__info { display: flex; flex-direction: column; }
 .stamp__info small { color: var(--muted); font-weight: 700; }
-
-.reset {
-  width: 100%;
-  margin-top: 12px;
-  padding: 10px;
-  border: 2px solid #c3cbd8;
-  border-radius: 12px;
-  background: transparent;
-}
 
 /* ---------- Map markers ---------- */
 .stop {

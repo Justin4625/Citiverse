@@ -80,6 +80,11 @@ export function createGameMap(container, locations, radiusM) {
       }
     },
 
+    center() {
+      const { lat, lng } = map.getCenter();
+      return { lat, lng };
+    },
+
     onMapTap(cb) {
       map.on('click', (e) => cb({ lat: e.lngLat.lat, lng: e.lngLat.lng }));
     },

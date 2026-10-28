@@ -4,8 +4,8 @@ import { distanceM, isInRange, watchPosition } from './geo.js';
 import { createGameMap } from './map.js';
 import { renderBook } from './book.js';
 
-// ?debug → tap the map to move the player, plus a reset button.
-const DEBUG = new URLSearchParams(location.search).has('debug');
+// Test mode: GPS off, tap the map to move the player, plus a reset button. ?debug starts in it.
+const TEST_STATUS = 'Tap the map to move';
 
 const els = {
   progress: document.getElementById('progress'),
@@ -16,10 +16,16 @@ const els = {
   bookToggle: document.getElementById('bookToggle'),
   sheetClose: document.getElementById('sheetClose'),
   toast: document.getElementById('toast'),
+  testToggle: document.getElementById('testToggle'),
+  reset: document.getElementById('reset'),
 };
 
 let stamps = loadStamps();
 let position = null;
+let testMode = false;
+let stopWatch = null;
+// Where the player last stood, so leaving and re-entering test mode doesn't lose it.
+let lastPosition = null;
 
 const gameMap = createGameMap('map', LOCATIONS, RADIUS_M);
 
@@ -63,7 +69,7 @@ function collect(loc) {
 function onFix(fix) {
   position = fix;
   gameMap.setPlayer(fix);
-  els.status.textContent = DEBUG ? 'Debug: tap the map or a stop to walk' : `GPS ±${Math.round(fix.accuracy)} m`;
+  els.status.textContent = testMode ? TEST_STATUS : `GPS ±${Math.round(fix.accuracy)} m`;
   render();
 }
 
@@ -80,6 +86,25 @@ function showToast(loc) {
   toastTimer = setTimeout(() => (els.toast.hidden = true), 2600);
 }
 
+function setTestMode(on) {
+  testMode = on;
+  els.testToggle.setAttribute('aria-pressed', String(on));
+  els.reset.hidden = !on;
+  if (on) {
+    stopWatch?.();
+    stopWatch = null;
+    // Keep the player where it is; with no position yet, the first map tap places it.
+    position ??= lastPosition;
+    els.status.textContent = position ? TEST_STATUS : 'Tap the map to place yourself';
+  } else {
+    lastPosition = position;
+    position = null;
+    els.status.textContent = 'Finding your location…';
+    stopWatch = watchPosition(onFix, onGeoError);
+  }
+  render();
+}
+
 function toggleSheet(open) {
   els.sheet.hidden = !open;
 }
@@ -87,27 +112,24 @@ function toggleSheet(open) {
 els.collect.addEventListener('click', () => collect(nearestCollectable()));
 gameMap.onStopTap((id) => {
   const loc = LOCATIONS.find((l) => l.id === id);
-  // In debug, tapping a far-away stop teleports you there.
-  if (DEBUG && !isNear(loc)) onFix({ lat: loc.lat - 0.00025, lng: loc.lng, accuracy: 5 });
+  // In test mode, tapping a far-away stop teleports you there.
+  if (testMode && !isNear(loc)) onFix({ lat: loc.lat - 0.00025, lng: loc.lng, accuracy: 5 });
   else collect(loc);
 });
 els.bookToggle.addEventListener('click', () => toggleSheet(els.sheet.hidden));
 els.sheetClose.addEventListener('click', () => toggleSheet(false));
 
-if (DEBUG) {
-  els.status.textContent = 'Debug: tap the map or a stop to walk';
-  gameMap.onMapTap((pos) => onFix({ ...pos, accuracy: 5 }));
-  const reset = document.createElement('button');
-  reset.className = 'reset';
-  reset.textContent = 'Reset stamps';
-  reset.addEventListener('click', () => {
-    stamps = clearStamps();
-    render();
-  });
-  els.book.after(reset);
-} else {
-  watchPosition(onFix, onGeoError);
-}
+els.testToggle.addEventListener('click', () => setTestMode(!testMode));
+gameMap.onMapTap((pos) => {
+  if (testMode) onFix({ ...pos, accuracy: 5 });
+});
+
+els.reset.addEventListener('click', () => {
+  stamps = clearStamps();
+  render();
+});
+
+setTestMode(new URLSearchParams(location.search).has('debug'));
 
 requestPersistence();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');

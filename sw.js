@@ -1,5 +1,5 @@
 // Network-first with cache fallback, so the app shell still opens offline.
-const CACHE = 'stamprally-v2';
+const CACHE = 'stamprally-v4';
 const SHELL = [
   './', './index.html', './styles.css', './manifest.webmanifest', './icon.svg',
   './js/app.js', './js/geo.js', './js/storage.js', './js/locations.js',
