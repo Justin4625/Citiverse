@@ -3,6 +3,10 @@ import { stopElement, setStopState, playerElement } from './markers.js';
 
 const PLAY_ZOOM = 16.6;
 const PLAY_PITCH = 55;
+// Stops shrink when you zoom out (full size from FULL_ZOOM) and become plain dots below DOT_ZOOM.
+const FULL_ZOOM = 15.5;
+const MIN_ZOOM_SCALE = 0.4;
+const DOT_ZOOM = 13;
 
 function circlePolygon({ lat, lng }, radiusM, steps = 64) {
   const dLat = radiusM / 111320;
@@ -28,6 +32,17 @@ export function createGameMap(container, locations, radiusM) {
     attributionControl: { compact: true },
   });
   map.setPitch(40);
+
+  function scaleStops() {
+    const zoom = map.getZoom();
+    const scale = Math.min(1, Math.max(MIN_ZOOM_SCALE, 1 - (FULL_ZOOM - zoom) * 0.2));
+    const el = map.getContainer();
+    el.style.setProperty('--stop-scale', scale.toFixed(3));
+    el.classList.toggle('stops--dots', zoom < DOT_ZOOM);
+    el.classList.toggle('stops--small', zoom < FULL_ZOOM - 0.5);
+  }
+  map.on('zoom', scaleStops);
+  scaleStops();
 
   let loaded = false;
   let pendingPlayer = null;

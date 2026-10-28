@@ -1,13 +1,22 @@
+import { photoUrl } from './locations.js';
+
 // HTML for the billboard markers that stand on the tilted map.
 
 export function stopElement(loc) {
   const el = document.createElement('div');
   el.className = 'stop';
+  // The inner body scales with the zoom level; the outer element is positioned by MapLibre.
   el.innerHTML = `
-    <span class="stop__label">${loc.name}</span>
-    <span class="stop__badge"><span class="stop__emoji">${loc.emoji}</span></span>
-    <span class="stop__pole"></span>
-    <span class="stop__shadow"></span>`;
+    <span class="stop__body">
+      <span class="stop__label">${loc.name}</span>
+      <span class="stop__pin">
+        <img class="stop__photo" src="${photoUrl(loc)}" alt="" style="object-position:${loc.focus}" draggable="false">
+        <span class="stop__check" aria-hidden="true"></span>
+      </span>
+      <span class="stop__pole"></span>
+      <span class="stop__shadow"></span>
+    </span>`;
+  el.setAttribute('aria-label', loc.name);
   return el;
 }
 

@@ -1,9 +1,9 @@
 {
-  "name": "Rotterdam Stamp Rally",
-  "short_name": "Stamp Rally",
+  "name": "Citiverse Rotterdam",
+  "short_name": "Citiverse",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#f6f7f5",
-  "theme_color": "#7fd3f7",
+  "background_color": "#e4e1da",
+  "theme_color": "#14171c",
   "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
 }

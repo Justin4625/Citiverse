@@ -1,14 +1,15 @@
-import { LOCATIONS, RADIUS_M } from './locations.js';
+import { LOCATIONS, RADIUS_M, photoUrl } from './locations.js';
 import { loadStamps, saveStamp, clearStamps, requestPersistence } from './storage.js';
 import { distanceM, isInRange, watchPosition } from './geo.js';
 import { createGameMap } from './map.js';
-import { renderBook } from './book.js';
+import { renderBook, renderCredits } from './book.js';
 
 // Test mode: GPS off, tap the map to move the player, plus a reset button. ?debug starts in it.
-const TEST_STATUS = 'Tap the map to move';
+const TEST_STATUS = 'Tik op de kaart om te lopen';
 
 const els = {
-  progress: document.getElementById('progress'),
+  sheetCount: document.getElementById('sheetCount'),
+  credits: document.getElementById('credits'),
   status: document.getElementById('status'),
   collect: document.getElementById('collect'),
   book: document.getElementById('book'),
@@ -43,7 +44,7 @@ function nearestCollectable() {
 
 function render() {
   const count = LOCATIONS.filter((loc) => stamps[loc.id]).length;
-  els.progress.textContent = `${count}/${LOCATIONS.length}`;
+  els.sheetCount.textContent = `${count} van ${LOCATIONS.length} verzameld`;
 
   gameMap.setStopStates(
     Object.fromEntries(
@@ -53,7 +54,12 @@ function render() {
 
   const target = nearestCollectable();
   els.collect.hidden = !target;
-  if (target) els.collect.textContent = `${target.emoji} Collect stamp!`;
+  if (target && els.collect.dataset.id !== target.id) {
+    els.collect.dataset.id = target.id;
+    els.collect.innerHTML = `<img src="${photoUrl(target)}" alt="" style="object-position:${target.focus}">
+      <span><strong>Stempel pakken</strong><small>${target.name}</small></span>`;
+  }
+  if (!target) delete els.collect.dataset.id;
 
   renderBook(els.book, LOCATIONS, stamps, position);
 }
@@ -75,12 +81,14 @@ function onFix(fix) {
 
 function onGeoError(err) {
   els.status.textContent =
-    err.code === 1 ? 'Location access denied — allow it to play.' : `No location (${err.message}).`;
+    err.code === 1 ? 'Geen toegang tot je locatie. Sta het toe om te spelen.' : `Geen locatie (${err.message}).`;
 }
 
 let toastTimer;
 function showToast(loc) {
-  els.toast.innerHTML = `<span class="toast__stamp">${loc.emoji}</span><strong>${loc.name}</strong><small>Stamp collected!</small>`;
+  els.toast.innerHTML = `<span class="toast__photo"><img src="${photoUrl(loc)}" alt="" style="object-position:${loc.focus}">
+      <span class="toast__stamp" aria-hidden="true"><b>✓</b><small>Rotterdam</small></span></span>
+    <small>Stempel verzameld</small><strong>${loc.name}</strong>`;
   els.toast.hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => (els.toast.hidden = true), 2600);
@@ -95,11 +103,11 @@ function setTestMode(on) {
     stopWatch = null;
     // Keep the player where it is; with no position yet, the first map tap places it.
     position ??= lastPosition;
-    els.status.textContent = position ? TEST_STATUS : 'Tap the map to place yourself';
+    els.status.textContent = position ? TEST_STATUS : 'Tik op de kaart om jezelf neer te zetten';
   } else {
     lastPosition = position;
     position = null;
-    els.status.textContent = 'Finding your location…';
+    els.status.textContent = 'Locatie zoeken…';
     stopWatch = watchPosition(onFix, onGeoError);
   }
   render();
@@ -131,6 +139,7 @@ els.reset.addEventListener('click', () => {
 
 setTestMode(new URLSearchParams(location.search).has('debug'));
 
+renderCredits(els.credits, LOCATIONS);
 requestPersistence();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 render();

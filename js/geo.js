@@ -17,13 +17,13 @@ export function isInRange(distance, accuracy, radius) {
 }
 
 export function formatDistance(m) {
-  return m < 1000 ? `${Math.round(m)} m away` : `${(m / 1000).toFixed(1)} km away`;
+  return m < 1000 ? `${Math.round(m)} m verderop` : `${(m / 1000).toFixed(1).replace('.', ',')} km verderop`;
 }
 
 // Calls onFix({ lat, lng, accuracy }) on every GPS update. Returns a stop function.
 export function watchPosition(onFix, onError) {
   if (!('geolocation' in navigator)) {
-    onError(new Error('Geolocation is not supported on this device.'));
+    onError(new Error('Dit apparaat ondersteunt geen locatie.'));
     return () => {};
   }
   const id = navigator.geolocation.watchPosition(

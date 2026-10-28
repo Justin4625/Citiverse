@@ -1,9 +1,10 @@
 // Network-first with cache fallback, so the app shell still opens offline.
-const CACHE = 'stamprally-v5';
+const CACHE = 'stamprally-v6';
 const SHELL = [
   './', './index.html', './styles.css', './manifest.webmanifest', './icon.svg',
   './js/app.js', './js/geo.js', './js/storage.js', './js/locations.js',
   './js/map.js', './js/mapStyle.js', './js/markers.js', './js/book.js',
+  './img/centraal.jpg', './img/markthal.jpg', './img/kubuswoningen.jpg', './img/erasmusbrug.jpg', './img/euromast.jpg',
 ];
 
 self.addEventListener('install', (e) => {
