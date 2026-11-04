@@ -2,8 +2,8 @@
 // The AI character only answers from `facts`, so everything it may say lives here.
 // All facts still need checking (e.g. via data.rotterdam.nl) before a playtest.
 //
-// `game` is the id of a playable minigame in js/games/, or null. Stops without a game
-// show `card` (the minigame description) and still give a stamp.
+// `game` is the id of a minigame in js/games/index.js. `card` describes it; a stop whose game
+// is not registered shows the card instead and still gives a stamp.
 
 export const STOPS = {
   centraal: {
@@ -20,10 +20,10 @@ export const STOPS = {
       'Als je inlogt op openbare wifi, kan de aanbieder zien welk apparaat je gebruikt.',
     ],
     secret: 'Wist je dat het dak van het station zo veel zonnepanelen heeft dat het een flink deel van de stroom voor het station zelf opwekt? Zelfs het dak doet hier mee.',
-    game: null,
+    game: 'spoorloos',
     card: {
-      title: 'Datasporen',
-      text: 'Volg een verzonnen reiziger door het station. Welke systemen weten wat van hem: OV-chip, camera\'s, wifi en apps? Jij kiest wat hij had kunnen afschermen, en Mo vertelt wat er met elk spoor kan.',
+      title: 'Spoorloos',
+      text: 'Je hebt 8 minuten tot je trein vertrekt. Bij elke stap kies je: snel maar met sporen, of privé maar langzamer. Daarna vertelt Mo wat hij over je weet.',
     },
   },
 
@@ -41,10 +41,10 @@ export const STOPS = {
       'Bij een eerlijke webshop zie je alle kosten voordat je betaalt.',
     ],
     secret: 'Kijk eens goed omhoog: in het plafondkunstwerk zijn ook bloemen en insecten verstopt. De meeste mensen lopen er gewoon onderdoor zonder ze te zien.',
-    game: null,
+    game: 'koopjesjacht',
     card: {
-      title: 'Eerlijk of oplichterij?',
-      text: 'De AI maakt webshopacties en reclames binnen vaste sjablonen. Jij spot de nepkorting, de verborgen kosten en de dark patterns.',
+      title: 'Koopjesjacht',
+      text: 'Je hebt €20 en een boodschappenlijst. Bij elke kraam kies je tussen twee aanbiedingen, en pas daarna zie je wat ze echt kosten.',
     },
   },
 
@@ -61,10 +61,10 @@ export const STOPS = {
       'Vrijheid van meningsuiting betekent dat je je mening mag geven, maar niet dat alles mag: bedreigen en discrimineren mag niet.',
     ],
     secret: 'De muren in een kubus staan zo scheef dat je veel meubels niet tegen de muur kunt zetten. Bewoners moeten dus ook bij het inrichten anders durven denken.',
-    game: null,
+    game: 'moderator',
     card: {
-      title: 'Mag dit online?',
-      text: 'Posts, memes en meningen: valt het onder vrije meningsuiting of gaat het over de grens? De AI legt uit waar de grens ligt.',
+      title: 'Moderator',
+      text: 'Daan krijgt reacties onder zijn kunst. Jij beslist: laten staan of weghalen. Houd vrijheid én veiligheid in balans.',
     },
   },
 
@@ -81,10 +81,10 @@ export const STOPS = {
       'Een toegankelijk bericht is ook te begrijpen voor mensen die slechtziend zijn, de taal nog leren of geen mobiele data hebben.',
     ],
     secret: 'Kijk naar de schuine pyloon: die is 139 meter hoog. Door die vorm herkent iedereen de brug meteen, zelfs van heel ver weg.',
-    game: null,
+    game: 'over-de-brug',
     card: {
-      title: 'Bouw de brug',
-      text: 'Maak een bericht of appscherm toegankelijk voor iemand die slechtziend is, de taal niet goed spreekt of geen mobiele data heeft. De AI test of het werkt.',
+      title: 'Iedereen over de brug',
+      text: 'De brug gaat dicht. Herschrijf het bericht zo dat drie heel verschillende Rotterdammers het snappen.',
     },
   },
 
@@ -101,10 +101,10 @@ export const STOPS = {
       'Je kunt een website of platform vragen een foto van jou te verwijderen.',
     ],
     secret: 'Veel rechtszaken zijn openbaar. Dat betekent dat je als bezoeker mag gaan kijken, zodat iedereen kan zien dat het eerlijk gaat.',
-    game: null,
+    game: 'kruisverhoor',
     card: {
-      title: 'De rechtszaak',
-      text: 'Een foto van een jongere wordt zonder toestemming gedeeld. De AI speelt beide advocaten, jij bent de rechter en ontdekt welke regels er gelden.',
+      title: 'Kruisverhoor',
+      text: 'Een foto is zonder toestemming gedeeld. Stel vier vragen aan de getuigen en doe dan uitspraak.',
     },
   },
 
@@ -121,10 +121,10 @@ export const STOPS = {
       'Jongeren kunnen in Rotterdam meepraten over plannen voor de stad.',
     ],
     secret: 'Bij de Euromast kun je naar beneden abseilen. Durf jij dat?',
-    game: null,
+    game: 'overtuig-de-stad',
     card: {
-      title: 'Stadsdilemma',
-      text: 'Een echte Rotterdamse kwestie. De AI geeft beide kanten, jij kiest en onderbouwt je mening, en daarna zie je wat andere jongeren kozen.',
+      title: 'Overtuig de stad',
+      text: 'Kies een kant en ga in debat met Lotte. Hoe sterker je argumenten, hoe hoger de lift van de Euromast gaat.',
     },
   },
 
@@ -140,10 +140,10 @@ export const STOPS = {
       'Je kunt meldingen en autoplay bij de meeste apps zelf uitzetten.',
     ],
     secret: 'Het Park was vroeger bedoeld als wandelpark voor rijke Rotterdammers. Nu is het van iedereen.',
-    game: null,
+    game: 'ontsnap-uit-de-app',
     card: {
-      title: 'Aandachtsval',
-      text: 'Een nep-app probeert je zo lang mogelijk vast te houden met streaks, autoplay en meldingen. Herken de trucs en zet ze uit.',
+      title: 'Ontsnap uit de app',
+      text: 'Een app wil je zo lang mogelijk vasthouden. Zet binnen een minuut de vijf trucs uit, en trap niet in de lokberichten.',
     },
   },
 
@@ -180,10 +180,10 @@ export const STOPS = {
       'Iedereen mag een gemeenteraadsvergadering bijwonen.',
     ],
     secret: 'Tijdens het bombardement van 1940 bleef het Stadhuis staan terwijl veel van het centrum verwoest werd. Daarom is het een van de weinige oude gebouwen in de binnenstad.',
-    game: null,
+    game: 'pitch-in-de-raad',
     card: {
-      title: 'Jouw idee voor de stad',
-      text: 'Bedenk wat jij in de stad zou verbeteren. De AI helpt je het idee scherp te maken en te pitchen. Alle ideeën samen laten zien wat jongeren willen.',
+      title: 'Pitch in de raad',
+      text: 'Bedenk een idee voor je wijk en overtuig drie raadsleden. Je hebt er twee nodig.',
     },
   },
 
@@ -199,10 +199,10 @@ export const STOPS = {
       'Een selectie-algoritme leert van oude keuzes. Als die oude keuzes oneerlijk waren, neemt het algoritme dat over.',
     ],
     secret: 'Die gele buizen aan de buitenkant zijn niet alleen versiering: ze voeren lucht aan en af. Het gebouw draagt zijn techniek gewoon aan de buitenkant.',
-    game: null,
+    game: 'algoritme',
     card: {
       title: 'Jij bent het algoritme',
-      text: 'Jij selecteert sollicitanten met een AI-regel en ontdekt dat die oneerlijk uitpakt. De AI laat zien waar de vooroordelen vandaan komen.',
+      text: 'Een computer kiest wie een bijbaan in de bieb krijgt. Ontdek waarom hij oneerlijk kiest, en of je dat kunt repareren.',
     },
   },
 };

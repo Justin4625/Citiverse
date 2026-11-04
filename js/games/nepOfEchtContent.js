@@ -52,6 +52,17 @@ export const MESSAGES = [
     tells: ['Je hoeft nooit te betalen om ergens geld of spullen mee te verdienen.', 'Complimenten maken je minder kritisch: dat is precies de bedoeling.'],
   },
 
+  {
+    id: 'qr-parkeren', kind: 'sms', from: 'ParkeerRotterdam', level: 3, fake: true,
+    text: 'Je parkeersessie is niet goed afgerond. Betaal binnen 24 uur €4,50 om een boete van €95 te voorkomen: parkeer-rotterdam-betalen.com',
+    tells: ['Dreigen met een veel hogere boete maakt je bang en haastig.', 'Het webadres lijkt officieel, maar is het niet.', 'Twijfel je? Kijk in de app waarmee je zelf betaalt, niet via de link.'],
+  },
+  {
+    id: 'deepfake-oproep', kind: 'dm', from: 'Bekende YouTuber ✓', level: 3, fake: true,
+    text: 'Ik geef 100 telefoons weg aan mijn volgers! 🎁 Kijk mijn video en vul je gegevens in via de link in mijn profiel. Alleen vandaag!',
+    tells: ['Een vinkje of bekende naam kan nep zijn: accounts en zelfs video\'s worden nagemaakt.', 'Een weggeefactie die om je gegevens vraagt is een bekende truc.', '"Alleen vandaag" zet je onder druk.'],
+  },
+
   // ---------- Real ----------
   {
     id: 'mentor-studiemiddag', kind: 'app', from: 'Schoolapp: je mentor', level: 1, fake: false,
@@ -87,6 +98,16 @@ export const MESSAGES = [
     id: 'tram-omleiding', kind: 'nieuws', from: 'Je nieuwsapp', level: 3, fake: false,
     text: 'Vanaf maandag rijden trams in het centrum een omleiding vanwege werkzaamheden. Kijk voor je reis in de reisplanner.',
     why: 'Gewone informatie zonder paniek, zonder oproep om te delen en zonder link naar een vreemde site.',
+  },
+  {
+    id: 'sport-training', kind: 'whatsapp', from: 'Trainer voetbal ⚽', level: 3, fake: false,
+    text: 'Training van donderdag gaat niet door, het veld is te nat. Zaterdag spelen we gewoon de wedstrijd, verzamelen om 9:00.',
+    why: 'Een bekend nummer uit je eigen groep, gewone informatie en er wordt niets van je gevraagd.',
+  },
+  {
+    id: 'bank-pas-verlopen', kind: 'mail', from: 'MaasBank', level: 3, fake: false,
+    text: 'Je bankpas verloopt volgende maand. Je nieuwe pas wordt automatisch naar je huisadres gestuurd. Je hoeft niets te doen.',
+    why: 'Er staat geen link in, er hoeft niets ingevuld te worden en er is geen haast. Echte banken sturen zo\'n bericht vaak gewoon ter informatie.',
   },
 ];
 

@@ -17,7 +17,13 @@
   <div id="map"></div>
 
   <header class="hud">
-    <p id="status" class="status">Locatie zoeken…</p>
+    <div class="hud__left">
+      <button id="levelChip" class="level-chip">
+        <b id="levelNum">1</b>
+        <span><strong id="levelName">Nieuwkomer</strong><i class="level-chip__bar"><i id="levelBar"></i></i></span>
+      </button>
+      <p id="status" class="status">Locatie zoeken…</p>
+    </div>
     <div class="hud__tools">
       <button id="testToggle" class="chip-btn" aria-pressed="false">Test</button>
       <button id="reset" class="chip-btn" hidden>Reset</button>
@@ -47,6 +53,20 @@
       <ul id="credits"></ul>
       <p>Foto's van Wikimedia Commons, bijgesneden en verkleind.</p>
     </details>
+  </section>
+
+  <section id="progressSheet" class="sheet" hidden>
+    <div class="sheet__grip" aria-hidden="true"></div>
+    <div class="sheet__head">
+      <div>
+        <h2>Voortgang</h2>
+        <p class="sheet__count">XP, badges en thema's</p>
+      </div>
+      <button id="progressClose" class="sheet__close" aria-label="Sluiten">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div id="progressBody"></div>
   </section>
 
   <section id="stopPanel" class="stop-panel" hidden></section>

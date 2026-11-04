@@ -7,8 +7,15 @@ import { MESSAGES, TEMPLATES } from './nepOfEchtContent.js';
 import { chat, isAvailable } from '../ai.js';
 
 const ROUNDS = 8;
-const LEVELS = [1, 1, 2, 2, 2, 3, 3, 3];
-const SECONDS = 15;
+// Message difficulty per round and seconds per message, by player level (0 = Nieuwkomer).
+const MIXES = [
+  [1, 1, 2, 2, 2, 3, 3, 3],
+  [1, 2, 2, 2, 3, 3, 3, 3],
+  [1, 2, 2, 3, 3, 3, 3, 3],
+  [2, 2, 2, 3, 3, 3, 3, 3],
+  [2, 2, 3, 3, 3, 3, 3, 3],
+];
+const TIMES = [15, 14, 12, 11, 10];
 const MAX_AI = 2; // AI-made fakes per game, swapped into fake rounds from round 3 on
 const STATS_KEY = 'nepofecht.stats.v1';
 
@@ -18,12 +25,13 @@ const shuffle = (arr) => arr.map((v) => [Math.random(), v]).sort((a, b) => a[0] 
 const escapeHtml = (s) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 // Pick one message per level slot, with 4 or 5 fakes in total.
-function pickRounds() {
+function pickRounds(LEVELS) {
   for (let attempt = 0; attempt < 50; attempt++) {
     const used = new Set();
     const rounds = LEVELS.map((level) => {
       const options = shuffle(MESSAGES.filter((m) => m.level === level && !used.has(m.id)));
-      const pick = options[0];
+      // Fall back to any unused message when a level runs out.
+      const pick = options[0] ?? shuffle(MESSAGES.filter((m) => !used.has(m.id)))[0];
       used.add(pick.id);
       return pick;
     });
@@ -79,8 +87,9 @@ function recordStat(id, wrong) {
   } catch {}
 }
 
-export function mount(el, { onFinish, character = { name: 'Karin' } }) {
-  const rounds = pickRounds();
+export function mount(el, { onFinish, character = { name: 'Karin' }, difficulty = 0 }) {
+  const rounds = pickRounds(MIXES[difficulty] ?? MIXES[0]);
+  const SECONDS = TIMES[difficulty] ?? TIMES[0];
   const aiReady = [];
   let index = 0;
   let score = 0;

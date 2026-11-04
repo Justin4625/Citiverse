@@ -10,11 +10,30 @@ Plain HTML/CSS/JS (ES modules), no build step. Map: MapLibre GL on OpenFreeMap t
 
 ## Stops, characters and minigames
 
-Tapping **Help <naam>** at a stop opens the stop panel (`js/stop.js`): the character introduces themselves and their digital problem, you can ask them questions, play the minigame, and hear their secret. **Stempel pakken** then closes the panel and shows the usual stamp.
+Tapping **Help <naam>** at a stop opens the stop panel (`js/stop.js`): the character introduces themselves and their digital problem, you can ask them questions, play the minigame, see your XP and hear their secret. On site, **Stempel pakken** then shows the usual stamp. Tapping a stop in the stamp book plays it from a distance: half XP and no stamp.
 
-- Characters, facts, problems, secrets and minigame descriptions for all 10 themes live in `js/stops.js`. The facts still need checking before a playtest. A location without an entry there keeps the old one-tap stamp.
-- Playable: **Nep of echt?** at the Politiebureau (`js/games/nepOfEcht.js`, messages in `nepOfEchtContent.js`). Other stops show a card describing their minigame.
-- A minigame is a module with `mount(element, { onFinish, character })` that calls `onFinish({ score, correct, total })` and returns a cleanup function. Register it in `GAMES` in `js/stop.js`.
+Characters, facts, problems and secrets for all 10 stops live in `js/stops.js`. The facts still need checking before a playtest.
+
+| Stop | Theme | Minigame | What the AI does | Without AI |
+| --- | --- | --- | --- | --- |
+| Rotterdam Centraal | Privacy | Spoorloos (`spoorloos.js`) | Mo turns your data traces into a profile | Lists the traces |
+| Markthal | Fair | Koopjesjacht (`koopjesjacht.js`) | Writes the slogans of the trick offers | Fixed slogans |
+| Kubuswoningen | Freedom | Moderator (`moderator.js`) | Daan reflects on how you moderated | Fixed reflection |
+| Erasmusbrug | Everybody | Iedereen over de brug (`overDeBrug.js`) | Voices the three readers' reactions (rules decide who understands) | Fixed reactions |
+| Rechtbank | Rules | Kruisverhoor (`kruisverhoor.js`) | Answers your own questions in the witness's role, from their facts | Question cards only |
+| Euromast | Opinion | Overtuig de stad (`overtuigDeStad.js`) | Scores an argument you write yourself | Argument cards only |
+| Het Park | Healthy | Ontsnap uit de app (`ontsnapUitDeApp.js`) | Writes the lure pop-ups | Fixed pop-ups |
+| Politiebureau | Safe | Nep of echt (`nepOfEcht.js`) | Writes extra fake messages within fixed templates | Built-in messages |
+| Stadhuis | Active | Pitch in de raad (`pitchInDeRaad.js`) | Council members ask about your idea and vote on your answer | Fixed questions and answer cards |
+| Centrale Bibliotheek | Chances | Jij bent het algoritme (`algoritme.js`) | A real logistic regression trains in the browser and learns a bias | Same (no language model needed) |
+
+A minigame is a module with `mount(element, { character, difficulty, onSite, onFinish })` that calls `onFinish({ correct, total, summary })` and returns a cleanup function. Register it in `js/games/index.js`. Shared helpers are in `js/games/kit.js`.
+
+### XP, levels and badges
+
+`js/progress.js`: a game gives 50 XP for finishing plus up to 150 for the share you got right; from a distance it counts half. Replaying a stop only adds the difference with your best result there. Five levels (Nieuwkomer to Havenbaas); Nep of echt gets harder as your level rises. Ten badges. Tap the level chip at the top left for the **Voortgang** sheet. **Reset** in test mode clears stamps and progress.
+
+Everything (stamps, XP, badges, and anonymous tallies such as the Euromast poll and the Stadhuis ideas) is stored only on the device.
 
 ### Local AI (Ollama)
 

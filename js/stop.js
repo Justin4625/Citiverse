@@ -1,16 +1,15 @@
-// The panel that opens at a stop: meet the character, ask them questions, play the minigame and
-// hear the secret. "Stempel pakken" at the end closes the panel and hands back to the map's own
-// stamp celebration.
+// The panel that opens at a stop: meet the character, ask them questions, play the minigame,
+// see your XP and hear the secret. On site, "Stempel pakken" then closes the panel and hands
+// back to the map's own stamp celebration. From a distance you get half XP and no stamp.
 
 import { STOPS } from './stops.js';
 import { photoUrl } from './locations.js';
 import { chat, isAvailable, stripPersonal } from './ai.js';
-import { mount as mountNepOfEcht } from './games/nepOfEcht.js';
+import { recordQuestion } from './progress.js';
+import { GAMES } from './games/index.js';
+import { escapeHtml } from './games/kit.js';
 
-const GAMES = { 'nep-of-echt': mountNepOfEcht };
 const MAX_HISTORY = 8;
-
-const escapeHtml = (s) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 export function hasStop(id) {
   return Boolean(STOPS[id]);
@@ -37,12 +36,16 @@ function systemPrompt(loc, stop) {
 
 const CLOSE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
-export function createStopPanel(root, { onCollect }) {
+// onCollect(loc): save the stamp. onPlayed(loc, result, { onSite, gameId }): record XP, returns
+// the outcome from progress.recordGame. getDifficulty(): 0..4 from the player's level.
+// onAchievements(list): show achievements unlocked outside a game (e.g. by asking questions).
+export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAchievements }) {
   let loc = null;
   let stop = null;
   let history = [];
   let cleanupGame = null;
   let collected = false;
+  let onSite = true;
 
   root.addEventListener('click', (e) => {
     if (e.target === root || e.target.closest('[data-close]')) close();
@@ -63,25 +66,28 @@ export function createStopPanel(root, { onCollect }) {
           </div>
           <button class="sheet__close" data-close aria-label="Sluiten">${CLOSE_ICON}</button>
         </header>
+        ${onSite ? '' : '<p class="remote-note">Je speelt op afstand: je krijgt de helft van de XP. De stempel haal je op locatie.</p>'}
         <div class="stop-panel__body">${bodyHtml}</div>
       </div>`;
     root.hidden = false;
+    root.querySelector('.stop-panel__card').scrollTop = 0;
     return root.querySelector('.stop-panel__body');
   }
 
   function showIntro() {
-    const playable = Boolean(GAMES[stop.game]);
+    const game = GAMES[stop.game];
     const body = shell(
       `
       <p class="speech">${escapeHtml(stop.intro)}</p>
       <p class="speech">${escapeHtml(stop.problem)}</p>
+      ${game ? `<p class="game-name"><small>Minigame</small><strong>${escapeHtml(stop.card.title)}</strong></p>` : ''}
       <div class="stop-panel__actions">
-        <button class="btn btn--action" data-go="help">${playable ? `Help ${stop.character.name}` : 'Bekijk de minigame'}</button>
+        <button class="btn btn--action" data-go="help">${game ? `Help ${stop.character.name}` : 'Bekijk de minigame'}</button>
         <button class="btn" data-go="chat">Stel ${stop.character.name} een vraag</button>
       </div>`,
       { banner: true },
     );
-    body.querySelector('[data-go="help"]').addEventListener('click', playable ? showGame : showCard);
+    body.querySelector('[data-go="help"]').addEventListener('click', game ? showGame : showCard);
     body.querySelector('[data-go="chat"]').addEventListener('click', showChat);
   }
 
@@ -96,7 +102,7 @@ export function createStopPanel(root, { onCollect }) {
         <button class="btn btn--action" data-go="reward">Verder</button>
         <button class="btn" data-go="back">Terug</button>
       </div>`);
-    body.querySelector('[data-go="reward"]').addEventListener('click', () => showReward(null));
+    body.querySelector('[data-go="reward"]').addEventListener('click', () => showReward(null, null));
     body.querySelector('[data-go="back"]').addEventListener('click', showIntro);
   }
 
@@ -104,31 +110,45 @@ export function createStopPanel(root, { onCollect }) {
     const body = shell('<div class="game-host"></div>');
     cleanupGame = GAMES[stop.game](body.querySelector('.game-host'), {
       character: stop.character,
+      difficulty: getDifficulty(),
+      onSite,
       onFinish: (result) => {
         cleanupGame?.();
         cleanupGame = null;
-        showReward(result);
+        const outcome = onPlayed(loc, result, { onSite, gameId: stop.game });
+        showReward(result, outcome);
       },
     });
   }
 
-  function showReward(result) {
+  function showReward(result, outcome) {
+    const levelUp = outcome && outcome.levelAfter.index > outcome.levelBefore.index;
+    const xpLine = !outcome
+      ? ''
+      : outcome.xpGained > 0
+        ? `<div class="xp-gain"><b>+${outcome.xpGained} XP</b>${onSite ? '' : '<span>op afstand: halve XP</span>'}</div>`
+        : '<div class="xp-gain xp-gain--none"><span>Geen extra XP: je had hier al een beter resultaat.</span></div>';
     const body = shell(`
-      ${result ? `<div class="result"><b>${result.correct}/${result.total}</b><span>goed · ${result.score} punten</span></div>` : ''}
+      ${result ? `<div class="result"><b>${result.correct}/${result.total}</b><span>${escapeHtml(result.summary ?? 'goed')}</span></div>` : ''}
+      ${xpLine}
+      ${levelUp ? `<div class="level-up"><small>Level omhoog</small><strong>Level ${outcome.levelAfter.number}: ${outcome.levelAfter.name}</strong></div>` : ''}
+      ${outcome?.newAchievements.length ? `<div class="unlocked">${outcome.newAchievements.map((a) => `<span class="badge"><b>${escapeHtml(a.name)}</b><small>${escapeHtml(a.text)}</small></span>`).join('')}</div>` : ''}
       <div class="secret">
         <small>Het geheim van ${stop.character.name}</small>
         <p>${escapeHtml(stop.secret)}</p>
       </div>
       <div class="stop-panel__actions">
-        ${collected
-          ? '<button class="btn btn--action" data-close>Terug naar de kaart</button>'
-          : '<button class="btn btn--action" data-go="collect">Stempel pakken</button>'}
+        ${onSite && !collected
+          ? '<button class="btn btn--action" data-go="collect">Stempel pakken</button>'
+          : '<button class="btn btn--action" data-close>Terug naar de kaart</button>'}
+        <button class="btn" data-go="again">Nog een keer spelen</button>
       </div>`);
     body.querySelector('[data-go="collect"]')?.addEventListener('click', () => {
       const target = loc;
       close();
       onCollect(target);
     });
+    body.querySelector('[data-go="again"]').addEventListener('click', GAMES[stop.game] ? showGame : showIntro);
   }
 
   async function showChat() {
@@ -181,8 +201,13 @@ export function createStopPanel(root, { onCollect }) {
       input.disabled = true;
       const reply = await chat([{ role: 'system', content: systemPrompt(loc, stop) }, ...history.slice(-MAX_HISTORY)]);
       pending.textContent = reply ?? 'Sorry, dat lukte even niet. Probeer het nog eens.';
-      if (reply) history.push({ role: 'assistant', content: reply });
-      else history.pop();
+      if (reply) {
+        history.push({ role: 'assistant', content: reply });
+        const unlocked = recordQuestion();
+        if (unlocked.length) onAchievements(unlocked);
+      } else {
+        history.pop();
+      }
       input.disabled = false;
       input.focus();
     }
@@ -196,12 +221,13 @@ export function createStopPanel(root, { onCollect }) {
     body.querySelectorAll('.chat__chip').forEach((chip) => chip.addEventListener('click', () => ask(chip.textContent)));
   }
 
-  function open(location, { isCollected }) {
+  function open(location, { isCollected, isOnSite }) {
     cleanupGame?.();
     cleanupGame = null;
     loc = location;
     stop = STOPS[loc.id];
     collected = isCollected;
+    onSite = isOnSite;
     history = [];
     showIntro();
   }
