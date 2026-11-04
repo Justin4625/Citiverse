@@ -1,5 +1,6 @@
 // "Nep of echt?" (Safe, Politiebureau, Karin).
-// Messages come into Karin's control room; the player swipes or taps Nep / Echt before the timer runs out.
+// Messages come into Karin's control room; the player swipes or taps Nep / Echt.
+// No timer (Justin's choice): players get as long as they need per message.
 // A streak of right answers raises the multiplier. The local AI writes extra fake messages inside
 // fixed templates; without AI the game plays with the built-in messages only.
 
@@ -7,7 +8,7 @@ import { MESSAGES, TEMPLATES } from './nepOfEchtContent.js';
 import { chat, isAvailable } from '../ai.js';
 
 const ROUNDS = 8;
-// Message difficulty per round and seconds per message, by player level (0 = Nieuwkomer).
+// Message difficulty per round, by player level (0 = Nieuwkomer).
 const MIXES = [
   [1, 1, 2, 2, 2, 3, 3, 3],
   [1, 2, 2, 2, 3, 3, 3, 3],
@@ -15,7 +16,6 @@ const MIXES = [
   [2, 2, 2, 3, 3, 3, 3, 3],
   [2, 2, 3, 3, 3, 3, 3, 3],
 ];
-const TIMES = [15, 14, 12, 11, 10];
 const MAX_AI = 2; // AI-made fakes per game, swapped into fake rounds from round 3 on
 const STATS_KEY = 'nepofecht.stats.v1';
 
@@ -89,14 +89,11 @@ function recordStat(id, wrong) {
 
 export function mount(el, { onFinish, character = { name: 'Karin' }, difficulty = 0 }) {
   const rounds = pickRounds(MIXES[difficulty] ?? MIXES[0]);
-  const SECONDS = TIMES[difficulty] ?? TIMES[0];
   const aiReady = [];
   let index = 0;
   let score = 0;
   let correct = 0;
   let streak = 0;
-  let timer = null;
-  let deadline = 0;
   let answered = false;
   let destroyed = false;
   let aiUsed = 0;
@@ -116,7 +113,6 @@ export function mount(el, { onFinish, character = { name: 'Karin' }, difficulty 
         <span class="noe__streak"></span>
         <span class="noe__score"></span>
       </div>
-      <div class="noe__timer"><span></span></div>
       <div class="lockscreen"><span class="lockscreen__time">${new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}</span><span class="lockscreen__date">Meldkamer van Karin</span><div class="noe__stage"></div></div>
       <div class="noe__actions">
         <button class="noe__btn noe__btn--nep" data-answer="nep">Nep</button>
@@ -129,7 +125,6 @@ export function mount(el, { onFinish, character = { name: 'Karin' }, difficulty 
   const stage = q('.noe__stage');
   const actions = q('.noe__actions');
   const feedback = q('.noe__feedback');
-  const timerBar = q('.noe__timer span');
 
   const multiplier = () => Math.min(3, 1 + Math.floor(streak / 2));
 
@@ -157,35 +152,19 @@ export function mount(el, { onFinish, character = { name: 'Karin' }, difficulty 
       <p class="noe__hint">Swipe naar links voor nep, naar rechts voor echt</p>`;
     enableSwipe(stage.querySelector('.msg'));
     updateBar();
-    startTimer();
   }
 
-  function startTimer() {
-    deadline = performance.now() + SECONDS * 1000;
-    const tick = () => {
-      if (destroyed || answered) return;
-      const left = Math.max(0, deadline - performance.now());
-      timerBar.style.width = `${(left / (SECONDS * 1000)) * 100}%`;
-      timerBar.classList.toggle('is-low', left < 5000);
-      if (left <= 0) answer(null);
-      else timer = requestAnimationFrame(tick);
-    };
-    cancelAnimationFrame(timer);
-    timer = requestAnimationFrame(tick);
-  }
 
   function answer(choice) {
     if (answered) return;
     answered = true;
-    cancelAnimationFrame(timer);
     const msg = rounds[index];
-    const secondsLeft = Math.max(0, Math.ceil((deadline - performance.now()) / 1000));
-    const right = choice !== null && (choice === 'nep') === msg.fake;
+    const right = (choice === 'nep') === msg.fake;
     let gained = 0;
     if (right) {
       streak += 1;
       correct += 1;
-      gained = 100 * multiplier() + secondsLeft * 5;
+      gained = 100 * multiplier();
       score += gained;
     } else {
       streak = 0;
@@ -193,9 +172,7 @@ export function mount(el, { onFinish, character = { name: 'Karin' }, difficulty 
     recordStat(msg.id, !right);
     navigator.vibrate?.(right ? 40 : [60, 40, 60]);
 
-    const verdict = choice === null
-      ? 'Te laat!'
-      : right ? `Goed! +${gained}` : msg.fake ? 'Opgelicht!' : 'Toch echt';
+    const verdict = right ? `Goed! +${gained}` : msg.fake ? 'Opgelicht!' : 'Toch echt';
     const explanation = msg.fake
       ? `<p>Dit bericht is <strong>nep</strong>. Hier herken je het aan:</p><ul>${msg.tells.map((t) => `<li>${escapeHtml(t)}</li>`).join('')}</ul>`
       : `<p>Dit bericht is <strong>echt</strong>. ${escapeHtml(msg.why)}</p>`;
@@ -278,7 +255,6 @@ export function mount(el, { onFinish, character = { name: 'Karin' }, difficulty 
 
   return () => {
     destroyed = true;
-    cancelAnimationFrame(timer);
     document.removeEventListener('keydown', onKey);
   };
 }

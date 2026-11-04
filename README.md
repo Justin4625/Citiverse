@@ -23,7 +23,7 @@ Characters, facts, problems and secrets for all 10 stops live in `js/stops.js`. 
 | Rechtbank | Rules | Kruisverhoor | Collect evidence, then shout "Bezwaar!" when Sanne's testimony contradicts it | Answers your own questions in the witness's role |
 | Euromast | Opinion | Overtuig de stad | Debate battle: play argument cards against a timer, pull the audience your way; cards flip to show the fallacy | Scores a joker argument you write yourself |
 | Het Park | Healthy | Ontsnap uit de app | Switch off five tricks in a fake app's settings within 60 s while pop-ups lure you back | Writes the lure pop-ups |
-| Politiebureau | Safe | Nep of echt | Swipe notifications on a lock screen, timer and streak multiplier, harder at higher levels | Writes extra fake messages within fixed templates |
+| Politiebureau | Safe | Nep of echt | Swipe notifications on a lock screen with a streak multiplier; harder messages at higher levels | Writes extra fake messages within fixed templates |
 | Stadhuis | Active | Pitch in de raad | Pitch your idea in the council chamber; vote lamps light up per member | Council members ask about your idea and vote on your answer |
 | Centrale Bibliotheek | Chances | Jij bent het algoritme | Set sliders and watch applicants re-sort live; then repair a biased model by switching data off and retraining live | A real logistic regression trains in the browser (no language model needed) |
 
