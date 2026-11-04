@@ -156,11 +156,17 @@ export function mount(el, { onFinish, character }) {
     member();
   }
 
+  // The council chamber: three seats with vote lamps, and you at the lectern.
   function bar() {
-    return `<div class="council">${MEMBERS.map((m, i) => {
-      const v = votes[i];
-      return `<span class="council__seat${v === true ? ' is-yes' : v === false ? ' is-no' : i === index ? ' is-now' : ''}"><b>${m.name[0]}</b><small>${m.name}</small></span>`;
-    }).join('')}</div>`;
+    return `<div class="council">
+      <div class="council__seats">${MEMBERS.map((m, i) => {
+        const v = votes[i];
+        return `<span class="council__seat${v === true ? ' is-yes' : v === false ? ' is-no' : i === index ? ' is-now' : ''}" style="--i:${i}">
+          <i class="council__lamp"></i><b>${m.name[0]}</b><small>${m.name}</small><em>${escapeHtml(m.cares)}</em></span>`;
+      }).join('')}</div>
+      <div class="council__lectern"><small>Jouw voorstel</small><p>${escapeHtml(idea)}</p></div>
+      <div class="council__tally"><span class="yes">${votes.filter((v) => v === true).length} voor</span><span class="no">${votes.filter((v) => v === false).length} tegen</span></div>
+    </div>`;
   }
 
   async function member() {
@@ -168,7 +174,6 @@ export function mount(el, { onFinish, character }) {
     el.innerHTML = `
       <div class="g">
         ${bar()}
-        <p class="g__hint">Jouw idee: <strong>${escapeHtml(idea)}</strong></p>
         <div class="say"><span class="say__avatar" aria-hidden="true">${m.name[0]}</span><div class="say__text"><p><strong>${m.name}</strong> · let op ${m.cares}</p><p class="m-q">${aiOn ? '<span class="g__thinking">denkt na over je idee…</span>' : escapeHtml(m.question)}</p></div></div>
         <div class="m-answer"></div>
       </div>`;

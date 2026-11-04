@@ -85,14 +85,45 @@ export function mount(el, { onFinish, character }) {
   let text = ORIGINAL;
   let aiOn = false;
   let destroyed = false;
+  let across = {}; // who stood on the far side after the last test
   isAvailable().then((ok) => (aiOn = ok));
+
+  // The Erasmusbrug, with the three people walking across when they understand the message.
+  function scene() {
+    return `<div class="bridge" aria-hidden="true">
+      <svg viewBox="0 0 360 150" preserveAspectRatio="xMidYMid meet">
+        <rect x="0" y="104" width="360" height="46" fill="#8fd0ea"/>
+        <path d="M0 116 Q 30 110 60 116 T 120 116 T 180 116 T 240 116 T 300 116 T 360 116" stroke="#ffffff" stroke-width="2" fill="none" opacity="0.6"/>
+        <rect x="0" y="92" width="52" height="58" fill="#cfd6c4"/>
+        <rect x="308" y="92" width="52" height="58" fill="#cfd6c4"/>
+        <rect x="40" y="90" width="280" height="8" fill="#14171c"/>
+        <path d="M128 90 L 150 12 L 162 90" fill="none" stroke="#14171c" stroke-width="5" stroke-linejoin="round"/>
+        ${Array.from({ length: 9 }, (_, i) => `<line x1="150" y1="${14 + i * 2}" x2="${170 + i * 17}" y2="90" stroke="#14171c" stroke-width="1.2"/>`).join('')}
+        ${Array.from({ length: 6 }, (_, i) => `<line x1="152" y1="${18 + i * 2}" x2="${120 - i * 13}" y2="90" stroke="#14171c" stroke-width="1.2"/>`).join('')}
+        <rect x="200" y="84" width="40" height="6" fill="#ff6a13" class="bridge__barrier"/>
+        <text x="26" y="140" font-size="9" font-weight="800" text-anchor="middle" fill="#3a414b">NOORD</text>
+        <text x="334" y="140" font-size="9" font-weight="800" text-anchor="middle" fill="#3a414b">ZUID</text>
+      </svg>
+      ${PEOPLE.map((p, i) => `<span class="walker walker--${p.id}${across[p.id] ? ' is-across' : ''}" style="--i:${i}">${p.name[0]}</span>`).join('')}
+    </div>`;
+  }
+
+  // Marks what trips people up, shown live after the first test.
+  function marks(t) {
+    // Links first, so the other marks never end up inside a web address.
+    let html = escapeHtml(t).replace(/\b[\w-]+\.(nl|com|org|net)\b(\/[^\s<]*)?/gi, (m) => `<mark class="mk mk--link" title="Werkt niet zonder internet">${m}</mark>`);
+    html = html.replace(new RegExp(`\\b(${HARD_WORDS.map((w) => w.replace(/\./g, '\\.')).join('|')})\\b`, 'gi'), '<mark class="mk mk--hard">$1</mark>');
+    html = html.replace(/\p{Extended_Pictographic}/gu, (m) => `<mark class="mk mk--emoji">${m}</mark>`);
+    return html;
+  }
 
   function editor(results) {
     const left = ATTEMPTS - attempt;
     el.innerHTML = `
       <div class="g">
         <div class="g__bar"><span>Poging ${Math.min(attempt + 1, ATTEMPTS)}/${ATTEMPTS}</span><span>${best}/3 over de brug</span></div>
-        ${attempt === 0 ? say(character, '<p>Vannacht gaat de brug dicht. Dit bericht heeft de gemeente gemaakt. Maar niet iedereen snapt het. Herschrijf het zo dat Noor, Ahmad en Mirjam alle drie weten wat ze moeten doen.</p>') : ''}
+        ${scene()}
+        ${attempt === 0 ? say(character, '<p>Vannacht gaat de brug dicht. Dit bericht heeft de gemeente gemaakt. Maar niet iedereen snapt het. Herschrijf het zo dat Noor, Ahmad en Mirjam alle drie weten wat ze moeten doen. Wie het snapt, komt veilig aan de overkant.</p>') : ''}
         <div class="people">${PEOPLE.map((p) => {
           const r = results?.[p.id];
           return `<div class="person${r ? (r.ok ? ' is-ok' : ' is-no') : ''}">
@@ -102,10 +133,24 @@ export function mount(el, { onFinish, character }) {
         }).join('')}</div>
         <label class="g__hint" for="bridgeText">Het bericht</label>
         <textarea id="bridgeText" maxlength="400">${escapeHtml(text)}</textarea>
+        ${attempt > 0 ? `<div class="marks"><small>Wat struikelt: <mark class="mk mk--hard">moeilijk woord</mark> <mark class="mk mk--emoji">voorgelezen plaatje</mark> <mark class="mk mk--link">link</mark></small><p class="marks__text">${marks(text)}</p></div>` : ''}
         <p class="g__hint">Tip: tijdens de sluiting kun je de Willemsbrug, de Maastunnel of de metro nemen.</p>
         <button class="btn btn--action g__wide" data-test>Test bij Noor, Ahmad en Mirjam (${left} over)</button>
       </div>`;
     el.querySelector('[data-test]').addEventListener('click', test);
+    el.querySelector('#bridgeText').addEventListener('input', (e) => {
+      const m = el.querySelector('.marks__text');
+      if (m) m.innerHTML = marks(e.target.value);
+    });
+    // Walk people to their new side after the scene has painted.
+    if (results) {
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          for (const p of PEOPLE) el.querySelector(`.walker--${p.id}`)?.classList.toggle('is-across', results[p.id].ok);
+          across = Object.fromEntries(PEOPLE.map((p) => [p.id, results[p.id].ok]));
+        }),
+      );
+    }
   }
 
   async function test() {

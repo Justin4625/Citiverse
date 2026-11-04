@@ -1,14 +1,44 @@
 // "Overtuig de stad" (Opinion, Euromast, Lotte).
-// Pick a statement and a side. Lotte argues the other side in three rounds; you answer with the
-// strongest argument you can find. Every argument point raises the Euromast lift. At the top you
-// see which side earlier players on this device chose.
-// AI: scores an argument you write yourself (1 to 3) and explains why. Without AI you choose
-// from argument cards.
+// A debate battle. Pick a statement and a side. The audience sits between you and Lotte, who
+// argues the other side. Each round Lotte attacks with a counterargument and the audience drifts
+// her way; you answer by playing one of three argument cards before the timer runs out. Strong
+// arguments pull the audience back, fallacies hardly move them, and the card flips to show what
+// kind of argument it was. Win the audience over and the Euromast lift takes you to the top,
+// where you see which side earlier players on this device chose.
+// AI: a joker card lets you write your own argument, which the AI scores (1 to 3).
 
 import { chat, isAvailable, stripPersonal } from '../ai.js';
-import { escapeHtml, shuffle, say, endScreen, parseJson, tally } from './kit.js';
+import { escapeHtml, shuffle, say, endScreen, parseJson, tally, countdown } from './kit.js';
 
 const HEIGHT_M = 185;
+const TURN_SECONDS = 20;
+const AUDIENCE = 24;
+const PULL = { 3: 50, 2: 28, 1: 6 };
+const ATTACK = 26;
+
+// What kind of argument each weak card is, shown when it flips.
+const FALLACY = {
+  'Vroeger hadden': 'Beroep op vroeger',
+  'Niemand zoekt': 'Overdrijving',
+  'Mijn mentor': 'Beroep op autoriteit',
+  'Ik let altijd': 'Eén voorbeeld',
+  'Volwassenen zitten': 'Jij-bak',
+  'Dat is gewoon een slecht': 'Geen reden',
+  'Als je niks fout': 'Drogreden',
+  'Iedereen maakt weleens': 'Bagatelliseren',
+  'Dat gebeurt toch': 'Ontkennen',
+  'Ik vind camera': 'Alleen een gevoel',
+  'Niemand wil': 'Overdrijving',
+  'Die steden': 'Schelden',
+  'Ouderen weten': 'Jij-bak',
+  'Mijn ouders stemmen': 'Eén voorbeeld',
+  'Ingewikkeld is geen': 'Geen reden',
+  'Jongeren hebben toch': 'Generalisatie',
+  'Werken is iets anders': 'Geen reden',
+  'Dat kan me niet': 'Geen argument',
+};
+const typeOf = (a) =>
+  a.points === 3 ? 'Sterk argument' : a.points === 2 ? 'Half argument' : Object.entries(FALLACY).find(([k]) => a.text.startsWith(k))?.[1] ?? 'Zwak argument';
 
 // For each statement and side: three counterarguments from Lotte, each with three answers.
 // points 3 = strong, 2 = reasonable, 1 = weak. `why` explains the weak and reasonable ones.
@@ -213,22 +243,16 @@ export function mount(el, { onFinish, character }) {
   let side = null;
   let round = 0;
   let points = 0;
+  let tug = 0; // -100 = audience with Lotte, +100 = with you
+  let timer = null;
   let destroyed = false;
   let aiOn = false;
   isAvailable().then((ok) => (aiOn = ok));
 
-  function lift() {
-    const m = Math.round((points / 9) * HEIGHT_M);
-    return `<div class="lift" aria-label="De lift is op ${m} meter">
-      <div class="lift__shaft"><span class="lift__car" style="bottom:${(points / 9) * 100}%"></span></div>
-      <span class="lift__m">${m} m</span>
-    </div>`;
-  }
-
   function chooseStatement() {
     el.innerHTML = `
       <div class="g">
-        ${say(character, '<p>Kies een stelling waar Rotterdam het over heeft. Daarna kies je je kant, en ik ga ertegenin. Zo test ik hoe sterk je argumenten zijn.</p>')}
+        ${say(character, '<p>Debat op de Euromast! Kies een stelling en een kant. Ik speel de andere kant. Het publiek in het midden beslist wie het overtuigendst is.</p>')}
         <div class="g__choices">
           ${STATEMENTS.map((s) => `<button class="g__choice" data-id="${s.id}"><strong>${escapeHtml(s.text)}</strong></button>`).join('')}
         </div>
@@ -249,94 +273,161 @@ export function mount(el, { onFinish, character }) {
           <button class="btn btn--action" data-side="eens">Eens</button>
           <button class="btn" data-side="oneens">Oneens</button>
         </div>
-        <p class="g__hint">Er is geen goed of fout antwoord. Je scoort met hoe goed je je mening onderbouwt.</p>
+        <p class="g__hint">Er is geen goed of fout antwoord. Je wint met hoe goed je je mening onderbouwt.</p>
       </div>`;
     el.querySelectorAll('[data-side]').forEach((b) =>
       b.addEventListener('click', () => {
         side = b.dataset.side;
         tally(`overtuig-${statement.id}`, side);
-        showRound();
+        arena();
+        attack();
       }),
     );
   }
 
-  function showRound() {
-    const r = statement[side][round];
+  function crowd() {
+    // Each audience member leans to whoever the tug value favours, from the middle outwards.
+    const yours = Math.round(((tug + 100) / 200) * AUDIENCE);
+    return Array.from({ length: AUDIENCE }, (_, i) => `<i class="${i < AUDIENCE - yours ? 'is-lotte' : 'is-you'}"></i>`).join('');
+  }
+
+  function arena() {
     el.innerHTML = `
-      <div class="g g--lift">
-        <div class="g__main">
-          <div class="g__bar"><span>Ronde ${round + 1}/3</span><span>${points} punten</span></div>
-          ${say(character, `<p>${escapeHtml(r.counter)}</p>`)}
-          <p class="g__hint">Kies je sterkste antwoord${aiOn ? ', of schrijf je eigen argument' : ''}.</p>
-          <div class="g__choices">
-            ${shuffle(r.answers).map((a) => `<button class="g__choice" data-points="${a.points}">${escapeHtml(a.text)}</button>`).join('')}
-          </div>
-          ${aiOn ? `<form class="g__own">
-            <textarea id="ownArgument" maxlength="280" placeholder="Mijn argument…"></textarea>
-            <button class="btn" type="submit">Gebruik mijn argument</button>
-          </form>` : ''}
+      <div class="g battle">
+        <div class="g__bar"><span>Ronde <b class="b-round">1</b>/3</span><span class="b-points">0 punten</span></div>
+        <div class="battle__stage">
+          <div class="fighter fighter--lotte"><span class="fighter__avatar">L</span><small>Lotte</small></div>
+          <div class="battle__crowd" aria-label="Het publiek">${crowd()}</div>
+          <div class="fighter fighter--you"><span class="fighter__avatar">Jij</span><small>${side === 'eens' ? 'Eens' : 'Oneens'}</small></div>
         </div>
-        ${lift()}
+        <div class="tug"><i class="tug__marker" style="left:${(tug + 100) / 2}%"></i></div>
+        <div class="battle__speech"></div>
+        <div class="battle__timer"><i></i></div>
+        <div class="hand"></div>
       </div>`;
-    el.querySelectorAll('[data-points]').forEach((b) =>
-      b.addEventListener('click', () => {
-        const answer = r.answers.find((a) => a.text === b.textContent);
-        el.querySelectorAll('[data-points]').forEach((x) => (x.disabled = true));
-        b.classList.add(answer.points === 3 ? 'is-right' : 'is-wrong');
-        feedback(answer.points, answer.points === 3 ? 'Sterk: je gaat in op mijn punt en geeft een reden.' : answer.why, false);
-      }),
+  }
+
+  function updateCrowd() {
+    el.querySelector('.battle__crowd').innerHTML = crowd();
+    el.querySelector('.tug__marker').style.left = `${(tug + 100) / 2}%`;
+    el.querySelector('.b-points').textContent = `${points} punten`;
+  }
+
+  function attack() {
+    const r = statement[side][round];
+    el.querySelector('.b-round').textContent = round + 1;
+    el.querySelector('.battle__speech').innerHTML = `<div class="speech-attack"><small>Lotte</small><p>${escapeHtml(r.counter)}</p></div>`;
+    el.querySelector('.fighter--lotte').classList.add('is-attacking');
+    setTimeout(() => el.querySelector('.fighter--lotte')?.classList.remove('is-attacking'), 500);
+    tug = Math.max(-100, tug - ATTACK);
+    updateCrowd();
+    deal(r);
+  }
+
+  function deal(r) {
+    const hand = el.querySelector('.hand');
+    hand.innerHTML = `${shuffle(r.answers)
+      .map((a, i) => `<button class="arg-card" style="--i:${i}" data-text="${escapeHtml(a.text)}"><span class="arg-card__face">${escapeHtml(a.text)}</span></button>`)
+      .join('')}
+      ${aiOn ? '<button class="arg-card arg-card--joker" data-joker><span class="arg-card__face"><strong>Joker</strong>Schrijf je eigen argument</span></button>' : ''}`;
+    hand.querySelectorAll('[data-text]').forEach((b) =>
+      b.addEventListener('click', () => play(r, r.answers.find((a) => a.text === b.dataset.text), b)),
     );
-    el.querySelector('.g__own')?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const { text } = stripPersonal(el.querySelector('#ownArgument').value.trim());
-      if (text.length < 8) return;
-      el.querySelectorAll('button, textarea').forEach((x) => (x.disabled = true));
-      el.querySelector('.g__own').insertAdjacentHTML('beforeend', '<p class="g__thinking">Lotte denkt na…</p>');
-      const scored = await scoreOwnArgument(statement.text, side, r.counter, text);
-      if (destroyed) return;
-      if (!scored) {
-        el.querySelector('.g__thinking').textContent = 'Dat lukte even niet. Kies een van de antwoorden hierboven.';
-        el.querySelectorAll('[data-points]').forEach((x) => (x.disabled = false));
-        return;
-      }
-      feedback(scored.points, scored.why, true);
+    hand.querySelector('[data-joker]')?.addEventListener('click', () => joker(r));
+    startTimer(r);
+  }
+
+  function startTimer(r) {
+    timer?.stop();
+    const bar = el.querySelector('.battle__timer i');
+    timer = countdown(TURN_SECONDS, {
+      onTick: (left, frac) => {
+        bar.style.width = `${frac * 100}%`;
+        bar.classList.toggle('is-low', left < 6);
+      },
+      onEnd: () => {
+        tug = Math.max(-100, tug - 15);
+        updateCrowd();
+        resolve(r, null, 0, 'Te laat! Het publiek wacht niet. Lotte wint deze ronde.', 'Geen antwoord');
+      },
     });
   }
 
-  function feedback(gained, why, own) {
+  function play(r, answer, card) {
+    timer?.stop();
+    el.querySelectorAll('.arg-card').forEach((c) => {
+      c.disabled = true;
+      if (c !== card) c.classList.add('is-discarded');
+    });
+    card.classList.add('is-played', answer.points === 3 ? 'is-strong' : answer.points === 2 ? 'is-ok' : 'is-weak');
+    card.querySelector('.arg-card__face').insertAdjacentHTML('beforeend', `<em class="arg-card__type">${escapeHtml(typeOf(answer))}</em>`);
+    setTimeout(
+      () => resolve(r, answer, answer.points, answer.points === 3 ? 'Sterk: je gaat in op mijn punt en geeft een reden.' : answer.why, typeOf(answer)),
+      700,
+    );
+  }
+
+  function joker(r) {
+    timer?.stop();
+    el.querySelector('.battle__timer i').style.width = '0';
+    el.querySelector('.hand').innerHTML = `
+      <form class="g__own">
+        <textarea id="ownArgument" maxlength="280" placeholder="Mijn argument tegen wat Lotte zegt…"></textarea>
+        <button class="btn btn--action" type="submit">Speel mijn argument</button>
+      </form>`;
+    el.querySelector('.g__own').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const { text } = stripPersonal(el.querySelector('#ownArgument').value.trim());
+      if (text.length < 8) return;
+      el.querySelectorAll('.g__own button, .g__own textarea').forEach((x) => (x.disabled = true));
+      el.querySelector('.g__own').insertAdjacentHTML('beforeend', '<p class="g__thinking">Het publiek denkt na…</p>');
+      const scored = await scoreOwnArgument(statement.text, side, r.counter, text);
+      if (destroyed) return;
+      if (!scored) {
+        deal(r);
+        el.querySelector('.hand').insertAdjacentHTML('afterbegin', '<p class="g__hint">Dat lukte even niet. Speel een kaart.</p>');
+        return;
+      }
+      resolve(r, null, scored.points, scored.why, scored.points === 3 ? 'Sterk argument' : scored.points === 2 ? 'Half argument' : 'Zwak argument', true);
+    });
+  }
+
+  function resolve(r, answer, gained, why, type, own = false) {
     points += gained;
-    const label = gained === 3 ? 'Sterk argument!' : gained === 2 ? 'Redelijk argument' : 'Zwak argument';
-    el.querySelector('.g__main').innerHTML = `
-      <div class="g__bar"><span>Ronde ${round + 1}/3</span><span>${points} punten</span></div>
-      <p class="g__verdict ${gained === 3 ? 'is-right' : 'is-wrong'}">${label} +${gained}</p>
+    tug = Math.max(-100, Math.min(100, tug + (PULL[gained] ?? 0)));
+    updateCrowd();
+    if (gained === 3) el.querySelector('.fighter--you').classList.add('is-attacking');
+    el.querySelector('.hand').innerHTML = `
+      <p class="g__verdict ${gained === 3 ? 'is-right' : 'is-wrong'}">${escapeHtml(type)}${gained ? ` +${gained}` : ''}</p>
       ${say(character, `<p>${escapeHtml(why)}</p>`)}
       ${own ? '<p class="g__ai">Je argument is beoordeeld door de AI. Ben je het er niet mee eens? Bespreek het met je groep.</p>' : ''}
-      <button class="btn btn--action g__wide" data-next>${round < 2 ? 'Volgende ronde' : 'Naar boven'}</button>`;
-    el.querySelector('.lift').outerHTML = lift();
+      <button class="btn btn--action g__wide" data-next>${round < 2 ? 'Volgende ronde' : 'Uitslag'}</button>`;
     el.querySelector('[data-next]').addEventListener('click', () => {
+      el.querySelector('.fighter--you')?.classList.remove('is-attacking');
       round += 1;
-      if (round < 3) showRound();
+      if (round < 3) attack();
       else finish();
     });
   }
 
   function finish() {
+    timer?.stop();
+    const won = tug > 0;
     const t = tally(`overtuig-${statement.id}`);
     const total = (t.eens ?? 0) + (t.oneens ?? 0);
     const pct = (k) => Math.round(((t[k] ?? 0) / total) * 100);
     const m = Math.round((points / 9) * HEIGHT_M);
-    const line =
-      points >= 8
-        ? `Je bent helemaal boven, op ${m} meter! Met zulke argumenten luistert de stad naar je.`
-        : points >= 6
-          ? `Je kwam tot ${m} meter. Sterke argumenten gaan in op wat de ander zegt en geven een reden.`
-          : `De lift bleef op ${m} meter hangen. Let op drogredenen: wijzen naar een ander of overdrijven overtuigt niemand.`;
     endScreen(el, {
-      big: `${m} m`,
-      sub: `${points} van 9 argumentpunten`,
+      big: won ? `${m} m` : 'Verloren',
+      sub: won ? 'Het publiek staat achter je' : 'Het publiek koos voor Lotte',
       character,
-      line: escapeHtml(line),
-      extra: `<div class="poll"><p class="poll__q">${escapeHtml(statement.text)}</p>
+      line: escapeHtml(
+        won
+          ? `De lift neemt je mee naar ${m} meter! Sterke argumenten gaan in op wat de ander zegt en geven een reden of oplossing.`
+          : 'Het publiek liet zich niet overtuigen. Let op drogredenen: wijzen naar een ander, overdrijven of "punt" zeggen overtuigt niemand.',
+      ),
+      extra: `<div class="lift-end"><span class="lift-end__tower"><i style="height:${(points / 9) * 100}%"></i></span><span>${points} van 9 argumentpunten</span></div>
+        <div class="poll"><p class="poll__q">${escapeHtml(statement.text)}</p>
         <div class="poll__row"><span>Eens</span><span class="poll__bar"><i style="width:${pct('eens')}%"></i></span><b>${pct('eens')}%</b></div>
         <div class="poll__row"><span>Oneens</span><span class="poll__bar"><i style="width:${pct('oneens')}%"></i></span><b>${pct('oneens')}%</b></div>
         <p class="g__hint">${total} ${total === 1 ? 'speler' : 'spelers'} op dit apparaat. Jouw mening telt mee.</p></div>`,
@@ -347,5 +438,6 @@ export function mount(el, { onFinish, character }) {
   chooseStatement();
   return () => {
     destroyed = true;
+    timer?.stop();
   };
 }

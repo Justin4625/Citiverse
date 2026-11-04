@@ -1,12 +1,16 @@
 // "Koopjesjacht" (Fair, Markthal, Yasmina).
-// You have €30 and a shopping list of four things. For each one you choose between two offers.
-// One is honest, the other uses a trick: hidden costs, a fake discount, a subscription trap or a
-// pre-ticked extra. Only after you choose do you see what you really pay.
+// You have €30 and a shopping list of four things. At each stall two offers compete, and you have
+// 15 seconds to choose. One is honest, the other uses a trick: hidden costs, a fake discount, a
+// subscription trap or a pre-ticked extra. The truth is in the small print, which you can only
+// read with the magnifying glass. Run out of time and you grab the cheapest-looking deal.
+// At the end your receipt shows what you really paid.
 // Score: the number of honest offers you picked.
 // AI: writes the flashy slogan for the trick offers (never prices: those stay fixed).
 
 import { chat, isAvailable } from '../ai.js';
-import { escapeHtml, say, endScreen, shuffle, parseJson } from './kit.js';
+import { escapeHtml, say, endScreen, shuffle, parseJson, countdown } from './kit.js';
+
+const ROUND_SECONDS = 15;
 
 const BUDGET = 30;
 const euro = (v) => `€${v.toFixed(2).replace('.', ',')}`;
@@ -14,7 +18,7 @@ const euro = (v) => `€${v.toFixed(2).replace('.', ',')}`;
 const ROUNDS = [
   {
     item: 'Een oplader voor je telefoon',
-    honest: { shop: 'Kraam van Yasmina', title: 'USB-C oplader', price: 9, lines: ['Gratis meenemen'], real: 9 },
+    honest: { shop: 'Kraam van Yasmina', title: 'USB-C oplader', price: 9, lines: ['Gratis meenemen'], real: 9, fine: 'Totaalprijs. Er komt niks bij.' },
     trick: {
       shop: 'SuperDeal Online',
       title: 'USB-C oplader',
@@ -23,13 +27,14 @@ const ROUNDS = [
       lines: ['Op voorraad'],
       real: 11.44,
       reveal: ['Verzendkosten €4,95', 'Servicekosten €1,50'],
+      fine: 'Exclusief verzendkosten (€4,95) en servicekosten (€1,50).',
       name: 'Verborgen kosten',
       explain: 'De lage prijs lokt je, en pas bij het betalen komen er kosten bij. Een eerlijke winkel laat de totaalprijs meteen zien.',
     },
   },
   {
     item: 'Een telefoonhoesje',
-    honest: { shop: 'Kraam van Yasmina', title: 'Hoesje, zwart', price: 7.5, lines: [], real: 7.5 },
+    honest: { shop: 'Kraam van Yasmina', title: 'Hoesje, zwart', price: 7.5, lines: [], real: 7.5, fine: 'Vaste prijs, elke dag.' },
     trick: {
       shop: 'TrendyCases',
       title: 'Hoesje, zwart',
@@ -39,13 +44,14 @@ const ROUNDS = [
       lines: [],
       real: 8.99,
       reveal: ['Dit hoesje kostte nooit €29,99. De "oude prijs" is verzonnen.'],
+      fine: 'Van-prijs is een adviesprijs. Hier nooit voor verkocht.',
       name: 'Nepkorting',
       explain: 'Een doorgestreepte prijs die nooit echt gevraagd werd, laat een gewone prijs als koopje voelen. Vergelijk altijd met andere winkels.',
     },
   },
   {
     item: 'Bubble tea voor onderweg',
-    honest: { shop: 'Theekraam', title: 'Bubble tea', price: 4, lines: [], real: 4 },
+    honest: { shop: 'Theekraam', title: 'Bubble tea', price: 4, lines: [], real: 4, fine: 'Eén beker, geen abonnement.' },
     trick: {
       shop: 'SipClub app',
       title: 'Bubble tea',
@@ -54,13 +60,14 @@ const ROUNDS = [
       lines: ['Meld je aan in de app'],
       real: 4.99,
       reveal: ['Na de gratis proef word je lid voor €4,99 per maand.', 'Dat gaat automatisch door tot je opzegt.'],
+      fine: 'Proefabonnement. Daarna €4,99 per maand, verlengt automatisch.',
       name: 'Abonnementsval',
       explain: '"Gratis" was een proefabonnement dat vanzelf doorloopt. Lees altijd wat er na de proefperiode gebeurt.',
     },
   },
   {
     item: 'Een armband als cadeau',
-    honest: { shop: 'Sieradenkraam', title: 'Zilverkleurige armband', price: 6.5, lines: [], real: 6.5 },
+    honest: { shop: 'Sieradenkraam', title: 'Zilverkleurige armband', price: 6.5, lines: [], real: 6.5, fine: 'Inclusief verzending.' },
     trick: {
       shop: 'GiftShop24',
       title: 'Zilverkleurige armband',
@@ -69,6 +76,7 @@ const ROUNDS = [
       lines: ['☑ Bezorgverzekering'],
       real: 8.5,
       reveal: ['De bezorgverzekering van €2,50 stond al aangevinkt.', '"Nog maar 2" stond er gisteren ook al.'],
+      fine: 'Bezorgverzekering €2,50 standaard aangevinkt.',
       name: 'Vooraf aangevinkt en nepschaarste',
       explain: 'Een extra dat al aangevinkt staat, betaal je als je niet oplet. En "nog maar 2" is vaak bedoeld om je te haasten.',
     },
@@ -100,6 +108,8 @@ export function mount(el, { onFinish, character }) {
   let slogans = null;
   let destroyed = false;
   let aiMade = false;
+  let timer = null;
+  const receipt = [];
 
   isAvailable().then(async (ok) => {
     if (!ok) return;
@@ -107,13 +117,15 @@ export function mount(el, { onFinish, character }) {
   });
 
   function offerHtml(o, key) {
-    return `<button class="offer" data-k="${key}">
+    return `<div class="offer" data-k="${key}">
       <small>${escapeHtml(o.shop)}</small>
       <strong>${escapeHtml(o.title)}</strong>
       ${o.slogan ? `<span class="offer__slogan">${escapeHtml(o.slogan)}</span>` : ''}
       <span class="offer__price">${o.was ? `<s>${euro(o.was)}</s> ` : ''}${o.price === 0 ? 'Gratis' : euro(o.price)}</span>
       ${o.lines.map((l) => `<span class="offer__line">${escapeHtml(l)}</span>`).join('')}
-    </button>`;
+      <button class="fine" data-fine type="button" aria-label="Lees de kleine lettertjes"><span>*${escapeHtml(o.fine)}</span></button>
+      <button class="btn btn--action offer__buy" data-buy="${key}">Kopen</button>
+    </div>`;
   }
 
   function render() {
@@ -129,28 +141,85 @@ export function mount(el, { onFinish, character }) {
     ]);
     el.innerHTML = `
       <div class="g">
-        <div class="g__bar"><span>${round + 1}/${ROUNDS.length}</span><span class="wallet">Portemonnee: ${euro(budget)}</span></div>
-        ${round === 0 ? say(character, `<p>Je hebt ${euro(BUDGET)} voor vier dingen. Bij elke kraam kies je een aanbieding. Let op: niet alles is wat het lijkt.</p>`) : ''}
+        <div class="g__bar"><span>Kraam ${round + 1}/${ROUNDS.length}</span><span class="wallet"><i class="coin"></i>${euro(budget)}</span></div>
+        <div class="g__meter"><i class="kj__meter" style="width:100%"></i></div>
+        ${round === 0 ? say(character, `<p>Je hebt ${euro(BUDGET)} voor vier dingen, en weinig tijd per kraam. De waarheid staat in de kleine lettertjes. Sleep het vergrootglas erheen, of tik erop.</p>`) : ''}
         <p class="g__title">${escapeHtml(r.item)}</p>
-        <div class="offers">${pair.map(([k, o]) => offerHtml(o, k)).join('')}</div>
+        <div class="offers">
+          ${pair.map(([k, o]) => offerHtml(o, k)).join('')}
+          <span class="loupe" aria-hidden="true"><span class="loupe__glass"></span><span class="loupe__handle"></span></span>
+        </div>
       </div>`;
-    el.querySelectorAll('[data-k]').forEach((b) => b.addEventListener('click', () => reveal(b.dataset.k)));
+    setupLoupe();
+    el.querySelectorAll('[data-buy]').forEach((b) => b.addEventListener('click', () => reveal(b.dataset.buy, false)));
+    timer?.stop();
+    const bar = el.querySelector('.kj__meter');
+    timer = countdown(ROUND_SECONDS, {
+      onTick: (left, frac) => {
+        bar.style.width = `${frac * 100}%`;
+        bar.classList.toggle('is-low', left < 5);
+      },
+      // Out of time: you grab the cheapest-looking offer, like most people do.
+      onEnd: () => reveal(r.trick.price <= r.honest.price ? 'trick' : 'honest', true),
+    });
   }
 
-  function reveal(key) {
+  function setupLoupe() {
+    const wrap = el.querySelector('.offers');
+    const loupe = wrap.querySelector('.loupe');
+    const fines = [...wrap.querySelectorAll('[data-fine]')];
+    const place = (x, y) => {
+      const r = wrap.getBoundingClientRect();
+      const lx = Math.max(0, Math.min(r.width, x - r.left));
+      const ly = Math.max(0, Math.min(r.height, y - r.top));
+      loupe.style.left = `${lx}px`;
+      loupe.style.top = `${ly}px`;
+      for (const f of fines) {
+        const b = f.getBoundingClientRect();
+        if (x > b.left - 20 && x < b.right + 20 && y > b.top - 24 && y < b.bottom + 24) f.classList.add('is-read');
+      }
+    };
+    let drag = false;
+    loupe.addEventListener('pointerdown', (e) => {
+      drag = true;
+      loupe.setPointerCapture(e.pointerId);
+      loupe.classList.add('is-drag');
+    });
+    loupe.addEventListener('pointermove', (e) => drag && place(e.clientX, e.clientY));
+    loupe.addEventListener('pointerup', () => {
+      drag = false;
+      loupe.classList.remove('is-drag');
+    });
+    fines.forEach((f) =>
+      f.addEventListener('click', () => {
+        const b = f.getBoundingClientRect();
+        place(b.left + b.width / 2, b.top + b.height / 2);
+      }),
+    );
+  }
+
+  function reveal(key, timeout) {
+    timer?.stop();
     const r = ROUNDS[round];
     const honest = key === 'honest';
     const paid = honest ? r.honest.real : r.trick.real;
     budget = Math.round((budget - paid) * 100) / 100;
     if (honest) correct += 1;
-    el.querySelectorAll('[data-k]').forEach((b) => {
-      b.disabled = true;
-      b.classList.add(b.dataset.k === 'honest' ? 'is-honest' : 'is-trick');
+    receipt.push({ item: r.honest.title, paid, trick: honest ? null : r.trick.name });
+    el.querySelector('.loupe')?.remove();
+    el.querySelectorAll('.offer').forEach((o) => {
+      o.classList.add(o.dataset.k === 'honest' ? 'is-honest' : 'is-trick');
+      if (o.dataset.k === key) o.classList.add('is-bought');
+      o.querySelector('.fine').classList.add('is-read');
+      o.querySelectorAll('button').forEach((b) => (b.disabled = true));
     });
-    el.querySelector('.wallet').textContent = `Portemonnee: ${euro(budget)}`;
+    const w = el.querySelector('.wallet');
+    w.innerHTML = `<i class="coin"></i>${euro(budget)}`;
+    w.classList.add('is-paying');
     el.querySelector('.g').insertAdjacentHTML(
       'beforeend',
-      `<p class="g__verdict ${honest ? 'is-right' : 'is-wrong'}">${honest ? 'Eerlijke deal' : `Truc: ${escapeHtml(r.trick.name)}`}</p>
+      `${timeout ? '<p class="g__hint">Tijd op! Je pakte snel de goedkoopst lijkende aanbieding.</p>' : ''}
+      <p class="g__verdict ${honest ? 'is-right' : 'is-wrong'}">${honest ? 'Eerlijke deal' : `Truc: ${escapeHtml(r.trick.name)}`}</p>
       ${say(
         character,
         honest
@@ -179,7 +248,11 @@ export function mount(el, { onFinish, character }) {
       sub: 'eerlijke keuzes',
       character,
       line: escapeHtml(line),
-      extra: `<p class="g__hint">Je hebt recht op eerlijke informatie over wat je koopt: de totaalprijs vooraf, geen nepkortingen en geen verborgen abonnementen.</p>${aiMade ? '<p class="g__ai">De reclameteksten bij de trucs zijn door AI geschreven. Zo snel maken webshops ze ook.</p>' : ''}`,
+      extra: `<div class="receipt"><p class="receipt__head">MARKTHAL ROTTERDAM<br>KASSABON</p>
+          ${receipt.map((x) => `<p class="receipt__row"><span>${escapeHtml(x.item)}${x.trick ? `<small>${escapeHtml(x.trick)}</small>` : ''}</span><b>${euro(x.paid)}</b></p>`).join('')}
+          <p class="receipt__row receipt__total"><span>Totaal</span><b>${euro(receipt.reduce((s, x) => s + x.paid, 0))}</b></p>
+          <p class="receipt__row"><span>Over</span><b>${euro(budget)}</b></p></div>
+        <p class="g__hint">Je hebt recht op eerlijke informatie over wat je koopt: de totaalprijs vooraf, geen nepkortingen en geen verborgen abonnementen.</p>${aiMade ? '<p class="g__ai">De reclameteksten bij de trucs zijn door AI geschreven. Zo snel maken webshops ze ook.</p>' : ''}`,
       onDone: () => onFinish({ correct, total: ROUNDS.length, summary: 'eerlijke keuzes' }),
     });
   }
@@ -187,5 +260,6 @@ export function mount(el, { onFinish, character }) {
   render();
   return () => {
     destroyed = true;
+    timer?.stop();
   };
 }

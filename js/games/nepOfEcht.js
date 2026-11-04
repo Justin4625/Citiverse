@@ -117,7 +117,7 @@ export function mount(el, { onFinish, character = { name: 'Karin' }, difficulty 
         <span class="noe__score"></span>
       </div>
       <div class="noe__timer"><span></span></div>
-      <div class="noe__stage"></div>
+      <div class="lockscreen"><span class="lockscreen__time">${new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}</span><span class="lockscreen__date">Meldkamer van Karin</span><div class="noe__stage"></div></div>
       <div class="noe__actions">
         <button class="noe__btn noe__btn--nep" data-answer="nep">Nep</button>
         <button class="noe__btn noe__btn--echt" data-answer="echt">Echt</button>
