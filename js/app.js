@@ -3,6 +3,7 @@ import { loadStamps, saveStamp, clearStamps, requestPersistence } from './storag
 import { distanceM, isInRange, watchPosition } from './geo.js';
 import { createGameMap } from './map.js';
 import { renderBook, renderCredits } from './book.js';
+import { createStopPanel, hasStop, characterOf } from './stop.js';
 
 // Test mode: GPS off, tap the map to move the player, plus a reset button. ?debug starts in it.
 const TEST_STATUS = 'Tik op de kaart om te lopen';
@@ -19,6 +20,7 @@ const els = {
   toast: document.getElementById('toast'),
   testToggle: document.getElementById('testToggle'),
   reset: document.getElementById('reset'),
+  stopPanel: document.getElementById('stopPanel'),
 };
 
 let stamps = loadStamps();
@@ -29,6 +31,8 @@ let stopWatch = null;
 let lastPosition = null;
 
 const gameMap = createGameMap('map', LOCATIONS, RADIUS_M);
+// Stops with a character open a panel first; the stamp comes after helping them.
+const stopPanel = createStopPanel(els.stopPanel, { onCollect: (loc) => collect(loc, { onSite: false }) });
 
 function isNear(loc) {
   return position && isInRange(distanceM(position, loc), position.accuracy, RADIUS_M);
@@ -56,16 +60,18 @@ function render() {
   els.collect.hidden = !target;
   if (target && els.collect.dataset.id !== target.id) {
     els.collect.dataset.id = target.id;
+    const character = characterOf(target.id);
     els.collect.innerHTML = `<img src="${photoUrl(target)}" alt="" style="object-position:${target.focus}">
-      <span><strong>Stempel pakken</strong><small>${target.name}</small></span>`;
+      <span><strong>${character ? `Help ${character.name}` : 'Stempel pakken'}</strong><small>${target.name}</small></span>`;
   }
   if (!target) delete els.collect.dataset.id;
 
   renderBook(els.book, LOCATIONS, stamps, position);
 }
 
-function collect(loc) {
-  if (!loc || stamps[loc.id] || !isNear(loc)) return;
+// onSite: false when the stop panel hands over, so walking off during a minigame still counts.
+function collect(loc, { onSite = true } = {}) {
+  if (!loc || stamps[loc.id] || (onSite && !isNear(loc))) return;
   stamps = saveStamp(loc.id);
   navigator.vibrate?.([80, 40, 160]);
   showToast(loc);
@@ -117,12 +123,21 @@ function toggleSheet(open) {
   els.sheet.hidden = !open;
 }
 
-els.collect.addEventListener('click', () => collect(nearestCollectable()));
+// Opens the stop's panel when it has a character, otherwise collects straight away.
+// A stop you already have can be replayed.
+function enterStop(loc) {
+  if (!loc || !hasStop(loc.id)) return collect(loc);
+  if (!stamps[loc.id] && !isNear(loc)) return;
+  els.sheet.hidden = true;
+  stopPanel.open(loc, { isCollected: Boolean(stamps[loc.id]) });
+}
+
+els.collect.addEventListener('click', () => enterStop(nearestCollectable()));
 gameMap.onStopTap((id) => {
   const loc = LOCATIONS.find((l) => l.id === id);
   // In test mode, tapping a far-away stop teleports you there.
   if (testMode && !isNear(loc)) onFix({ lat: loc.lat - 0.00025, lng: loc.lng, accuracy: 5 });
-  else collect(loc);
+  else enterStop(loc);
 });
 els.bookToggle.addEventListener('click', () => toggleSheet(els.sheet.hidden));
 els.sheetClose.addEventListener('click', () => toggleSheet(false));
