@@ -9,7 +9,8 @@ export const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
 // A line spoken by the stop's character, in the style of the stop panel.
 export function say(character, html) {
-  return `<div class="say"><span class="say__avatar" aria-hidden="true">${escapeHtml(character.name[0])}</span><div class="say__text">${html}</div></div>`;
+  const avatar = character.buddy ? `<img src="${character.buddy}" alt="">` : escapeHtml(character.name[0]);
+  return `<div class="say"><span class="say__avatar" aria-hidden="true">${avatar}</span><div class="say__text">${html}</div></div>`;
 }
 
 // The closing screen every game shows before handing back to the stop panel.

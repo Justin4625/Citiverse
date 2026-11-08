@@ -3,13 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#14171c">
-  <title>Citiverse Rotterdam</title>
+  <meta name="theme-color" content="#16295c">
+  <title>Citiverse GO Rotterdam</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="icon" href="img/dcr/logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="img/dcr/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500..900&family=Ubuntu:wght@400;500;700&display=swap">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -17,6 +18,7 @@
   <div id="map"></div>
 
   <header class="hud">
+    <img class="hud__logo" src="img/dcr/logo.png" alt="Citiverse GO">
     <div class="hud__left">
       <button id="levelChip" class="level-chip">
         <b id="levelNum">1</b>
@@ -32,7 +34,7 @@
 
   <button id="collect" class="collect" hidden></button>
   <button id="bookToggle" class="dock" aria-label="Stempelboek">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5zM4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><circle cx="12" cy="10.5" r="3.5"/></svg>
+    <img src="img/dcr/stamp-dcr.png" alt="">
     <span>Stempelboek</span>
   </button>
 
@@ -71,6 +73,15 @@
 
   <section id="stopPanel" class="stop-panel" hidden></section>
   <div id="toast" class="toast" hidden></div>
+
+  <section id="splash" class="splash">
+    <img class="splash__logo" src="img/dcr/logo.png" alt="Citiverse GO">
+    <h1>Ontdek Rotterdam</h1>
+    <p>Loop naar tien plekken in de stad. Help de mensen daar met een digitaal probleem en verzamel alle stempels.</p>
+    <div id="splashBuddies" class="splash__buddies" aria-hidden="true"></div>
+    <button id="splashStart" class="btn btn--action splash__start">Start</button>
+    <small>Digital Child Rights · Minor DA Groep D</small>
+  </section>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script type="module" src="js/app.js"></script>

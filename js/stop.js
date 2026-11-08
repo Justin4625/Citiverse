@@ -8,6 +8,7 @@ import { chat, isAvailable, stripPersonal } from './ai.js';
 import { recordQuestion } from './progress.js';
 import { GAMES } from './games/index.js';
 import { escapeHtml } from './games/kit.js';
+import { buddyUrl, iconUrl, themeVars } from './brand.js';
 
 const MAX_HISTORY = 8;
 
@@ -54,11 +55,11 @@ export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAc
   function shell(bodyHtml, { banner = false } = {}) {
     const { name, role } = stop.character;
     root.innerHTML = `
-      <div class="stop-panel__card">
+      <div class="stop-panel__card" style="${themeVars(loc.id)}">
         <div class="sheet__grip" aria-hidden="true"></div>
-        ${banner ? `<div class="stop-panel__banner"><img src="${photoUrl(loc)}" alt="" style="object-position:${loc.focus}"></div>` : ''}
+        ${banner ? `<div class="stop-panel__banner"><img src="${photoUrl(loc)}" alt="" style="object-position:${loc.focus}"><img class="stop-panel__icon" src="${iconUrl(loc.id)}" alt="Thema ${escapeHtml(stop.theme)}"></div>` : ''}
         <header class="stop-panel__head">
-          <span class="stop-panel__badge" aria-hidden="true">${name[0]}</span>
+          <span class="stop-panel__badge" aria-hidden="true"><img src="${buddyUrl(loc.id)}" alt=""></span>
           <div class="stop-panel__who">
             <small>${escapeHtml(loc.name)} · ${escapeHtml(stop.theme)}</small>
             <strong>${name}</strong>
@@ -109,7 +110,7 @@ export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAc
   function showGame() {
     const body = shell('<div class="game-host"></div>');
     cleanupGame = GAMES[stop.game](body.querySelector('.game-host'), {
-      character: stop.character,
+      character: { ...stop.character, buddy: buddyUrl(loc.id) },
       difficulty: getDifficulty(),
       onSite,
       onFinish: (result) => {

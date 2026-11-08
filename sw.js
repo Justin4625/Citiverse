@@ -1,5 +1,5 @@
 // Network-first with cache fallback, so the app shell still opens offline.
-const CACHE = 'stamprally-v10';
+const CACHE = 'stamprally-v11';
 const SHELL = [
   './', './index.html', './styles.css', './manifest.webmanifest', './icon.svg',
   './js/app.js', './js/geo.js', './js/storage.js', './js/locations.js',
@@ -10,7 +10,13 @@ const SHELL = [
   './js/games/index.js', './js/games/kit.js', './js/games/nepOfEcht.js', './js/games/nepOfEchtContent.js',
   './js/games/spoorloos.js', './js/games/koopjesjacht.js', './js/games/moderator.js', './js/games/overDeBrug.js',
   './js/games/kruisverhoor.js', './js/games/overtuigDeStad.js', './js/games/ontsnapUitDeApp.js',
-  './js/games/pitchInDeRaad.js', './js/games/algoritme.js',
+  './js/games/pitchInDeRaad.js', './js/games/algoritme.js', './js/brand.js',
+  // Digital Child Rights artwork (img/dcr): per theme a buddy, icon, GO stamp and star.
+  './img/dcr/logo.png', './img/dcr/bg-portrait.jpg', './img/dcr/bg-landscape.jpg',
+  './img/dcr/stamp-dcr.png', './img/dcr/star-dcr.png',
+  ...['everybody', 'chances', 'fair', 'opinion', 'freedom', 'active', 'healthy', 'privacy', 'safe', 'rules'].flatMap((t) =>
+    ['buddy', 'icon', 'stamp', 'star'].map((kind) => `./img/dcr/${kind}-${t}.png`),
+  ),
 ];
 
 self.addEventListener('install', (e) => {

@@ -1,5 +1,6 @@
 import { distanceM, formatDistance } from './geo.js';
 import { photoUrl } from './locations.js';
+import { stampUrl, iconUrl, themeOf } from './brand.js';
 
 const dateFormat = new Intl.DateTimeFormat('nl-NL', { day: 'numeric', month: 'short' });
 
@@ -13,10 +14,10 @@ export function renderBook(listEl, locations, stamps, position) {
       return `<li class="card${at ? ' card--done' : ''}" data-id="${loc.id}" role="button" tabindex="0" aria-label="${loc.name} spelen">
         <span class="card__photo">
           <img src="${photoUrl(loc)}" alt="" loading="lazy" style="object-position:${loc.focus}">
-          ${at ? '<span class="card__stamp" aria-hidden="true">✓</span>' : ''}
+          <img class="card__stamp" src="${stampUrl(loc.id)}" alt="">
         </span>
         <span class="card__info">
-          <small>${loc.area}</small>
+          <small><img src="${iconUrl(loc.id)}" alt="">${themeOf(loc.id)}</small>
           <strong>${loc.name}</strong>
           <span class="card__detail">${detail}</span>
         </span>

@@ -3,6 +3,7 @@ import { loadStamps, saveStamp, clearStamps, requestPersistence } from './storag
 import { distanceM, isInRange, watchPosition } from './geo.js';
 import { createGameMap } from './map.js';
 import { renderBook, renderCredits } from './book.js';
+import { THEMES, buddyUrl, stampUrl } from './brand.js';
 import { createStopPanel, hasStop, characterOf } from './stop.js';
 import { loadProgress, clearProgress, recordGame, recordStamps, levelFor } from './progress.js';
 import { renderProgress } from './progressView.js';
@@ -89,7 +90,7 @@ function render() {
   if (target && els.collect.dataset.id !== target.id) {
     els.collect.dataset.id = target.id;
     const character = characterOf(target.id);
-    els.collect.innerHTML = `<img src="${photoUrl(target)}" alt="" style="object-position:${target.focus}">
+    els.collect.innerHTML = `<img src="${buddyUrl(target.id)}" alt="">
       <span><strong>${character ? `Help ${character.name}` : 'Stempel pakken'}</strong><small>${target.name}</small></span>`;
   }
   if (!target) delete els.collect.dataset.id;
@@ -122,7 +123,7 @@ function onGeoError(err) {
 let toastTimer;
 function showToast(loc, achievements = []) {
   els.toast.innerHTML = `<span class="toast__photo"><img src="${photoUrl(loc)}" alt="" style="object-position:${loc.focus}">
-      <span class="toast__stamp" aria-hidden="true"><b>✓</b><small>Rotterdam</small></span></span>
+      <img class="toast__stamp" src="${stampUrl(loc.id)}" alt=""></span>
     <small>Stempel verzameld</small><strong>${loc.name}</strong>
     ${achievements.map((a) => `<span class="toast__badge">Badge: ${a.name}</span>`).join('')}`;
   els.toast.hidden = false;
@@ -206,6 +207,17 @@ els.reset.addEventListener('click', () => {
   clearProgress();
   render();
   renderLevel();
+});
+
+// Start screen: the Citiverse GO logo and all ten buddies, gone after one tap.
+const splash = document.getElementById('splash');
+document.getElementById('splashBuddies').innerHTML = Object.keys(THEMES)
+  .map((t, i) => `<img src="img/dcr/buddy-${t}.png" alt="" style="--i:${i}">`)
+  .join('');
+document.getElementById('splashStart').addEventListener('click', () => {
+  splash.classList.add('splash--out');
+  // A timer, not animationend: with reduced motion the fade-out never runs.
+  setTimeout(() => (splash.hidden = true), 300);
 });
 
 setTestMode(new URLSearchParams(location.search).has('debug'));

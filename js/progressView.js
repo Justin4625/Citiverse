@@ -2,6 +2,9 @@
 
 import { LEVELS, ACHIEVEMENTS, levelFor } from './progress.js';
 import { STOPS } from './stops.js';
+import { THEMES, starUrl, iconUrl } from './brand.js';
+
+const STARS = Object.keys(THEMES);
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
@@ -30,8 +33,8 @@ export function renderProgress(el, p, locations, stamps) {
 
     <h3 class="pv-h">Badges</h3>
     <ul class="pv-badges">
-      ${ACHIEVEMENTS.map((a) => `<li class="pv-badge${p.achievements[a.id] ? ' pv-badge--on' : ''}">
-        <strong>${esc(a.name)}</strong><small>${esc(a.text)}</small></li>`).join('')}
+      ${ACHIEVEMENTS.map((a, i) => `<li class="pv-badge${p.achievements[a.id] ? ' pv-badge--on' : ''}">
+        <img src="${starUrl(STARS[i % STARS.length])}" alt=""><strong>${esc(a.name)}</strong><small>${esc(a.text)}</small></li>`).join('')}
     </ul>
 
     <h3 class="pv-h">Thema's</h3>
@@ -40,6 +43,7 @@ export function renderProgress(el, p, locations, stamps) {
         const stop = STOPS[l.id];
         const best = p.best[l.id];
         return `<li class="pv-theme${best ? ' pv-theme--on' : ''}">
+          <img class="pv-theme__icon" src="${iconUrl(l.id)}" alt="">
           <span class="pv-theme__name"><strong>${esc(stop?.theme ?? '')}</strong><small>${esc(l.name)}${stop ? ` · ${esc(stop.card.title)}` : ''}</small></span>
           <span class="pv-theme__xp">${best ? `${best} XP` : 'Nog niet'}${stamps[l.id] ? ' · ✓' : ''}</span>
         </li>`;

@@ -51,6 +51,10 @@ URL params, remembered on the device: `?model=llama3.2` (default `mistral`), `?a
 
 Personal details (phone numbers, e-mail addresses, postcodes) are removed from questions before they reach the model. Nothing else leaves the device.
 
+## Citiverse GO artwork
+
+The logo, the ten theme buddies, theme icons, GO stamps, stars and backgrounds in `img/dcr/` come from Digital Child Rights (Drive folder "Citiverse GO"), cropped and resized. `js/brand.js` maps each stop's theme to its buddy, icon, stamp and gradient colours. Each stop shows its buddy next to the pin and in the stop panel; a collected stop gets its theme's GO stamp; badges use the stars.
+
 ## Photo credits
 
 Stop photos come from Wikimedia Commons (cropped and resized), see `credit` in `js/locations.js` and the "Photo credits" section in the stamp book:
