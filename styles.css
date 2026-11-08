@@ -354,12 +354,14 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
   object-fit: cover;
   border-radius: 12px;
 }
-.toast__stamp {
+.toast__photo .toast__stamp {
   position: absolute;
   right: 10px;
   bottom: -18px;
   width: 92px;
   height: 92px;
+  aspect-ratio: 1;
+  object-fit: contain;
   border: 4px solid #fff;
   border-radius: 50%;
   box-shadow: 0 6px 16px rgba(22, 41, 92, 0.35);
