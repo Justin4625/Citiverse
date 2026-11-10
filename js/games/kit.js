@@ -13,6 +13,29 @@ export function say(character, html) {
   return `<div class="say"><span class="say__avatar" aria-hidden="true">${avatar}</span><div class="say__text">${html}</div></div>`;
 }
 
+// Makes a "type it yourself" form comfortable on a phone: the submit button stays disabled until
+// there is enough text (so a tap never silently does nothing), Enter sends (Shift+Enter is a new
+// line), the keyboard shows "send", and the field scrolls into view above the keyboard.
+export function typingForm(form, { min = 5 } = {}) {
+  const field = form?.querySelector('textarea, input');
+  const button = form?.querySelector('button[type="submit"]');
+  if (!field || !button) return;
+  field.setAttribute('enterkeyhint', 'send');
+  field.setAttribute('autocapitalize', 'sentences');
+  const sync = () => {
+    if (!field.disabled) button.disabled = field.value.trim().length < min;
+  };
+  field.addEventListener('input', sync);
+  field.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      if (!button.disabled) form.requestSubmit();
+    }
+  });
+  field.addEventListener('focus', () => setTimeout(() => field.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300));
+  sync();
+}
+
 // The closing screen every game shows before handing back to the stop panel.
 // `line` is HTML that is already escaped; `extra` is optional HTML shown below it.
 export function endScreen(el, { big, sub, character, line, extra = '', button = 'Verder', onDone }) {

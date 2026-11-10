@@ -415,6 +415,21 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
   box-shadow: 0 -8px 30px rgba(20, 23, 28, 0.3);
   animation: slide-up 0.25s ease-out;
 }
+/* While a minigame runs the card fills the screen, with a compact header, so the game gets all
+   the room and a tap next to the card can't close it by accident. */
+.stop-panel__card--game {
+  height: 100dvh;
+  max-height: none;
+  padding-top: calc(6px + env(safe-area-inset-top));
+  border-radius: 0;
+  animation: none;
+}
+.stop-panel__card--game .sheet__grip { display: none; }
+.stop-panel__card--game .stop-panel__head { gap: 10px; margin-bottom: 10px; }
+.stop-panel__card--game .stop-panel__badge { width: 44px; height: 44px; }
+.stop-panel__card--game .stop-panel__badge img { height: 40px; }
+.stop-panel__card--game .stop-panel__who strong { font-size: 1.25rem; }
+.stop-panel__card--game .stop-panel__who span { display: none; }
 .stop-panel__banner { position: relative; margin: 0 -16px 14px; }
 .stop-panel__banner::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 6px; background: var(--theme-grad); }
 .stop-panel__banner .stop-panel__icon {
@@ -900,7 +915,8 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
 .traces li.w1 { border-left-color: #f2b27a; }
 
 /* Koopjesjacht */
-.offers { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.offers { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 96px; }
+.offers:not(:has(.loupe)) { margin-bottom: 0; }
 .offer {
   position: relative;
   display: flex;
@@ -940,7 +956,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
 .phone__logo { font-size: 1.1rem; font-weight: 900; color: #e64fa0; }
 .phone__title { font-weight: 800; }
 .phone__spacer { flex: 1; }
-.phone__icon { position: relative; min-width: 40px; min-height: 40px; display: grid; place-items: center; padding: 0; font-size: 1.3rem; border: 0; background: none; }
+.phone__icon { position: relative; min-width: 44px; min-height: 44px; display: grid; place-items: center; padding: 0; font-size: 1.3rem; border: 0; background: none; }
 .phone__icon .dot { position: absolute; top: 2px; right: 0; min-width: 16px; height: 16px; padding: 0 3px; font-size: 0.65rem; font-style: normal; font-weight: 800; line-height: 16px; color: #fff; background: #e23; border-radius: 8px; }
 .phone__streak { margin: 8px 10px 0; padding: 6px 10px; font-size: 0.8rem; font-weight: 800; color: #fff; background: #ff8a00; border-radius: 10px; }
 .phone__post { margin: 8px 10px 0; padding: 22px 12px; display: flex; flex-direction: column; gap: 6px; font-weight: 800; background: linear-gradient(135deg, #2b2f6b, #e64fa0); color: #fff; border-radius: 14px; }
@@ -996,7 +1012,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
 .mod-rule strong { font-family: var(--display); font-weight: 850; text-transform: uppercase; font-size: 1rem; }
 .mod-rule--keep { border-color: var(--green); }
 .mod-rule--remove { border-color: var(--pink); }
-.stream { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 8px; height: 330px; }
+.stream { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 8px; height: clamp(330px, 58dvh, 540px); }
 .stream__video { position: relative; overflow: hidden; border-radius: var(--radius); background: #2a2622; }
 .stream__live { position: absolute; top: 8px; left: 8px; z-index: 2; padding: 2px 8px; font-size: 0.7rem; font-weight: 900; color: #fff; background: #e23; border-radius: 4px; }
 .stream__viewers { position: absolute; top: 8px; right: 8px; z-index: 2; font-size: 0.75rem; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
@@ -1184,10 +1200,20 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
 @keyframes grow { from { height: 0; } }
 
 /* Jij bent het algoritme */
-.sliders { display: grid; gap: 6px; padding: 12px; background: var(--card); border-radius: var(--radius); box-shadow: 0 2px 0 var(--line); }
-.slider { display: grid; grid-template-columns: minmax(0, 1fr) 1fr 70px; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 700; }
-.slider input { width: 100%; accent-color: var(--pink); }
-.slider__v { font-size: 0.75rem; color: var(--muted); text-align: right; }
+.levels { display: grid; gap: 10px; padding: 12px; background: var(--card); border-radius: var(--radius); box-shadow: 0 2px 0 var(--line); }
+.levels__row { display: grid; gap: 4px; font-size: 0.85rem; font-weight: 700; }
+.levels__opts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.levels__opts button {
+  min-height: 44px;
+  padding: 0 2px;
+  font: inherit;
+  font-size: 0.78rem;
+  color: var(--ink);
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+}
+.levels__opts button[aria-checked='true'] { color: #fff; border-color: var(--pink-deep); background: var(--pink); }
 .ranking--live li, .ranking li { will-change: transform; }
 .ranking li.is-zuid .wijk { color: var(--pink-deep); }
 .wijk { font-weight: 800; }
@@ -1203,18 +1229,21 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
 .pick small { font-weight: 700; color: var(--muted); }
 .pick.is-zuid { border-left-color: var(--pink); }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { min-height: 40px; padding: 0 12px; font-size: 0.85rem; font-weight: 800; text-decoration: line-through; color: var(--muted); border: 2px dashed var(--line); border-radius: 999px; background: var(--paper); }
+.chip { min-height: 44px; padding: 0 12px; font-size: 0.85rem; font-weight: 800; text-decoration: line-through; color: var(--muted); border: 2px dashed var(--line); border-radius: 999px; background: var(--paper); }
 .chip.is-on { text-decoration: none; color: var(--ink); border: 2px solid var(--ink); background: var(--card); box-shadow: 0 2px 0 var(--ink); }
 .chip:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
 
 /* Koopjesjacht: magnifier, small print and receipt */
 .offer { cursor: default; }
 .offer__buy { width: 100%; min-height: 44px; margin-top: 6px; font-size: 1rem; }
-.fine { display: block; width: 100%; margin-top: 4px; padding: 2px 0; text-align: left; border: 0; background: none; cursor: zoom-in; }
+.fine { display: block; width: 100%; min-height: 44px; margin-top: 4px; padding: 2px 0; text-align: left; border: 0; background: none; cursor: zoom-in; }
+.fine__tap { display: block; margin-top: 4px; font-size: 0.72rem; font-style: normal; font-weight: 800; color: var(--blue-deep); }
+.fine.is-read .fine__tap { display: none; }
 .fine span { display: block; font-size: 5px; line-height: 1.2; color: var(--muted); filter: blur(0.6px); transition: font-size 0.25s, filter 0.25s, color 0.25s; }
 .fine.is-read span { font-size: 0.78rem; font-weight: 700; color: var(--ink); filter: none; background: #fff5bf; border-radius: 4px; padding: 2px 4px; }
-.loupe { position: absolute; left: 50%; top: 90%; z-index: 3; width: 78px; height: 78px; translate: -50% -50%; touch-action: none; cursor: grab; }
+.loupe { position: absolute; left: 50%; top: calc(100% + 48px); z-index: 3; width: 78px; height: 78px; translate: -50% -50%; touch-action: none; cursor: grab; }
 .loupe.is-drag { cursor: grabbing; }
+.loupe:not(.is-drag) { transition: left 0.25s ease-out, top 0.25s ease-out; }
 .loupe__glass { position: absolute; inset: 0; border: 6px solid var(--ink); border-radius: 50%; background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.7), rgba(180, 220, 255, 0.25) 60%); box-shadow: 0 6px 16px rgba(20, 23, 28, 0.3); }
 .loupe__handle { position: absolute; right: -22px; bottom: -22px; width: 34px; height: 12px; background: var(--ink); border-radius: 6px; transform: rotate(45deg); transform-origin: 0 50%; }
 .offer.is-bought { outline: 4px solid var(--ink); outline-offset: 2px; }
@@ -1382,3 +1411,27 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; }
 }
+
+/* Over de brug: the message as tappable blocks; typing it yourself sits behind "Of typ zelf". */
+.blocks { display: grid; gap: 6px; }
+.block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: left;
+  color: var(--ink);
+  border: 2px dashed var(--blue);
+  border-radius: 12px;
+  background: var(--card);
+}
+.block span { flex: 1; }
+.block i { flex: none; font-style: normal; font-size: 1.2rem; color: var(--blue); }
+.block__empty { color: var(--muted); font-style: italic; }
+.blocks.is-typed { opacity: 0.5; }
+.g__type summary { min-height: 44px; display: flex; align-items: center; font-weight: 700; color: var(--blue-deep); cursor: pointer; }
+.g__type textarea { margin-top: 6px; }

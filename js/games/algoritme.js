@@ -1,5 +1,5 @@
 // "Jij bent het algoritme" (Chances, Centrale Bibliotheek, Chancy).
-// A sandbox. First YOU are the algorithm: set sliders for what matters and watch 12 applicants
+// A sandbox. First YOU are the algorithm: set how much each thing matters and watch 12 applicants
 // for a library side job re-sort live. Then a real (small) model, a logistic regression that
 // trains in your browser on 300 old applications, picks instead. The old manager was biased
 // against people from Zuid, and the model learned it: it rejects them, and you. Then you repair
@@ -188,15 +188,17 @@ export function mount(el, { onFinish, character }) {
       .join('')}</ul>`;
   }
 
+  // How much a feature counts, as four big buttons instead of a fiddly slider.
+  const LEVELS = ['niet', 'beetje', 'belangrijk', 'heel'];
+
   // 1. You are the algorithm.
   function yourTurn() {
     el.innerHTML = `
       <div class="g">
-        ${say(character, '<p>De bieb zoekt 3 jongeren voor een bijbaan. Eerst ben jíj het algoritme: schuif aan de knoppen en kijk wie er bovenaan komt. Wat vind jij belangrijk?</p>')}
-        <div class="sliders">${SLIDERS.map(
-          (s) => `<label class="slider"><span>${s.label}</span>
-            <input type="range" id="w-${s.key}" min="0" max="3" step="1" value="${weights[s.key]}" data-k="${s.key}">
-            <b class="slider__v">${['niet', 'beetje', 'belangrijk', 'heel'][weights[s.key]]}</b></label>`,
+        ${say(character, '<p>De bieb zoekt 3 jongeren voor een bijbaan. Eerst ben jíj het algoritme: tik bij elk punt hoe belangrijk het is en kijk wie er bovenaan komt. Wat vind jij belangrijk?</p>')}
+        <div class="levels">${SLIDERS.map(
+          (s) => `<div class="levels__row" role="radiogroup" aria-label="${s.label}"><span>${s.label}</span>
+            <div class="levels__opts">${LEVELS.map((l, v) => `<button role="radio" aria-checked="${weights[s.key] === v}" data-k="${s.key}" data-v="${v}">${l}</button>`).join('')}</div></div>`,
         ).join('')}</div>
         <ol class="ranking ranking--live"></ol>
         <button class="btn btn--action g__wide" data-go>Dit zijn mijn 3</button>
@@ -207,10 +209,10 @@ export function mount(el, { onFinish, character }) {
       myPick = [...r.picked];
       renderRanking(box, r.scored, r.picked);
     };
-    el.querySelectorAll('[data-k]').forEach((inp) =>
-      inp.addEventListener('input', () => {
-        weights[inp.dataset.k] = Number(inp.value);
-        inp.parentElement.querySelector('.slider__v').textContent = ['niet', 'beetje', 'belangrijk', 'heel'][weights[inp.dataset.k]];
+    el.querySelectorAll('[data-k]').forEach((b) =>
+      b.addEventListener('click', () => {
+        weights[b.dataset.k] = Number(b.dataset.v);
+        b.parentElement.querySelectorAll('button').forEach((x) => x.setAttribute('aria-checked', String(x === b)));
         update();
       }),
     );

@@ -123,7 +123,7 @@ export function mount(el, { onFinish, character }) {
       ${o.slogan ? `<span class="offer__slogan">${escapeHtml(o.slogan)}</span>` : ''}
       <span class="offer__price">${o.was ? `<s>${euro(o.was)}</s> ` : ''}${o.price === 0 ? 'Gratis' : euro(o.price)}</span>
       ${o.lines.map((l) => `<span class="offer__line">${escapeHtml(l)}</span>`).join('')}
-      <button class="fine" data-fine type="button" aria-label="Lees de kleine lettertjes"><span>*${escapeHtml(o.fine)}</span></button>
+      <button class="fine" data-fine type="button" aria-label="Lees de kleine lettertjes"><span>*${escapeHtml(o.fine)}</span><em class="fine__tap" aria-hidden="true">🔍 Tik om te lezen</em></button>
       <button class="btn btn--action offer__buy" data-buy="${key}">Kopen</button>
     </div>`;
   }
@@ -143,7 +143,7 @@ export function mount(el, { onFinish, character }) {
       <div class="g">
         <div class="g__bar"><span>Kraam ${round + 1}/${ROUNDS.length}</span><span class="wallet"><i class="coin"></i>${euro(budget)}</span></div>
         <div class="g__meter"><i class="kj__meter" style="width:100%"></i></div>
-        ${round === 0 ? say(character, `<p>Je hebt ${euro(BUDGET)} voor vier dingen, en weinig tijd per kraam. De waarheid staat in de kleine lettertjes. Sleep het vergrootglas erheen, of tik erop.</p>`) : ''}
+        ${round === 0 ? say(character, `<p>Je hebt ${euro(BUDGET)} voor vier dingen, en weinig tijd per kraam. De waarheid staat in de kleine lettertjes. Tik erop om ze te lezen, of sleep het vergrootglas erheen.</p>`) : ''}
         <p class="g__title">${escapeHtml(r.item)}</p>
         <div class="offers">
           ${pair.map(([k, o]) => offerHtml(o, k)).join('')}
@@ -186,16 +186,17 @@ export function mount(el, { onFinish, character }) {
       loupe.classList.add('is-drag');
     });
     loupe.addEventListener('pointermove', (e) => drag && place(e.clientX, e.clientY));
-    loupe.addEventListener('pointerup', () => {
+    // Let go: the loupe returns to its spot under the offers, so it never covers a Kopen button.
+    const park = () => {
       drag = false;
       loupe.classList.remove('is-drag');
-    });
-    fines.forEach((f) =>
-      f.addEventListener('click', () => {
-        const b = f.getBoundingClientRect();
-        place(b.left + b.width / 2, b.top + b.height / 2);
-      }),
-    );
+      loupe.style.left = '';
+      loupe.style.top = '';
+    };
+    loupe.addEventListener('pointerup', park);
+    loupe.addEventListener('pointercancel', park);
+    // Tapping the fine print reads it right away.
+    fines.forEach((f) => f.addEventListener('click', () => f.classList.add('is-read')));
   }
 
   function reveal(key, timeout) {

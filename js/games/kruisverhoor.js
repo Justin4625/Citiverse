@@ -10,7 +10,7 @@
 // and says which fact the answer reveals. Without AI you choose from question cards.
 
 import { chat, isAvailable, stripPersonal } from '../ai.js';
-import { escapeHtml, say, endScreen, parseJson, shuffle } from './kit.js';
+import { escapeHtml, say, endScreen, parseJson, shuffle, typingForm } from './kit.js';
 
 const MAX_QUESTIONS = 4;
 const CREDIBILITY = 3;
@@ -171,6 +171,7 @@ export function mount(el, { onFinish, character }) {
         record(current, fact.q, fact.a, fact, false);
       }),
     );
+    typingForm(el.querySelector('.g__own'), { min: 5 });
     el.querySelector('.g__own')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const { text } = stripPersonal(el.querySelector('#kvOwn').value.trim());

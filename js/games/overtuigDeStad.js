@@ -8,7 +8,7 @@
 // AI: a joker card lets you write your own argument, which the AI scores (1 to 3).
 
 import { chat, isAvailable, stripPersonal } from '../ai.js';
-import { escapeHtml, shuffle, say, endScreen, parseJson, tally, countdown } from './kit.js';
+import { escapeHtml, shuffle, say, endScreen, parseJson, tally, countdown, typingForm } from './kit.js';
 
 const HEIGHT_M = 185;
 const TURN_SECONDS = 20;
@@ -375,6 +375,8 @@ export function mount(el, { onFinish, character }) {
         <textarea id="ownArgument" maxlength="280" placeholder="Mijn argument tegen wat Opiny zegt…"></textarea>
         <button class="btn btn--action" type="submit">Speel mijn argument</button>
       </form>`;
+    typingForm(el.querySelector('.g__own'), { min: 8 });
+    el.querySelector('#ownArgument').focus();
     el.querySelector('.g__own').addEventListener('submit', async (e) => {
       e.preventDefault();
       const { text } = stripPersonal(el.querySelector('#ownArgument').value.trim());

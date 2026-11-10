@@ -52,10 +52,10 @@ export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAc
     if (e.target === root || e.target.closest('[data-close]')) close();
   });
 
-  function shell(bodyHtml, { banner = false } = {}) {
+  function shell(bodyHtml, { banner = false, game = false } = {}) {
     const { name, role } = stop.character;
     root.innerHTML = `
-      <div class="stop-panel__card" style="${themeVars(loc.id)}">
+      <div class="stop-panel__card${game ? ' stop-panel__card--game' : ''}" style="${themeVars(loc.id)}">
         <div class="sheet__grip" aria-hidden="true"></div>
         ${banner ? `<div class="stop-panel__banner"><img src="${photoUrl(loc)}" alt="" style="object-position:${loc.focus}"><img class="stop-panel__icon" src="${iconUrl(loc.id)}" alt="Thema ${escapeHtml(stop.theme)}"></div>` : ''}
         <header class="stop-panel__head">
@@ -108,7 +108,7 @@ export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAc
   }
 
   function showGame() {
-    const body = shell('<div class="game-host"></div>');
+    const body = shell('<div class="game-host"></div>', { game: true });
     cleanupGame = GAMES[stop.game](body.querySelector('.game-host'), {
       character: { ...stop.character, buddy: buddyUrl(loc.id) },
       difficulty: getDifficulty(),

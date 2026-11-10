@@ -10,8 +10,16 @@ import { escapeHtml, say, endScreen } from './kit.js';
 
 const ATTEMPTS = 3;
 
-const ORIGINAL =
-  'Wegens werkzaamheden is de Erasmusbrug gestremd van 22:00 tot 06:00. Raadpleeg rotterdam.nl/stremming voor alternatieve routes 🚧🌉';
+// The message is built from four blocks; tapping a block swaps it for the next version. The first
+// version of each block is the original from the city. Typing the message yourself also works.
+export const PARTS = [
+  ['Wegens werkzaamheden is de Erasmusbrug gestremd', 'De Erasmusbrug is dicht', 'Door werk aan de weg is de Erasmusbrug gestremd'],
+  ['van 22:00 tot 06:00.', 'vannacht van 22.00 tot 6.00 uur.', 'binnenkort.'],
+  ['Raadpleeg rotterdam.nl/stremming voor alternatieve routes', 'Kijk op rotterdam.nl voor een andere route.', 'Neem de Willemsbrug, de Maastunnel of de metro.', 'Neem een alternatieve route.'],
+  ['🚧🌉', '', 'Pas op! ⚠️'],
+];
+export const buildMessage = (picks) => PARTS.map((opts, i) => opts[picks[i]]).filter(Boolean).join(' ');
+const ORIGINAL = buildMessage([0, 0, 0, 0]);
 
 const HARD_WORDS = ['wegens', 'werkzaamheden', 'gestremd', 'stremming', 'raadpleeg', 'raadplegen', 'alternatief', 'alternatieve', 'i.v.m.', 'desbetreffende', 'middels', 'derhalve'];
 
@@ -83,6 +91,7 @@ export function mount(el, { onFinish, character }) {
   let attempt = 0;
   let best = 0;
   let text = ORIGINAL;
+  const picks = PARTS.map(() => 0);
   let aiOn = false;
   let destroyed = false;
   let across = {}; // who stood on the far side after the last test
@@ -108,6 +117,14 @@ export function mount(el, { onFinish, character }) {
     </div>`;
   }
 
+  function blocksHtml() {
+    return PARTS.map((opts, i) => {
+      const t = opts[picks[i]];
+      return `<button class="block" data-part="${i}" aria-label="Verander dit stukje">
+        <span${t ? '' : ' class="block__empty"'}>${t ? escapeHtml(t) : '(niks)'}</span><i aria-hidden="true">↻</i></button>`;
+    }).join('');
+  }
+
   // Marks what trips people up, shown live after the first test.
   function marks(t) {
     // Links first, so the other marks never end up inside a web address.
@@ -131,16 +148,34 @@ export function mount(el, { onFinish, character }) {
             ${r ? `<p>${escapeHtml(r.line)}</p>` : ''}
           </div>`;
         }).join('')}</div>
-        <label class="g__hint" for="bridgeText">Het bericht</label>
-        <textarea id="bridgeText" maxlength="400">${escapeHtml(text)}</textarea>
+        <p class="g__hint">Tik op een stukje van het bericht om het te veranderen.</p>
+        <div class="blocks">${blocksHtml()}</div>
+        <details class="g__type"><summary>Of typ het bericht zelf</summary>
+          <textarea id="bridgeText" maxlength="400" autocapitalize="sentences">${escapeHtml(text)}</textarea>
+        </details>
         ${attempt > 0 ? `<div class="marks"><small>Wat struikelt: <mark class="mk mk--hard">moeilijk woord</mark> <mark class="mk mk--emoji">voorgelezen plaatje</mark> <mark class="mk mk--link">link</mark></small><p class="marks__text">${marks(text)}</p></div>` : ''}
         <p class="g__hint">Tip: tijdens de sluiting kun je de Willemsbrug, de Maastunnel of de metro nemen.</p>
         <button class="btn btn--action g__wide" data-test>Test bij Noor, Ahmad en Mirjam (${left} over)</button>
       </div>`;
     el.querySelector('[data-test]').addEventListener('click', test);
-    el.querySelector('#bridgeText').addEventListener('input', (e) => {
+    const area = el.querySelector('#bridgeText');
+    const showMarks = () => {
       const m = el.querySelector('.marks__text');
-      if (m) m.innerHTML = marks(e.target.value);
+      if (m) m.innerHTML = marks(area.value);
+    };
+    area.addEventListener('input', () => {
+      el.querySelector('.blocks').classList.add('is-typed');
+      showMarks();
+    });
+    el.querySelector('.blocks').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-part]');
+      if (!b) return;
+      const i = Number(b.dataset.part);
+      picks[i] = (picks[i] + 1) % PARTS[i].length;
+      area.value = buildMessage(picks);
+      el.querySelector('.blocks').classList.remove('is-typed');
+      el.querySelector('.blocks').innerHTML = blocksHtml();
+      showMarks();
     });
     // Walk people to their new side after the scene has painted.
     if (results) {

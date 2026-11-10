@@ -6,7 +6,7 @@
 // Ideas are counted anonymously on this device, so a demo laptop shows what young people want.
 
 import { chat, isAvailable, stripPersonal } from '../ai.js';
-import { escapeHtml, say, endScreen, parseJson, shuffle, tally } from './kit.js';
+import { escapeHtml, say, endScreen, parseJson, shuffle, tally, typingForm } from './kit.js';
 
 const TOPICS = [
   {
@@ -142,6 +142,7 @@ export function mount(el, { onFinish, character }) {
         start();
       }),
     );
+    typingForm(el.querySelector('.g__own'), { min: 8 });
     el.querySelector('.g__own').addEventListener('submit', (e) => {
       e.preventDefault();
       const { text } = stripPersonal(el.querySelector('#ownIdea').value.trim());
@@ -174,20 +175,39 @@ export function mount(el, { onFinish, character }) {
     el.innerHTML = `
       <div class="g">
         ${bar()}
-        <div class="say"><span class="say__avatar" aria-hidden="true">${m.name[0]}</span><div class="say__text"><p><strong>${m.name}</strong> · let op ${m.cares}</p><p class="m-q">${aiOn ? '<span class="g__thinking">denkt na over je idee…</span>' : escapeHtml(m.question)}</p></div></div>
+        <div class="say"><span class="say__avatar" aria-hidden="true">${m.name[0]}</span><div class="say__text"><p><strong>${m.name}</strong> · let op ${m.cares}</p><p class="m-q">${escapeHtml(m.question)}</p></div></div>
         <div class="m-answer"></div>
       </div>`;
-    const question = aiOn ? (await aiQuestion(m, idea)) ?? m.question : m.question;
-    if (destroyed) return;
-    el.querySelector('.m-q').textContent = question;
-
     const box = el.querySelector('.m-answer');
-    if (aiOn) {
+    cards(m, box);
+    // With AI the player may also answer in their own words; tapping a card always works.
+    if (aiOn) addOwnAnswer(m, box);
+  }
+
+  // Typing your own answer: the member first asks a question about your idea (AI), then votes.
+  function addOwnAnswer(m, box) {
+    box.insertAdjacentHTML('beforeend', '<button class="btn g__wide" data-own>Of antwoord in je eigen woorden</button>');
+    box.querySelector('[data-own]').addEventListener('click', async () => {
+      const q = el.querySelector('.m-q');
+      q.innerHTML = '<span class="g__thinking">denkt na over je idee…</span>';
+      box.innerHTML = '';
+      const question = (await aiQuestion(m, idea)) ?? m.question;
+      if (destroyed) return;
+      q.textContent = question;
       box.innerHTML = `<form class="g__own">
           <textarea id="pitchAnswer" maxlength="280" placeholder="Jouw antwoord aan ${m.name}…"></textarea>
           <button class="btn btn--action" type="submit">Antwoord</button>
+          <button class="btn" type="button" data-cards>Toch een antwoord kiezen</button>
         </form>`;
-      box.querySelector('form').addEventListener('submit', async (e) => {
+      const form = box.querySelector('form');
+      typingForm(form, { min: 5 });
+      form.querySelector('textarea').focus();
+      form.querySelector('[data-cards]').addEventListener('click', () => {
+        q.textContent = m.question;
+        cards(m, box);
+        addOwnAnswer(m, box);
+      });
+      form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const { text } = stripPersonal(box.querySelector('textarea').value.trim());
         if (text.length < 5) return;
@@ -195,12 +215,14 @@ export function mount(el, { onFinish, character }) {
         box.insertAdjacentHTML('beforeend', `<p class="g__thinking">${m.name} overlegt…</p>`);
         const res = await aiVote(m, idea, question, text);
         if (destroyed) return;
-        if (!res) return cards(m, box, 'Dat lukte even niet. Kies een antwoord.');
+        if (!res) {
+          q.textContent = m.question;
+          cards(m, box, 'Dat lukte even niet. Kies een antwoord.');
+          return;
+        }
         decided(m, res.vote, res.why, true);
       });
-    } else {
-      cards(m, box);
-    }
+    });
   }
 
   function cards(m, box, note) {
