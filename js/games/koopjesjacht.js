@@ -1,4 +1,4 @@
-// "Koopjesjacht" (Fair, Markthal, Yasmina).
+// "Koopjesjacht" (Fair, Markthal, Fairy).
 // You have €30 and a shopping list of four things. At each stall two offers compete, and you have
 // 15 seconds to choose. One is honest, the other uses a trick: hidden costs, a fake discount, a
 // subscription trap or a pre-ticked extra. The truth is in the small print, which you can only
@@ -18,7 +18,7 @@ const euro = (v) => `€${v.toFixed(2).replace('.', ',')}`;
 const ROUNDS = [
   {
     item: 'Een oplader voor je telefoon',
-    honest: { shop: 'Kraam van Yasmina', title: 'USB-C oplader', price: 9, lines: ['Gratis meenemen'], real: 9, fine: 'Totaalprijs. Er komt niks bij.' },
+    honest: { shop: 'Kraam van Fairy', title: 'USB-C oplader', price: 9, lines: ['Gratis meenemen'], real: 9, fine: 'Totaalprijs. Er komt niks bij.' },
     trick: {
       shop: 'SuperDeal Online',
       title: 'USB-C oplader',
@@ -34,7 +34,7 @@ const ROUNDS = [
   },
   {
     item: 'Een telefoonhoesje',
-    honest: { shop: 'Kraam van Yasmina', title: 'Hoesje, zwart', price: 7.5, lines: [], real: 7.5, fine: 'Vaste prijs, elke dag.' },
+    honest: { shop: 'Kraam van Fairy', title: 'Hoesje, zwart', price: 7.5, lines: [], real: 7.5, fine: 'Vaste prijs, elke dag.' },
     trick: {
       shop: 'TrendyCases',
       title: 'Hoesje, zwart',

@@ -1,4 +1,4 @@
-// "Ontsnap uit de app" (Healthy, Het Park, Ingrid).
+// "Ontsnap uit de app" (Healthy, Het Park, Healy).
 // A made-up app, Scrollr, is built to keep you watching. Within 60 seconds you have to find and
 // switch off its five tricks in the settings: autoplay, endless scrolling, notifications, streak
 // reminders and red dots. Meanwhile the app keeps trying to lure you back. Taking the bait costs

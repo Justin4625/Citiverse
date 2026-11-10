@@ -1,7 +1,7 @@
 // Messages for "Nep of echt?". All brands, numbers and web addresses are made up on purpose,
 // so the game never imitates a real company. +44 7700 900xxx is a range reserved for fiction.
 //
-// level: 1 = easy, 3 = hard. `tells` are the signs Karin points out for fake messages,
+// level: 1 = easy, 3 = hard. `tells` are the signs Safy points out for fake messages,
 // `why` explains why a real message is safe.
 
 export const MESSAGES = [
@@ -112,7 +112,7 @@ export const MESSAGES = [
 ];
 
 // Templates the AI may fill in. The AI only writes the text: sender, web address and the
-// explanation (`tells`) stay fixed, so Karin's explanation is always correct.
+// explanation (`tells`) stay fixed, so Safy's explanation is always correct.
 export const TEMPLATES = [
   {
     id: 'ai-bank', kind: 'sms', from: 'MaasBank', domain: 'maasbank-check.info', level: 2,

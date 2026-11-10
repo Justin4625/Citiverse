@@ -1,5 +1,5 @@
-// "Nep of echt?" (Safe, Politiebureau, Karin).
-// Messages come into Karin's control room; the player swipes or taps Nep / Echt.
+// "Nep of echt?" (Safe, Politiebureau, Safy).
+// Messages come into Safy's control room; the player swipes or taps Nep / Echt.
 // No timer (Justin's choice): players get as long as they need per message.
 // A streak of right answers raises the multiplier. The local AI writes extra fake messages inside
 // fixed templates; without AI the game plays with the built-in messages only.
@@ -87,7 +87,7 @@ function recordStat(id, wrong) {
   } catch {}
 }
 
-export function mount(el, { onFinish, character = { name: 'Karin' }, difficulty = 0 }) {
+export function mount(el, { onFinish, character = { name: 'Safy' }, difficulty = 0 }) {
   const rounds = pickRounds(MIXES[difficulty] ?? MIXES[0]);
   const aiReady = [];
   let index = 0;
@@ -113,7 +113,7 @@ export function mount(el, { onFinish, character = { name: 'Karin' }, difficulty 
         <span class="noe__streak"></span>
         <span class="noe__score"></span>
       </div>
-      <div class="lockscreen"><span class="lockscreen__time">${new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}</span><span class="lockscreen__date">Meldkamer van Karin</span><div class="noe__stage"></div></div>
+      <div class="lockscreen"><span class="lockscreen__time">${new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}</span><span class="lockscreen__date">Meldkamer van Safy</span><div class="noe__stage"></div></div>
       <div class="noe__actions">
         <button class="noe__btn noe__btn--nep" data-answer="nep">Nep</button>
         <button class="noe__btn noe__btn--echt" data-answer="echt">Echt</button>

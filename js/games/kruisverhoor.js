@@ -1,4 +1,4 @@
-// "Kruisverhoor" (Rules, Rechtbank, Joost).
+// "Kruisverhoor" (Rules, Rechtbank, Ruly).
 // A courtroom game in the style of a detective game.
 // 1. Investigation: ask 4 questions to 3 witnesses. Answers that matter become evidence cards.
 // 2. Cross-examination: Sanne gives her testimony, statement by statement. When she says

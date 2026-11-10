@@ -1,4 +1,4 @@
-// "Jij bent het algoritme" (Chances, Centrale Bibliotheek, Ruben).
+// "Jij bent het algoritme" (Chances, Centrale Bibliotheek, Chancy).
 // A sandbox. First YOU are the algorithm: set sliders for what matters and watch 12 applicants
 // for a library side job re-sort live. Then a real (small) model, a logistic regression that
 // trains in your browser on 300 old applications, picks instead. The old manager was biased

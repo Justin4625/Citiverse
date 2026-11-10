@@ -1,4 +1,4 @@
-// "Spoorloos" (Privacy, Rotterdam Centraal, Mo).
+// "Spoorloos" (Privacy, Rotterdam Centraal, Privy).
 // A sneak game on a map of the station. Walk to your train (tap where you want to go, or use the
 // arrow keys) before it leaves. On the way, systems collect data about you: sweeping cameras,
 // free wifi that grabs your phone, a shop beacon, a check-in pole that links your trip to your
@@ -6,7 +6,7 @@
 // the ticket machine takes a moment and the normal gate has a queue.
 // Score: 10 privacy points minus the weight of every trace you left. Miss the train and you
 // score nothing.
-// AI: Mo turns your traces into a short profile of you. Without AI he lists them.
+// AI: Privy turns your traces into a short profile of you. Without AI he lists them.
 
 import { chat, isAvailable } from '../ai.js';
 import { escapeHtml, say, endScreen } from './kit.js';
@@ -82,7 +82,7 @@ async function profile(traces) {
       {
         role: 'system',
         content:
-          'Je bent Mo, stationsmedewerker op Rotterdam Centraal, in een spel voor jongeren over privacy. Je krijgt een lijst datasporen die een reiziger achterliet. ' +
+          'Je bent Privy, stationsmedewerker op Rotterdam Centraal, in een spel voor jongeren over privacy. Je krijgt een lijst datasporen die een reiziger achterliet. ' +
           'Vertel in maximaal drie korte zinnen, in de jij-vorm, wat bedrijven samen uit deze sporen over de reiziger kunnen afleiden. Een beetje griezelig, maar niet eng. ' +
           'Verzin geen namen, adressen of andere concrete gegevens. Eenvoudig Nederlands.',
       },
@@ -505,7 +505,7 @@ export function mount(el, { onFinish, character }) {
     const traces = [...state.traces].map((id) => TRACES[id]);
     const weight = traces.reduce((s, t) => s + t.weight, 0);
     const points = made ? Math.max(0, 10 - weight) : 0;
-    el.innerHTML = `<div class="g">${say(character, `<p class="g__thinking">${made ? 'Mo zoekt uit wat er over je bekend is…' : 'Je trein rijdt weg…'}</p>`)}</div>`;
+    el.innerHTML = `<div class="g">${say(character, `<p class="g__thinking">${made ? 'Privy zoekt uit wat er over je bekend is…' : 'Je trein rijdt weg…'}</p>`)}</div>`;
     const text = made && traces.length && (await isAvailable()) ? await profile(traces.map((t) => t.text)) : null;
     if (destroyed) return;
     const line = !made

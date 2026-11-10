@@ -1,4 +1,4 @@
-// "Pitch in de raad" (Active, Stadhuis, Fatima).
+// "Pitch in de raad" (Active, Stadhuis, Acty).
 // Think of an idea for your neighbourhood and pitch it to three council members, who each care
 // about something else: money, the neighbours, and safety. You need 2 of the 3 votes.
 // AI: the council members ask questions about your own idea and judge your typed answer.

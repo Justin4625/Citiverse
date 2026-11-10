@@ -1,5 +1,5 @@
-// "Iedereen over de brug" (Everybody, Erasmusbrug, Sem).
-// The bridge closes tonight and Sem's message has to reach everyone. Rewrite it until three very
+// "Iedereen over de brug" (Everybody, Erasmusbrug, Every).
+// The bridge closes tonight and Every's message has to reach everyone. Rewrite it until three very
 // different Rotterdammers understand it: Noor (her phone reads messages aloud), Ahmad (learning
 // Dutch) and Mirjam (no mobile internet, so links don't work). Three attempts.
 // Clear rules decide who understands the message, so the result is always fair and explainable.

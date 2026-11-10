@@ -8,8 +8,8 @@
 export const STOPS = {
   centraal: {
     theme: 'Privacy',
-    character: { name: 'Mo', role: 'stationsmedewerker' },
-    intro: 'Hoi! Ik ben Mo, ik werk hier op Rotterdam Centraal. Elke dag lopen hier enorm veel mensen doorheen, en bijna iedereen laat sporen achter zonder het door te hebben.',
+    character: { name: 'Privy', role: 'stationsmedewerker' },
+    intro: 'Hoi! Ik ben Privy, ik werk hier op Rotterdam Centraal. Elke dag lopen hier enorm veel mensen doorheen, en bijna iedereen laat sporen achter zonder het door te hebben.',
     problem: 'Een reiziger vroeg me vandaag: "Wie weet eigenlijk allemaal waar ik ben geweest?" Ik wist het zelf niet goed. Help jij me?',
     facts: [
       'Het huidige stationsgebouw van Rotterdam Centraal is in 2014 geopend.',
@@ -23,14 +23,14 @@ export const STOPS = {
     game: 'spoorloos',
     card: {
       title: 'Spoorloos',
-      text: 'Je hebt 8 minuten tot je trein vertrekt. Bij elke stap kies je: snel maar met sporen, of privé maar langzamer. Daarna vertelt Mo wat hij over je weet.',
+      text: 'Je hebt 8 minuten tot je trein vertrekt. Bij elke stap kies je: snel maar met sporen, of privé maar langzamer. Daarna vertelt Privy wat er over je bekend is.',
     },
   },
 
   markthal: {
     theme: 'Fair',
-    character: { name: 'Yasmina', role: 'kraamhouder' },
-    intro: 'Welkom in de Markthal! Ik ben Yasmina en ik heb hier een kraam. Ik verkoop ook online, en daar gaat het er soms minder eerlijk aan toe dan op de markt.',
+    character: { name: 'Fairy', role: 'kraamhouder' },
+    intro: 'Welkom in de Markthal! Ik ben Fairy en ik heb hier een kraam. Ik verkoop ook online, en daar gaat het er soms minder eerlijk aan toe dan op de markt.',
     problem: 'Mijn klanten trappen in nepkortingen van andere webshops. Kun jij laten zien hoe je die trucs herkent?',
     facts: [
       'De Markthal is in 2014 geopend.',
@@ -50,8 +50,8 @@ export const STOPS = {
 
   kubuswoningen: {
     theme: 'Freedom',
-    character: { name: 'Daan', role: 'bewoner en kunstenaar' },
-    intro: 'Hé, ik ben Daan. Ik woon in een van deze scheve kubussen en maak hier kunst. Piet Blom durfde anders te bouwen, en ik vind dat je online ook jezelf moet kunnen zijn.',
+    character: { name: 'Freely', role: 'bewoner en kunstenaar' },
+    intro: 'Hé, ik ben Freely. Ik woon in een van deze scheve kubussen en maak hier kunst. Piet Blom durfde anders te bouwen, en ik vind dat je online ook jezelf moet kunnen zijn.',
     problem: 'Onder mijn kunst verschijnen reacties waarvan ik niet weet of ze mogen. Wat valt onder vrije meningsuiting, en wanneer gaat het over de grens?',
     facts: [
       'De Kubuswoningen zijn ontworpen door architect Piet Blom.',
@@ -64,14 +64,14 @@ export const STOPS = {
     game: 'moderator',
     card: {
       title: 'Moderator',
-      text: 'Daan krijgt reacties onder zijn kunst. Jij beslist: laten staan of weghalen. Houd vrijheid én veiligheid in balans.',
+      text: 'Freely krijgt reacties onder zijn kunst. Jij beslist: laten staan of weghalen. Houd vrijheid én veiligheid in balans.',
     },
   },
 
   erasmusbrug: {
     theme: 'Everybody',
-    character: { name: 'Sem', role: 'brugwachter' },
-    intro: 'Ik ben Sem en ik let op de Erasmusbrug. Deze brug verbindt Noord en Zuid, en ik vind dat online ook iedereen moet kunnen meedoen.',
+    character: { name: 'Every', role: 'brugwachter' },
+    intro: 'Ik ben Every en ik let op de Erasmusbrug. Deze brug verbindt Noord en Zuid, en ik vind dat online ook iedereen moet kunnen meedoen.',
     problem: 'We moeten een bericht sturen dat de brug even dicht gaat, maar niet iedereen kan dat goed lezen of ontvangen. Help jij het bericht voor iedereen te maken?',
     facts: [
       'De Erasmusbrug is in 1996 geopend.',
@@ -90,8 +90,8 @@ export const STOPS = {
 
   rechtbank: {
     theme: 'Rules',
-    character: { name: 'Joost', role: 'griffier' },
-    intro: 'Goedendag, ik ben Joost, griffier bij de rechtbank. Ik schrijf op wat er in een rechtszaak gebeurt. Hier wordt beslist wat wel en niet mag.',
+    character: { name: 'Ruly', role: 'griffier' },
+    intro: 'Goedendag, ik ben Ruly, griffier bij de rechtbank. Ik schrijf op wat er in een rechtszaak gebeurt. Hier wordt beslist wat wel en niet mag.',
     problem: 'Er ligt een zaak op mijn bureau: een foto van een jongere is zonder toestemming online gezet. Wie heeft er gelijk?',
     facts: [
       'De rechtbank Rotterdam staat aan het Wilhelminaplein op de Kop van Zuid.',
@@ -110,8 +110,8 @@ export const STOPS = {
 
   euromast: {
     theme: 'Opinion',
-    character: { name: 'Lotte', role: 'gids' },
-    intro: 'Hoi, ik ben Lotte, gids bij de Euromast. Van bovenaf zie je de hele stad. Zo wil ik ook dat jongeren overzicht krijgen, en dat hun mening meetelt.',
+    character: { name: 'Opiny', role: 'gids' },
+    intro: 'Hoi, ik ben Opiny, gids bij de Euromast. Van bovenaf zie je de hele stad. Zo wil ik ook dat jongeren overzicht krijgen, en dat hun mening meetelt.',
     problem: 'De stad moet een keuze maken, en er zijn twee kanten. Ik wil weten wat jij ervan vindt, en waarom.',
     facts: [
       'De Euromast is gebouwd voor de Floriade van 1960.',
@@ -124,14 +124,14 @@ export const STOPS = {
     game: 'overtuig-de-stad',
     card: {
       title: 'Overtuig de stad',
-      text: 'Kies een kant en ga in debat met Lotte. Hoe sterker je argumenten, hoe hoger de lift van de Euromast gaat.',
+      text: 'Kies een kant en ga in debat met Opiny. Hoe sterker je argumenten, hoe hoger de lift van de Euromast gaat.',
     },
   },
 
   hetpark: {
     theme: 'Healthy',
-    character: { name: 'Ingrid', role: 'hardloopcoach' },
-    intro: 'Hallo, ik ben Ingrid, hardloopcoach. Ik train hier in Het Park. Buiten bewegen is goed voor je, maar veel apps doen er alles aan om je binnen op je scherm te houden.',
+    character: { name: 'Healy', role: 'hardloopcoach' },
+    intro: 'Hallo, ik ben Healy, hardloopcoach. Ik train hier in Het Park. Buiten bewegen is goed voor je, maar veel apps doen er alles aan om je binnen op je scherm te houden.',
     problem: 'Een app op mijn telefoon blijft me maar meldingen sturen. Help jij me de trucs te herkennen die me vasthouden?',
     facts: [
       'Het Park ligt naast de Euromast.',
@@ -149,8 +149,8 @@ export const STOPS = {
 
   politiebureau: {
     theme: 'Safe',
-    character: { name: 'Karin', role: 'wijkagent' },
-    intro: 'Hoi, ik ben Karin, wijkagent in het centrum. Steeds vaker krijgen we meldingen van jongeren die online zijn opgelicht.',
+    character: { name: 'Safy', role: 'wijkagent' },
+    intro: 'Hoi, ik ben Safy, wijkagent in het centrum. Steeds vaker krijgen we meldingen van jongeren die online zijn opgelicht.',
     problem: 'Er komen berichten binnen bij de meldkamer, en ik moet snel weten welke nep zijn. Help jij me ze te ontmaskeren?',
     facts: [
       'Bij gevaar bel je 112. Voor andere zaken kun je de politie bellen op 0900-8844.',
@@ -164,14 +164,14 @@ export const STOPS = {
     game: 'nep-of-echt',
     card: {
       title: 'Nep of echt?',
-      text: 'De AI maakt realistische nepberichten binnen vaste sjablonen. Jij ontmaskert ze, en Karin legt uit waaraan je ze herkent.',
+      text: 'De AI maakt realistische nepberichten binnen vaste sjablonen. Jij ontmaskert ze, en Safy legt uit waaraan je ze herkent.',
     },
   },
 
   stadhuis: {
     theme: 'Active',
-    character: { name: 'Fatima', role: 'raadslid' },
-    intro: 'Welkom bij het Stadhuis! Ik ben Fatima, gemeenteraadslid. Hier beslissen we over de stad, en ik wil dat jongeren meepraten.',
+    character: { name: 'Acty', role: 'raadslid' },
+    intro: 'Welkom bij het Stadhuis! Ik ben Acty, gemeenteraadslid. Hier beslissen we over de stad, en ik wil dat jongeren meepraten.',
     problem: 'Ik hoor te weinig ideeën van jongeren. Wat zou jij in Rotterdam verbeteren?',
     facts: [
       'Het Stadhuis aan de Coolsingel is gebouwd tussen 1914 en 1920.',
@@ -189,8 +189,8 @@ export const STOPS = {
 
   bibliotheek: {
     theme: 'Chances',
-    character: { name: 'Ruben', role: 'bibliothecaris' },
-    intro: 'Hoi, ik ben Ruben, bibliothecaris. Hier kan iedereen gratis internet gebruiken, achter een computer zitten en hulp krijgen. Zo krijgt iedereen kansen.',
+    character: { name: 'Chancy', role: 'bibliothecaris' },
+    intro: 'Hoi, ik ben Chancy, bibliothecaris. Hier kan iedereen gratis internet gebruiken, achter een computer zitten en hulp krijgen. Zo krijgt iedereen kansen.',
     problem: 'Steeds meer bedrijven laten een computer kiezen wie er op gesprek mag. Maar is dat wel eerlijk?',
     facts: [
       'De Centrale Bibliotheek is in 1983 geopend.',

@@ -1,6 +1,6 @@
-// "Overtuig de stad" (Opinion, Euromast, Lotte).
-// A debate battle. Pick a statement and a side. The audience sits between you and Lotte, who
-// argues the other side. Each round Lotte attacks with a counterargument and the audience drifts
+// "Overtuig de stad" (Opinion, Euromast, Opiny).
+// A debate battle. Pick a statement and a side. The audience sits between you and Opiny, who
+// argues the other side. Each round Opiny attacks with a counterargument and the audience drifts
 // her way; you answer by playing one of three argument cards before the timer runs out. Strong
 // arguments pull the audience back, fallacies hardly move them, and the card flips to show what
 // kind of argument it was. Win the audience over and the Euromast lift takes you to the top,
@@ -40,7 +40,7 @@ const FALLACY = {
 const typeOf = (a) =>
   a.points === 3 ? 'Sterk argument' : a.points === 2 ? 'Half argument' : Object.entries(FALLACY).find(([k]) => a.text.startsWith(k))?.[1] ?? 'Zwak argument';
 
-// For each statement and side: three counterarguments from Lotte, each with three answers.
+// For each statement and side: three counterarguments from Opiny, each with three answers.
 // points 3 = strong, 2 = reasonable, 1 = weak. `why` explains the weak and reasonable ones.
 const STATEMENTS = [
   {
@@ -85,7 +85,7 @@ const STATEMENTS = [
         counter: 'In de pauze zit iedereen op zijn telefoon in plaats van met elkaar te praten.',
         answers: [
           { text: 'Veel jongeren doen juist samen iets op hun telefoon, zoals een video kijken of een spel spelen.', points: 3 },
-          { text: 'Dat moeten leerlingen zelf mogen kiezen.', points: 2, why: 'Een redelijk punt, maar je gaat niet in op het probleem dat Lotte noemt.' },
+          { text: 'Dat moeten leerlingen zelf mogen kiezen.', points: 2, why: 'Een redelijk punt, maar je gaat niet in op het probleem dat Opiny noemt.' },
           { text: 'Volwassenen zitten ook de hele dag op hun telefoon.', points: 1, why: 'Dat heet een jij-bak: wijzen naar een ander maakt het probleem niet kleiner.' },
         ],
       },
@@ -123,7 +123,7 @@ const STATEMENTS = [
         counter: 'Wat als de beelden gehackt of misbruikt worden?',
         answers: [
           { text: 'Dan moeten de beelden goed beveiligd en kort bewaard worden, met een toezichthouder die controleert.', points: 3 },
-          { text: 'De politie gebruikt de beelden alleen voor onderzoek.', points: 2, why: 'Dat is de bedoeling, maar Lotte vraagt wat er gebeurt als het misgaat.' },
+          { text: 'De politie gebruikt de beelden alleen voor onderzoek.', points: 2, why: 'Dat is de bedoeling, maar Opiny vraagt wat er gebeurt als het misgaat.' },
           { text: 'Dat gebeurt toch nooit.', points: 1, why: 'Dat weet je niet. Datalekken gebeuren juist vaak.' },
         ],
       },
@@ -180,7 +180,7 @@ const STATEMENTS = [
         answers: [
           { text: 'De gemeente beslist ook over dingen waar jongeren elke dag mee te maken hebben, zoals jongerenwerk, sport en veilig fietsen.', points: 3 },
           { text: 'Met een stemhulp kun je je laten informeren.', points: 2, why: 'Een handige oplossing, maar je laat zien dat het wel ingewikkeld is.' },
-          { text: 'Ingewikkeld is geen reden.', points: 1, why: 'Je zegt alleen dat Lotte ongelijk heeft, niet waarom.' },
+          { text: 'Ingewikkeld is geen reden.', points: 1, why: 'Je zegt alleen dat Opiny ongelijk heeft, niet waarom.' },
         ],
       },
     ],
@@ -227,7 +227,7 @@ async function scoreOwnArgument(statement, side, counter, argument) {
       },
       {
         role: 'user',
-        content: `Stelling: ${statement}\nDe jongere is het ${side === 'eens' ? 'eens' : 'oneens'} met de stelling.\nTegenargument van Lotte: ${counter}\nArgument van de jongere: ${argument}`,
+        content: `Stelling: ${statement}\nDe jongere is het ${side === 'eens' ? 'eens' : 'oneens'} met de stelling.\nTegenargument van Opiny: ${counter}\nArgument van de jongere: ${argument}`,
       },
     ],
     { json: true, temperature: 0.2, maxTokens: 120 },
@@ -243,7 +243,7 @@ export function mount(el, { onFinish, character }) {
   let side = null;
   let round = 0;
   let points = 0;
-  let tug = 0; // -100 = audience with Lotte, +100 = with you
+  let tug = 0; // -100 = audience with Opiny, +100 = with you
   let timer = null;
   let destroyed = false;
   let aiOn = false;
@@ -296,7 +296,7 @@ export function mount(el, { onFinish, character }) {
       <div class="g battle">
         <div class="g__bar"><span>Ronde <b class="b-round">1</b>/3</span><span class="b-points">0 punten</span></div>
         <div class="battle__stage">
-          <div class="fighter fighter--lotte"><span class="fighter__avatar">L</span><small>Lotte</small></div>
+          <div class="fighter fighter--lotte"><span class="fighter__avatar">O</span><small>Opiny</small></div>
           <div class="battle__crowd" aria-label="Het publiek">${crowd()}</div>
           <div class="fighter fighter--you"><span class="fighter__avatar">Jij</span><small>${side === 'eens' ? 'Eens' : 'Oneens'}</small></div>
         </div>
@@ -316,7 +316,7 @@ export function mount(el, { onFinish, character }) {
   function attack() {
     const r = statement[side][round];
     el.querySelector('.b-round').textContent = round + 1;
-    el.querySelector('.battle__speech').innerHTML = `<div class="speech-attack"><small>Lotte</small><p>${escapeHtml(r.counter)}</p></div>`;
+    el.querySelector('.battle__speech').innerHTML = `<div class="speech-attack"><small>Opiny</small><p>${escapeHtml(r.counter)}</p></div>`;
     el.querySelector('.fighter--lotte').classList.add('is-attacking');
     setTimeout(() => el.querySelector('.fighter--lotte')?.classList.remove('is-attacking'), 500);
     tug = Math.max(-100, tug - ATTACK);
@@ -348,7 +348,7 @@ export function mount(el, { onFinish, character }) {
       onEnd: () => {
         tug = Math.max(-100, tug - 15);
         updateCrowd();
-        resolve(r, null, 0, 'Te laat! Het publiek wacht niet. Lotte wint deze ronde.', 'Geen antwoord');
+        resolve(r, null, 0, 'Te laat! Het publiek wacht niet. Opiny wint deze ronde.', 'Geen antwoord');
       },
     });
   }
@@ -372,7 +372,7 @@ export function mount(el, { onFinish, character }) {
     el.querySelector('.battle__timer i').style.width = '0';
     el.querySelector('.hand').innerHTML = `
       <form class="g__own">
-        <textarea id="ownArgument" maxlength="280" placeholder="Mijn argument tegen wat Lotte zegt…"></textarea>
+        <textarea id="ownArgument" maxlength="280" placeholder="Mijn argument tegen wat Opiny zegt…"></textarea>
         <button class="btn btn--action" type="submit">Speel mijn argument</button>
       </form>`;
     el.querySelector('.g__own').addEventListener('submit', async (e) => {
@@ -419,7 +419,7 @@ export function mount(el, { onFinish, character }) {
     const m = Math.round((points / 9) * HEIGHT_M);
     endScreen(el, {
       big: won ? `${m} m` : 'Verloren',
-      sub: won ? 'Het publiek staat achter je' : 'Het publiek koos voor Lotte',
+      sub: won ? 'Het publiek staat achter je' : 'Het publiek koos voor Opiny',
       character,
       line: escapeHtml(
         won

@@ -1,11 +1,11 @@
-// "Moderator" (Freedom, Kubuswoningen, Daan).
-// Daan is painting live. Comments stream up the chat, faster and faster. Tap a comment to remove
+// "Moderator" (Freedom, Kubuswoningen, Freely).
+// Freely is painting live. Comments stream up the chat, faster and faster. Tap a comment to remove
 // it before it reaches the top and gets published. Remove hate, threats, spam and doxxing to keep
 // the stream safe, but leave criticism, jokes and opinions: remove those and nobody dares to say
 // anything anymore. Two meters, freedom and safety, show how you're doing. If one runs out, the
 // stream goes wrong.
 // Afterwards you review every mistake with an explanation.
-// AI: Daan reflects on how you moderated. The comments are hand-written on purpose: we don't let
+// AI: Freely reflects on how you moderated. The comments are hand-written on purpose: we don't let
 // a model write hateful content for children.
 
 import { chat, isAvailable } from '../ai.js';
@@ -19,13 +19,13 @@ const GAP_END = 1.0;
 
 const ALLOWED = [
   { user: 'kunstkijker', text: 'Ik vind dit echt lelijk, sorry.', why: 'Kritiek op kunst mag, ook als het niet aardig is.' },
-  { user: 'memequeen010', text: 'Dit lijkt op een kubus die elk moment kan omvallen 😂', why: 'Een grap over het werk is geen aanval op Daan.' },
+  { user: 'memequeen010', text: 'Dit lijkt op een kubus die elk moment kan omvallen 😂', why: 'Een grap over het werk is geen aanval op Freely.' },
   { user: 'stadsgenoot', text: 'Kunst zou niet met belastinggeld betaald moeten worden.', why: 'Een mening over politiek mag, ook onder kunst.' },
   { user: 'r.dam_jongen', text: 'Mijn kleine zusje van 5 kan dit ook.', why: 'Harde kritiek, maar geen belediging. Die mag blijven.' },
   { user: 'galerie_fan', text: 'De kleuren vloeken, maar de vorm is wel tof.', why: 'Een eerlijke recensie. Daar leren kunstenaars van.' },
   { user: 'nieuwsgierig', text: 'Hoe lang doe je over zo\'n schilderij?', why: 'Een gewone vraag. Weghalen zou raar zijn.' },
   { user: 'skeptisch', text: 'Dit is geen kunst, dit is verf op een doek.', why: 'Een mening over wat kunst is. Mag gewoon.' },
-  { user: 'buurman_kees', text: 'Daan kan beter stoppen met schilderen.', why: 'Onaardig, maar het gaat over zijn werk, niet over wie hij is. Valt onder vrijheid van meningsuiting.' },
+  { user: 'buurman_kees', text: 'Freely kan beter stoppen met schilderen.', why: 'Onaardig, maar het gaat over zijn werk, niet over wie hij is. Valt onder vrijheid van meningsuiting.' },
   { user: 'fan4ever', text: 'Wauw, dit is je beste werk tot nu toe!', why: 'Een compliment. Natuurlijk laten staan.' },
   { user: 'kritisch_k', text: 'Alle kubuskunst lijkt op elkaar. Saai.', why: 'Kritiek op een stijl. Mag.' },
   { user: 'rotterdam_mening', text: 'Piet Blom was beter dan jij.', why: 'Een vergelijking die pijn doet, maar het is een mening.' },
@@ -36,13 +36,13 @@ const NOT_ALLOWED = [
   { user: 'anoniem_1234', text: 'Ik weet in welke kubus jij woont. Ik kom je opzoeken.', why: 'Een bedreiging. Die valt niet onder vrijheid van meningsuiting.' },
   { user: 'echte_rdammer', text: 'Mensen zoals jij horen hier niet. Ga terug naar je eigen land.', why: 'Discriminatie: iemand wordt aangevallen om wie hij is.' },
   { user: 'volgers_gratis', text: 'GRATIS 10.000 volgers!!! Klik op de link in mijn bio 🔥', why: 'Spam en waarschijnlijk oplichting.' },
-  { user: 'xx_hater_xx', text: 'Daan is een vieze loser. Iedereen moet hem blokkeren.', why: 'Schelden en een oproep tot pesten.' },
-  { user: 'weet_alles', text: 'Hier is het nummer van Daan, bel hem maar: 06-•• •• •• ••', why: 'Privégegevens van iemand delen (doxing) is gevaarlijk en mag niet.' },
-  { user: 'daan_official2', text: 'Ik ben de echte Daan! Stuur me je wachtwoord voor een gratis print.', why: 'Iemand doet zich voor als Daan om wachtwoorden te stelen.' },
+  { user: 'xx_hater_xx', text: 'Freely is een vieze loser. Iedereen moet hem blokkeren.', why: 'Schelden en een oproep tot pesten.' },
+  { user: 'weet_alles', text: 'Hier is het nummer van Freely, bel hem maar: 06-•• •• •• ••', why: 'Privégegevens van iemand delen (doxing) is gevaarlijk en mag niet.' },
+  { user: 'freely_official2', text: 'Ik ben de echte Freely! Stuur me je wachtwoord voor een gratis print.', why: 'Iemand doet zich voor als Freely om wachtwoorden te stelen.' },
   { user: 'boos_account', text: 'Als ik je op straat zie, sla ik je.', why: 'Een bedreiging met geweld. Weghalen en melden.' },
   { user: 'winactie_nl', text: 'Jij hebt een iPhone gewonnen! Vul je bankgegevens in via de link.', why: 'Oplichting: niemand wint zomaar iets.' },
   { user: 'pestkop99', text: 'Hahaha kijk hoe dik hij is geworden 🤢', why: 'Iemand uitlachen om zijn lichaam is pesten, geen kritiek op kunst.' },
-  { user: 'groepsapp_leak', text: 'Daan woont op nummer 14, ik heb foto\'s van zijn huis.', why: 'Iemands adres delen is doxing. Gevaarlijk.' },
+  { user: 'groepsapp_leak', text: 'Freely woont op nummer 14, ik heb foto\'s van zijn huis.', why: 'Iemands adres delen is doxing. Gevaarlijk.' },
 ];
 
 async function reflect(stats) {
@@ -51,7 +51,7 @@ async function reflect(stats) {
       {
         role: 'system',
         content:
-          'Je bent Daan, kunstenaar in een kubuswoning in Rotterdam, in een spel over vrijheid van meningsuiting voor jongeren. ' +
+          'Je bent Freely, kunstenaar in een kubuswoning in Rotterdam, in een spel over vrijheid van meningsuiting voor jongeren. ' +
           'De speler heeft reacties onder jouw livestream gemodereerd. Geef in twee korte zinnen, vriendelijk en in eenvoudig Nederlands, een persoonlijke reactie op hoe de speler het deed. Noem geen cijfers.',
       },
       {
@@ -232,7 +232,7 @@ export function mount(el, { onFinish, character }) {
     cancelAnimationFrame(raf);
     // Comments that never appeared count as missed chances.
     const total = queue.length;
-    el.innerHTML = `<div class="g">${say(character, '<p class="g__thinking">Daan stopt de stream…</p>')}</div>`;
+    el.innerHTML = `<div class="g">${say(character, '<p class="g__thinking">Freely stopt de stream…</p>')}</div>`;
     const text = !over && (await isAvailable()) ? await reflect(stats) : null;
     if (destroyed) return;
     const line = over
@@ -248,7 +248,7 @@ export function mount(el, { onFinish, character }) {
       extra: `${mistakes.length ? `<div class="kv__log"><p class="g__hint">Terugblik op je fouten</p>${mistakes
         .map((m) => `<div class="kv__entry ${m.allowed ? '' : 'is-key'}"><small>@${escapeHtml(m.user)} · ${m.action}</small><p>"${escapeHtml(m.text)}"</p><p>${escapeHtml(m.why)}</p></div>`)
         .join('')}</div>` : '<p class="g__hint">Geen enkele fout. Precies de juiste grens!</p>'}
-        ${text ? '<p class="g__ai">Daans reactie is door AI geschreven. De reacties in de chat niet: die zijn met de hand gemaakt.</p>' : ''}`,
+        ${text ? '<p class="g__ai">De reactie van Freely is door AI geschreven. De reacties in de chat niet: die zijn met de hand gemaakt.</p>' : ''}`,
       onDone: () => onFinish({ correct, total, summary: 'goede beslissingen' }),
     });
   }
