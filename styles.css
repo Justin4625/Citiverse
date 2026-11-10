@@ -321,12 +321,13 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
 .stop[data-state='near'] .stop__buddy { animation: hop 0.6s ease-in-out infinite; }
 .stop[data-state='done'] .stop__check { display: block; }
 
-.player { width: 40px; height: 56px; pointer-events: none; }
-.player svg { width: 100%; height: 100%; overflow: visible; }
-.player__shadow { fill: rgba(43, 58, 85, 0.3); stroke: none; }
-.player__body { fill: #ff5a5f; stroke: #fff; stroke-width: 3; }
-.player__head { fill: #ffd9b8; stroke: #fff; stroke-width: 3; }
-.player__cap { fill: #2b3a55; stroke: none; }
+/* The player shrinks with the stops when you zoom out (--stop-scale, set in map.js). */
+.player { width: 34px; height: 51px; pointer-events: none; }
+.player > * { transform: scale(var(--stop-scale, 1)); transform-origin: 50% 100%; }
+.player svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 2px 2px rgba(11, 26, 61, 0.35)); }
+/* 3D Twinny (js/twinny3d.js SIZE): the canvas bottom is the feet. */
+.player--3d { width: 50px; height: 72px; }
+.player__3d canvas { display: block; }
 
 /* ---------- Collect celebration ---------- */
 .toast {
@@ -1344,6 +1345,8 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
   filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.3));
   animation: hop 0.9s calc(var(--i) * 0.09s) ease-in-out infinite;
 }
+.splash__twinny { height: 72px; margin: 0 2px; flex: none; animation: hop 0.9s 0.45s ease-in-out infinite; }
+.splash__twinny svg { height: 100%; width: auto; overflow: visible; filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.3)); }
 .splash__start { width: min(100%, 300px); min-height: 58px; font-size: 1.3rem; border-color: #fff; }
 .splash small { font-size: 0.72rem; opacity: 0.75; }
 

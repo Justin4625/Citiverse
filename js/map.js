@@ -1,5 +1,6 @@
 import { mapStyle } from './mapStyle.js';
-import { stopElement, setStopState, playerElement } from './markers.js';
+import { stopElement, setStopState, playerElement, setPlayerThemes, setPlayerWalking } from './markers.js';
+import { distanceM } from './geo.js';
 
 const PLAY_ZOOM = 16.6;
 const PLAY_PITCH = 55;
@@ -7,6 +8,8 @@ const PLAY_PITCH = 55;
 const FULL_ZOOM = 15.5;
 const MIN_ZOOM_SCALE = 0.4;
 const DOT_ZOOM = 13;
+// The Twinny walks to a new position instead of jumping, unless it is further than this.
+const MAX_WALK_M = 600;
 
 function circlePolygon({ lat, lng }, radiusM, steps = 64) {
   const dLat = radiusM / 111320;
@@ -47,6 +50,7 @@ export function createGameMap(container, locations, radiusM) {
   let loaded = false;
   let pendingPlayer = null;
   let playerMarker = null;
+  const playerEl = playerElement();
 
   map.on('load', () => {
     loaded = true;
@@ -68,18 +72,57 @@ export function createGameMap(container, locations, radiusM) {
     }),
   );
 
+  let walk = 0; // id of the running walk, so a newer position cancels the old one
+
+  // Moves the player marker to `pos` over time while the Twinny plays its walk cycle, turned
+  // towards where it is going on screen. Far jumps (teleport in test mode) skip the walk.
+  function walkTo(pos, follow) {
+    const from = playerMarker.getLngLat();
+    const start = { lat: from.lat, lng: from.lng };
+    const dist = distanceM(start, pos);
+    const id = ++walk;
+    if (dist < 1 || dist > MAX_WALK_M) {
+      playerMarker.setLngLat([pos.lng, pos.lat]);
+      setPlayerWalking(playerEl, false);
+      if (follow) map.easeTo({ center: [pos.lng, pos.lat], duration: 800 });
+      if (loaded) updateReach(pos);
+      return;
+    }
+    const duration = Math.min(Math.max(dist * 15, 500), 2500);
+    const a = map.project([start.lng, start.lat]);
+    const b = map.project([pos.lng, pos.lat]);
+    setPlayerWalking(playerEl, true, Math.atan2(b.x - a.x, b.y - a.y));
+    if (follow) map.easeTo({ center: [pos.lng, pos.lat], duration, easing: (t) => t });
+    const t0 = performance.now();
+    const step = (now) => {
+      if (id !== walk) return;
+      const t = Math.min((now - t0) / duration, 1);
+      const here = { lat: start.lat + (pos.lat - start.lat) * t, lng: start.lng + (pos.lng - start.lng) * t };
+      playerMarker.setLngLat([here.lng, here.lat]);
+      if (loaded) updateReach(here);
+      if (t < 1) requestAnimationFrame(step);
+      else setPlayerWalking(playerEl, false);
+    };
+    requestAnimationFrame(step);
+  }
+
   return {
     setPlayer(pos, { follow = true } = {}) {
       const lngLat = [pos.lng, pos.lat];
       if (!playerMarker) {
-        playerMarker = new maplibregl.Marker({ element: playerElement(), anchor: 'bottom' }).setLngLat(lngLat).addTo(map);
+        playerMarker = new maplibregl.Marker({ element: playerEl, anchor: 'bottom' }).setLngLat(lngLat).addTo(map);
         map.flyTo({ center: lngLat, zoom: PLAY_ZOOM, pitch: PLAY_PITCH, duration: 1500 });
       } else {
-        playerMarker.setLngLat(lngLat);
-        if (follow) map.easeTo({ center: lngLat, duration: 800 });
+        walkTo(pos, follow);
+        return;
       }
       if (loaded) updateReach(pos);
       else pendingPlayer = pos;
+    },
+
+    // Themes of the collected stamps, so the Twinny wears their colours.
+    setPlayerThemes(themes) {
+      setPlayerThemes(playerEl, themes);
     },
 
     setStopStates(stateById) {

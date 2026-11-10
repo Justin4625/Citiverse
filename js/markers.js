@@ -1,5 +1,6 @@
 import { photoUrl } from './locations.js';
 import { buddyUrl, stampUrl, themeVars } from './brand.js';
+import { twinnySvg } from './twinny.js';
 
 // HTML for the billboard markers that stand on the tilted map.
 
@@ -27,15 +28,37 @@ export function setStopState(el, state) {
   el.dataset.state = state;
 }
 
+// The player is a Digital Twinny that colours in with every stamp (see twinny.js). It starts as
+// the SVG and swaps to the walking 3D figure (twinny3d.js) once Three.js and WebGL are there.
 export function playerElement() {
   const el = document.createElement('div');
   el.className = 'player';
-  el.innerHTML = `
-    <svg viewBox="0 0 40 56" aria-hidden="true">
-      <ellipse class="player__shadow" cx="20" cy="51" rx="11" ry="4"/>
-      <rect class="player__body" x="10" y="24" width="20" height="24" rx="9"/>
-      <circle class="player__head" cx="20" cy="15" r="10"/>
-      <path class="player__cap" d="M10 14a10 10 0 0 1 20 0z"/>
-    </svg>`;
+  el.twinny = { themes: [], three: null };
+  setPlayerThemes(el, []);
+  import('./twinny3d.js')
+    .then(({ createTwinny3D }) => {
+      const box = document.createElement('div');
+      box.className = 'player__3d';
+      const three = createTwinny3D(box);
+      three.setThemes(el.twinny.themes);
+      el.replaceChildren(box);
+      el.classList.add('player--3d');
+      el.twinny.three = three;
+    })
+    .catch(() => {}); // no WebGL or offline without the CDN: keep the SVG
   return el;
+}
+
+export function setPlayerThemes(el, themes) {
+  const key = [...themes].sort().join();
+  if (el.dataset.themes === key) return;
+  el.dataset.themes = key;
+  el.twinny.themes = themes;
+  if (el.twinny.three) el.twinny.three.setThemes(themes);
+  else el.innerHTML = twinnySvg(themes);
+}
+
+/** Walk animation on or off; angle in radians on screen, 0 = towards the viewer. */
+export function setPlayerWalking(el, on, angle) {
+  el.twinny.three?.setWalking(on, angle);
 }

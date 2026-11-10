@@ -3,7 +3,8 @@ import { loadStamps, saveStamp, clearStamps, requestPersistence } from './storag
 import { distanceM, isInRange, watchPosition } from './geo.js';
 import { createGameMap } from './map.js';
 import { renderBook, renderCredits } from './book.js';
-import { THEMES, buddyUrl, stampUrl } from './brand.js';
+import { THEMES, buddyUrl, stampUrl, themeOf } from './brand.js';
+import { twinnySvg } from './twinny.js';
 import { createStopPanel, hasStop, characterOf } from './stop.js';
 import { loadProgress, clearProgress, recordGame, recordStamps, levelFor } from './progress.js';
 import { renderProgress } from './progressView.js';
@@ -75,9 +76,12 @@ function nearestCollectable() {
   );
 }
 
+const collectedThemes = () => LOCATIONS.filter((loc) => stamps[loc.id]).map((loc) => themeOf(loc.id));
+
 function render() {
   const count = LOCATIONS.filter((loc) => stamps[loc.id]).length;
   els.sheetCount.textContent = `${count} van ${LOCATIONS.length} verzameld`;
+  gameMap.setPlayerThemes(collectedThemes());
 
   gameMap.setStopStates(
     Object.fromEntries(
@@ -209,11 +213,12 @@ els.reset.addEventListener('click', () => {
   renderLevel();
 });
 
-// Start screen: the Citiverse GO logo and all ten buddies, gone after one tap.
+// Start screen: the Citiverse GO logo and all ten buddies with your own Twinny in the middle,
+// gone after one tap.
 const splash = document.getElementById('splash');
-document.getElementById('splashBuddies').innerHTML = Object.keys(THEMES)
-  .map((t, i) => `<img src="img/dcr/buddy-${t}.png" alt="" style="--i:${i}">`)
-  .join('');
+const buddyImgs = Object.keys(THEMES).map((t, i) => `<img src="img/dcr/buddy-${t}.png" alt="" style="--i:${i}">`);
+buddyImgs.splice(5, 0, `<span class="splash__twinny">${twinnySvg(collectedThemes())}</span>`);
+document.getElementById('splashBuddies').innerHTML = buddyImgs.join('');
 document.getElementById('splashStart').addEventListener('click', () => {
   splash.classList.add('splash--out');
   // A timer, not animationend: with reduced motion the fade-out never runs.
