@@ -23,9 +23,9 @@ export function characterOf(id) {
 function systemPrompt(loc, stop) {
   const { name, role } = stop.character;
   return [
-    `Je bent ${name}, een Citiverse Buddy van Digital Child Rights en ${role} bij ${loc.name} in Rotterdam. Je speelt een personage in een stempeltocht voor jongeren van 10 tot 20 jaar over digitale rechten. Jouw thema is ${stop.theme}.`,
+    `Je bent ${name}, een Citiverse Buddy van Digital Child Rights en ${role} bij ${loc.name} in Rotterdam. Je speelt een personage in een stempeltocht voor jongeren van 13 tot 18 jaar over digitale rechten. Jouw thema is ${stop.theme}.`,
     'Regels:',
-    '- Praat Nederlands, vriendelijk en eenvoudig (taalniveau B1). Antwoord in maximaal drie korte zinnen.',
+    '- Praat Nederlands zoals je tegen een tiener praat: kort, gewone woorden, taalniveau B1. Geen moeilijke woorden, geen "Goede vraag!" of "Gefeliciteerd!". Antwoord in maximaal drie korte zinnen.',
     '- Gebruik alleen de feiten hieronder. Weet je iets niet, zeg dan eerlijk dat je het niet weet. Verzin nooit cijfers, namen of regels.',
     '- Vraag nooit naar persoonlijke gegevens zoals naam, adres, school, telefoonnummer of wachtwoord. Deelt de jongere die toch, zeg dan dat dat online niet slim is.',
     '- Blijf in je rol. Gaat een vraag niet over jouw plek of jouw thema, verwijs dan vriendelijk terug naar je plek.',
@@ -49,14 +49,19 @@ export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAc
   let onSite = true;
 
   root.addEventListener('click', (e) => {
-    if (e.target === root || e.target.closest('[data-close]')) close();
+    if (e.target.closest('[data-close]') || (e.target === root && !root.dataset.locked)) close();
   });
 
-  function shell(bodyHtml, { banner = false, game = false } = {}) {
+  // locked: no close button and no closing by tapping beside the card, so a stamp that is
+  // ready to collect after a game can't be lost by accident.
+  function shell(bodyHtml, { banner = false, game = false, locked = false } = {}) {
+    if (locked) root.dataset.locked = '1';
+    else delete root.dataset.locked;
     const { name, role } = stop.character;
     root.innerHTML = `
       <div class="stop-panel__card${game ? ' stop-panel__card--game' : ''}" style="${themeVars(loc.id)}">
         <div class="sheet__grip" aria-hidden="true"></div>
+        ${game ? `<img class="stop-panel__ghost" src="${buddyUrl(loc.id)}" alt="" aria-hidden="true">` : ''}
         ${banner ? `<div class="stop-panel__banner"><img src="${photoUrl(loc)}" alt="" style="object-position:${loc.focus}"><img class="stop-panel__icon" src="${iconUrl(loc.id)}" alt="Thema ${escapeHtml(stop.theme)}"></div>` : ''}
         <header class="stop-panel__head">
           <span class="stop-panel__badge" aria-hidden="true"><img src="${buddyUrl(loc.id)}" alt=""></span>
@@ -65,9 +70,9 @@ export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAc
             <strong>${name}</strong>
             <span>${role}</span>
           </div>
-          <button class="sheet__close" data-close aria-label="Sluiten">${CLOSE_ICON}</button>
+          ${locked ? '' : `<button class="sheet__close" data-close aria-label="Sluiten">${CLOSE_ICON}</button>`}
         </header>
-        ${onSite ? '' : '<p class="remote-note">Je speelt op afstand: je krijgt de helft van de XP. De stempel haal je op locatie.</p>'}
+        ${onSite ? '' : '<p class="remote-note">Je speelt op afstand, dus je krijgt de helft van de XP. De stempel krijg je alleen op de plek zelf.</p>'}
         <div class="stop-panel__body">${bodyHtml}</div>
       </div>`;
     root.hidden = false;
@@ -128,7 +133,7 @@ export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAc
       ? ''
       : outcome.xpGained > 0
         ? `<div class="xp-gain"><b>+${outcome.xpGained} XP</b>${onSite ? '' : '<span>op afstand: halve XP</span>'}</div>`
-        : '<div class="xp-gain xp-gain--none"><span>Geen extra XP: je had hier al een beter resultaat.</span></div>';
+        : '<div class="xp-gain xp-gain--none"><span>Geen extra XP. Je had hier al een betere score.</span></div>';
     const body = shell(`
       ${result ? `<div class="result"><b>${result.correct}/${result.total}</b><span>${escapeHtml(result.summary ?? 'goed')}</span></div>` : ''}
       ${xpLine}
@@ -143,7 +148,7 @@ export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAc
           ? '<button class="btn btn--action" data-go="collect">Stempel pakken</button>'
           : '<button class="btn btn--action" data-close>Terug naar de kaart</button>'}
         <button class="btn" data-go="again">Nog een keer spelen</button>
-      </div>`);
+      </div>`, { locked: onSite && !collected });
     body.querySelector('[data-go="collect"]')?.addEventListener('click', () => {
       const target = loc;
       close();
@@ -165,7 +170,7 @@ export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAc
         <input id="chatInput" class="chat__input" maxlength="200" placeholder="Typ je vraag aan ${name}…" autocomplete="off">
         <button class="btn btn--action" type="submit">Stuur</button>
       </form>
-      <p class="chat__note">Deel hier geen naam, adres of telefoonnummer. ${name} wordt gespeeld door een AI die op deze computer draait.</p>
+      <p class="chat__note">Zet hier geen naam, adres of telefoonnummer in. ${name} is een AI die op deze computer draait.</p>
       <div class="stop-panel__actions"><button class="btn" data-go="back">Terug</button></div>`);
     const log = body.querySelector('.chat');
     const input = body.querySelector('.chat__input');
@@ -182,10 +187,10 @@ export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAc
     };
 
     for (const m of history) add(m.role === 'user' ? 'me' : 'them', m.content);
-    if (!history.length) add('them', `Vraag maar raak! Ik vertel je graag meer over ${loc.name}.`);
+    if (!history.length) add('them', `Vraag maar wat je wilt weten over ${loc.name}.`);
 
     if (!(await isAvailable())) {
-      add('them', `${name} is nu even niet bereikbaar: de AI staat uit. Speel de minigame of kom later terug.`);
+      add('them', `${name} kan nu niet praten, want de AI staat uit. Speel de minigame, of probeer het later nog eens.`);
       form.querySelector('button').disabled = true;
       input.disabled = true;
       body.querySelectorAll('.chat__chip').forEach((c) => (c.disabled = true));
@@ -196,12 +201,12 @@ export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAc
       const { text, removed } = stripPersonal(raw.trim());
       if (!text) return;
       add('me', text);
-      if (removed) add('note', 'Persoonlijke gegevens zijn weggehaald voordat je vraag verstuurd werd.');
+      if (removed) add('note', 'Er stonden persoonlijke gegevens in je vraag. Die hebben we eruit gehaald.');
       history.push({ role: 'user', content: text });
       const pending = add('them', '…');
       input.disabled = true;
       const reply = await chat([{ role: 'system', content: systemPrompt(loc, stop) }, ...history.slice(-MAX_HISTORY)]);
-      pending.textContent = reply ?? 'Sorry, dat lukte even niet. Probeer het nog eens.';
+      pending.textContent = reply ?? 'Dat ging even mis. Probeer het nog een keer.';
       if (reply) {
         history.push({ role: 'assistant', content: reply });
         const unlocked = recordQuestion();

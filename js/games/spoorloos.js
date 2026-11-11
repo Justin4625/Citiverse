@@ -1,8 +1,9 @@
 // "Spoorloos" (Privacy, Rotterdam Centraal, Privy).
 // A sneak game on a map of the station. Walk to your train (tap where you want to go, or use the
-// arrow keys) before it leaves. On the way, systems collect data about you: sweeping cameras,
+// arrow keys) before it leaves. There is no clock: you have a budget of steps, and only walking
+// and waiting in line use it, so standing still to watch a camera is free. On the way, systems collect data about you: sweeping cameras,
 // free wifi that grabs your phone, a shop beacon, a check-in pole that links your trip to your
-// name, and a fast gate that scans your face. The private route exists, but it costs time:
+// name, and a fast gate that scans your face. The private route exists, but it costs steps:
 // the ticket machine takes a moment and the normal gate has a queue.
 // Score: 10 privacy points minus the weight of every trace you left. Miss the train and you
 // score nothing.
@@ -13,7 +14,8 @@ import { escapeHtml, say, endScreen } from './kit.js';
 
 const W = 360;
 const H = 520;
-const SECONDS = 22;
+const STEPS = 220;
+const STEPS_PER_SECOND = 10; // spent while walking or waiting in line, never while standing still
 const SPEED = 72; // map units per second
 const PLAYER_R = 9;
 
@@ -30,10 +32,10 @@ const COLORS = {
 };
 
 const TRACES = {
-  ov: { weight: 3, label: 'Ingecheckt op naam', text: 'Je reis is gekoppeld aan je naam: het OV-bedrijf weet dat je hier vandaag was.' },
-  gezicht: { weight: 3, label: 'Gezicht gescand', text: 'Een systeem heeft je gezicht gescand. Een gezicht kun je niet veranderen, zoals een wachtwoord.' },
-  wifi: { weight: 2, label: 'Wifi zag je telefoon', text: 'Je telefoon maakte contact met de gratis wifi. Zo kan je telefoon herkend worden, ook als je niet inlogt.' },
-  beacon: { weight: 2, label: 'Winkel-beacon', text: 'Een beacon in de winkel zag je telefoon langskomen. Zo meten winkels wie er langsloopt en hoe lang.' },
+  ov: { weight: 3, label: 'Ingecheckt op naam', text: 'Je reis staat op je naam. Het OV-bedrijf weet dus dat je hier vandaag was.' },
+  gezicht: { weight: 3, label: 'Gezicht gescand', text: 'Een systeem heeft je gezicht gescand. Een wachtwoord kun je veranderen, je gezicht niet.' },
+  wifi: { weight: 2, label: 'Wifi zag je telefoon', text: 'Je telefoon maakte contact met de gratis wifi. Zo kunnen ze je telefoon herkennen, ook als je niet inlogt.' },
+  beacon: { weight: 2, label: 'Winkel-beacon', text: 'Een kastje in de winkel (een beacon) zag je telefoon langskomen. Zo houden winkels bij wie er langsloopt, en hoe lang.' },
   cam1: { weight: 1, label: 'Camera ziet je', text: 'Een camera in de gang heeft je gefilmd.' },
   cam2: { weight: 1, label: 'Camera ziet je', text: 'Een camera in de hal heeft je gefilmd.' },
 };
@@ -83,8 +85,8 @@ async function profile(traces) {
         role: 'system',
         content:
           'Je bent Privy, stationsmedewerker op Rotterdam Centraal, in een spel voor jongeren over privacy. Je krijgt een lijst datasporen die een reiziger achterliet. ' +
-          'Vertel in maximaal drie korte zinnen, in de jij-vorm, wat bedrijven samen uit deze sporen over de reiziger kunnen afleiden. Een beetje griezelig, maar niet eng. ' +
-          'Verzin geen namen, adressen of andere concrete gegevens. Eenvoudig Nederlands.',
+          'Vertel in maximaal drie korte zinnen, in de jij-vorm, wat bedrijven samen uit deze sporen over de reiziger te weten kunnen komen. Een beetje griezelig, maar niet eng. ' +
+          'Verzin geen namen, adressen of andere echte gegevens. Praat zoals tegen een tiener: kort en in gewone woorden.',
       },
       { role: 'user', content: traces.map((t) => `- ${t}`).join('\n') },
     ],
@@ -109,7 +111,7 @@ export function mount(el, { onFinish, character }) {
   const state = {
     p: { x: 180, y: 500 },
     target: null,
-    time: SECONDS,
+    time: STEPS,
     t: 0,
     checkedIn: false,
     machineHold: 0,
@@ -125,13 +127,13 @@ export function mount(el, { onFinish, character }) {
   function intro() {
     el.innerHTML = `
       <div class="g">
-        ${say(character, '<p>Je trein vertrekt over 22 seconden. Loop naar het perron: tik waar je heen wilt. Maar overal verzamelen systemen gegevens over je. Kom jij er spoorloos doorheen?</p>')}
+        ${say(character, `<p>Loop naar het perron: tik waar je heen wilt. Je hebt ${STEPS} stappen, daarna is je trein weg. Stilstaan kost niks, lopen en in de rij staan wel. Maar overal in het station verzamelen systemen gegevens over je. Lukt het jou zonder sporen?</p>`)}
         <ul class="legend">
-          <li><i class="lg lg--cam"></i><span><strong>Camera</strong> draait heen en weer. Wacht tot hij wegkijkt.</span></li>
-          <li><i class="lg lg--wifi"></i><span><strong>Gratis wifi</strong> pikt je telefoon op als je erdoorheen loopt.</span></li>
-          <li><i class="lg lg--beacon"></i><span><strong>Winkel-beacon</strong> meet wie er langsloopt.</span></li>
-          <li><i class="lg lg--pole"></i><span><strong>Incheckpaal</strong> is snel, maar je reis staat op je naam. De <strong>automaat</strong> geeft een anoniem kaartje, maar dat duurt even.</span></li>
-          <li><i class="lg lg--gate"></i><span><strong>Poort met gezichtsscan</strong> is snel. Het gewone poortje heeft een rij.</span></li>
+          <li><i class="lg lg--cam"></i><span><strong>Camera</strong> draait heen en weer. Wacht tot hij de andere kant op kijkt.</span></li>
+          <li><i class="lg lg--wifi"></i><span><strong>Gratis wifi</strong> ziet je telefoon als je erlangs loopt.</span></li>
+          <li><i class="lg lg--beacon"></i><span><strong>Winkel-beacon</strong> houdt bij wie er langsloopt.</span></li>
+          <li><i class="lg lg--pole"></i><span><strong>Incheckpaal</strong> is snel, maar dan staat je reis op je naam. Bij de <strong>automaat</strong> koop je een kaartje zonder naam, maar dat duurt even.</span></li>
+          <li><i class="lg lg--gate"></i><span><strong>Poort met gezichtsscan</strong> is snel. Bij het gewone poortje staat een rij.</span></li>
         </ul>
         <button class="btn btn--action g__wide" data-go>Start</button>
       </div>`;
@@ -141,7 +143,7 @@ export function mount(el, { onFinish, character }) {
   function start() {
     el.innerHTML = `
       <div class="g sp">
-        <div class="g__bar"><span class="sp__time">${SECONDS} s tot vertrek</span><span class="sp__traces">0 sporen</span></div>
+        <div class="g__bar"><span class="sp__time">${STEPS} stappen over</span><span class="sp__traces">0 sporen</span></div>
         <div class="g__meter"><i class="sp__meter" style="width:100%"></i></div>
         <div class="sp__stage"><canvas aria-label="Plattegrond van het station. Tik waar je heen wilt lopen."></canvas></div>
         <p class="g__hint">Tik op de kaart om te lopen, of gebruik de pijltjestoetsen.</p>
@@ -212,7 +214,6 @@ export function mount(el, { onFinish, character }) {
 
   function update(dt) {
     state.t += dt;
-    state.time -= dt;
     const p = state.p;
 
     // Movement: arrow keys, or walk towards the tapped point.
@@ -238,6 +239,7 @@ export function mount(el, { onFinish, character }) {
     const ny = Math.max(PLAYER_R, Math.min(H - PLAYER_R, p.y + (vy / len) * step));
     if (!ws.some((w) => circleHitsRect(p.x, ny, PLAYER_R, w))) p.y = ny;
     const moving = vx !== 0 || vy !== 0;
+    let busy = moving;
 
     // Check-in: the pole is instant but personal; the machine is anonymous but takes time.
     if (!state.checkedIn && dist(p, POLE) < POLE.r + PLAYER_R) {
@@ -247,10 +249,11 @@ export function mount(el, { onFinish, character }) {
     }
     if (!state.checkedIn && dist(p, MACHINE) < MACHINE.r + 4) {
       state.machineHold += dt;
-      say_('Anoniem kaartje kopen… blijf staan.');
+      busy = true;
+      say_('Kaartje zonder naam kopen… blijf staan.');
       if (state.machineHold >= MACHINE.hold) {
         state.checkedIn = true;
-        say_('Anoniem kaartje gekocht. Niemand weet wie je bent.');
+        say_('Kaartje gekocht. Niemand weet wie je bent.');
       }
     } else if (!state.checkedIn) state.machineHold = 0;
 
@@ -266,6 +269,7 @@ export function mount(el, { onFinish, character }) {
       if (!state.checkedIn) say_('Eerst inchecken of een kaartje kopen!');
       else {
         state.queueHold += dt;
+        busy = true;
         say_('In de rij voor het poortje… blijf staan.');
         if (state.queueHold >= QUEUE.hold) {
           state.leftOpen = true;
@@ -284,12 +288,13 @@ export function mount(el, { onFinish, character }) {
     state.popups = state.popups.filter((q) => q.age < 1.6);
     state.messageTime -= dt;
 
+    if (busy) state.time -= STEPS_PER_SECOND * dt;
     const t = el.querySelector('.sp__time');
-    if (t) t.textContent = `${Math.max(0, Math.ceil(state.time))} s tot vertrek`;
+    if (t) t.textContent = `${Math.max(0, Math.ceil(state.time))} stappen over`;
     const m = el.querySelector('.sp__meter');
     if (m) {
-      m.style.width = `${Math.max(0, state.time / SECONDS) * 100}%`;
-      m.classList.toggle('is-low', state.time < 6);
+      m.style.width = `${Math.max(0, state.time / STEPS) * 100}%`;
+      m.classList.toggle('is-low', state.time < 60);
     }
 
     if (p.y < 40) return finish(true);
@@ -505,24 +510,24 @@ export function mount(el, { onFinish, character }) {
     const traces = [...state.traces].map((id) => TRACES[id]);
     const weight = traces.reduce((s, t) => s + t.weight, 0);
     const points = made ? Math.max(0, 10 - weight) : 0;
-    el.innerHTML = `<div class="g">${say(character, `<p class="g__thinking">${made ? 'Privy zoekt uit wat er over je bekend is…' : 'Je trein rijdt weg…'}</p>`)}</div>`;
+    el.innerHTML = `<div class="g">${say(character, `<p class="g__thinking">${made ? 'Privy kijkt wat ze nu over je weten…' : 'Je trein rijdt weg…'}</p>`)}</div>`;
     const text = made && traces.length && (await isAvailable()) ? await profile(traces.map((t) => t.text)) : null;
     if (destroyed) return;
     const line = !made
-      ? 'De trein is weg! Privé blijven kost tijd. Probeer het nog eens: welke sporen zijn het ergst, en welke neem je voor lief?'
+      ? 'Je stappen zijn op en je trein is weg! Privé blijven kost moeite. Probeer het nog een keer. Welke sporen vind je het ergst? En welke vind je niet zo erg?'
       : !traces.length
-        ? 'Spoorloos! Ik weet helemaal niets over je, en je haalde je trein ook nog.'
+        ? 'Spoorloos! Niemand weet iets over je. En je hebt je trein ook nog gehaald.'
         : text
           ? escapeHtml(text)
-          : 'Dit is wat er nu over je bekend is. Los lijkt het onschuldig, maar samen vertelt het veel over je.';
+          : 'Dit weten ze nu over je. Eén spoor lijkt niet erg. Maar alles bij elkaar zegt het veel over jou.';
     endScreen(el, {
       big: made ? `${points}/10` : 'Gemist',
       sub: made ? 'privacypunten' : 'De trein is vertrokken',
       character,
       line,
       extra: `${traces.length ? `<ul class="traces">${traces.map((t) => `<li class="w${t.weight}">${escapeHtml(t.text)}</li>`).join('')}</ul>` : ''}
-        ${text ? '<p class="g__ai">Dit profiel is door AI gemaakt uit jouw sporen. Zo werkt profilering ook in het echt.</p>' : ''}
-        <p class="g__hint">Overal laat je sporen achter. Je kunt niet alles vermijden, maar je kunt wel kiezen: je gezicht en reizen die aan je naam vastzitten, zijn het gevoeligst. Wifi op je telefoon uitzetten als je hem niet gebruikt, helpt ook.</p>`,
+        ${text ? '<p class="g__ai">Een AI heeft dit verhaal gemaakt uit jouw sporen. Bedrijven doen dat in het echt ook.</p>' : ''}
+        <p class="g__hint">Je laat overal sporen achter. Alles ontwijken lukt niet, maar je kunt wel kiezen. Je gezicht en reizen op je naam zijn het gevoeligst. Zet ook je wifi uit als je die niet gebruikt.</p>`,
       onDone: () => onFinish({ correct: points, total: 10, summary: 'privacypunten' }),
     });
   }

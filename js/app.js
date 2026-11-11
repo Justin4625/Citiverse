@@ -121,7 +121,7 @@ function onFix(fix) {
 
 function onGeoError(err) {
   els.status.textContent =
-    err.code === 1 ? 'Geen toegang tot je locatie. Sta het toe om te spelen.' : `Geen locatie (${err.message}).`;
+    err.code === 1 ? 'De app mag je locatie niet zien. Zet dat aan om te kunnen spelen.' : `Je locatie is niet gevonden (${err.message}).`;
 }
 
 let toastTimer;

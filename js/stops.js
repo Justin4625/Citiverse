@@ -9,8 +9,8 @@ export const STOPS = {
   centraal: {
     theme: 'Privacy',
     character: { name: 'Privy', role: 'stationsmedewerker' },
-    intro: 'Hoi! Ik ben Privy, ik werk hier op Rotterdam Centraal. Elke dag lopen hier enorm veel mensen doorheen, en bijna iedereen laat sporen achter zonder het door te hebben.',
-    problem: 'Een reiziger vroeg me vandaag: "Wie weet eigenlijk allemaal waar ik ben geweest?" Ik wist het zelf niet goed. Help jij me?',
+    intro: 'Hoi, ik ben Privy! Ik werk hier op Rotterdam Centraal. Elke dag lopen hier duizenden mensen langs. En bijna iedereen laat sporen achter zonder het te merken.',
+    problem: 'Vandaag vroeg een reiziger: "Wie weet eigenlijk waar ik allemaal ben geweest?" Ik wist het zelf niet precies. Zoek jij het met me uit?',
     facts: [
       'Het huidige stationsgebouw van Rotterdam Centraal is in 2014 geopend.',
       'Het grote dak boven de sporen ligt vol zonnepanelen.',
@@ -19,19 +19,19 @@ export const STOPS = {
       'Op het station hangen camera\'s voor de veiligheid.',
       'Als je inlogt op openbare wifi, kan de aanbieder zien welk apparaat je gebruikt.',
     ],
-    secret: 'Wist je dat het dak van het station zo veel zonnepanelen heeft dat het een flink deel van de stroom voor het station zelf opwekt? Zelfs het dak doet hier mee.',
+    secret: 'Het dak boven de sporen ligt vol zonnepanelen. Die maken een flink deel van de stroom die het station zelf gebruikt.',
     game: 'spoorloos',
     card: {
       title: 'Spoorloos',
-      text: 'Je hebt 8 minuten tot je trein vertrekt. Bij elke stap kies je: snel maar met sporen, of privé maar langzamer. Daarna vertelt Privy wat er over je bekend is.',
+      text: 'Loop door het station naar je trein. Je hebt maar een beperkt aantal stappen. Kies je de snelle weg, dan laat je sporen achter. De privé weg kost meer stappen.',
     },
   },
 
   markthal: {
     theme: 'Fair',
     character: { name: 'Fairy', role: 'kraamhouder' },
-    intro: 'Welkom in de Markthal! Ik ben Fairy en ik heb hier een kraam. Ik verkoop ook online, en daar gaat het er soms minder eerlijk aan toe dan op de markt.',
-    problem: 'Mijn klanten trappen in nepkortingen van andere webshops. Kun jij laten zien hoe je die trucs herkent?',
+    intro: 'Hoi, ik ben Fairy! Ik heb een kraam hier in de Markthal. Ik verkoop ook online, en daar gaat het niet altijd eerlijk.',
+    problem: 'Mijn klanten trappen in nepkortingen van andere webshops. Kun jij laten zien hoe je die trucs doorhebt?',
     facts: [
       'De Markthal is in 2014 geopend.',
       'Het grote kunstwerk aan het plafond heet de Hoorn des Overvloeds en is gemaakt door Arno Coenen.',
@@ -40,19 +40,19 @@ export const STOPS = {
       'Een dark pattern is een ontwerptruc die je iets laat doen wat je eigenlijk niet wilt, zoals een afteltimer die je haast.',
       'Bij een eerlijke webshop zie je alle kosten voordat je betaalt.',
     ],
-    secret: 'Kijk eens goed omhoog: in het plafondkunstwerk zijn ook bloemen en insecten verstopt. De meeste mensen lopen er gewoon onderdoor zonder ze te zien.',
+    secret: 'Kijk eens goed naar het plafond. Tussen het fruit en de groente zitten ook bloemen en insecten verstopt. Bijna niemand ziet ze.',
     game: 'koopjesjacht',
     card: {
       title: 'Koopjesjacht',
-      text: 'Je hebt €20 en een boodschappenlijst. Bij elke kraam kies je tussen twee aanbiedingen, en pas daarna zie je wat ze echt kosten.',
+      text: 'Je hebt €20 en een boodschappenlijstje. Bij elke kraam kies je uit twee aanbiedingen. Pas daarna zie je wat ze echt kosten.',
     },
   },
 
   kubuswoningen: {
     theme: 'Freedom',
     character: { name: 'Freely', role: 'bewoner en kunstenaar' },
-    intro: 'Hé, ik ben Freely. Ik woon in een van deze scheve kubussen en maak hier kunst. Piet Blom durfde anders te bouwen, en ik vind dat je online ook jezelf moet kunnen zijn.',
-    problem: 'Onder mijn kunst verschijnen reacties waarvan ik niet weet of ze mogen. Wat valt onder vrije meningsuiting, en wanneer gaat het over de grens?',
+    intro: 'Hé, ik ben Freely. Ik woon in zo\'n scheve kubus en ik maak hier kunst. Piet Blom durfde anders te bouwen. Zo wil ik online ook gewoon mezelf kunnen zijn.',
+    problem: 'Onder mijn kunst komen reacties. Bij sommige weet ik niet of dat wel mag. Wanneer is het gewoon je mening, en wanneer ga je te ver?',
     facts: [
       'De Kubuswoningen zijn ontworpen door architect Piet Blom.',
       'Ze zijn in 1984 opgeleverd.',
@@ -60,19 +60,19 @@ export const STOPS = {
       'Eén kubus is ingericht als museum, de Kijk-Kubus, zodat je kunt zien hoe je in een kubus woont.',
       'Vrijheid van meningsuiting betekent dat je je mening mag geven, maar niet dat alles mag: bedreigen en discrimineren mag niet.',
     ],
-    secret: 'De muren in een kubus staan zo scheef dat je veel meubels niet tegen de muur kunt zetten. Bewoners moeten dus ook bij het inrichten anders durven denken.',
+    secret: 'De muren van een kubus staan zo scheef dat je een kast niet zomaar tegen de muur zet. Ook bij het inrichten moet je hier anders denken.',
     game: 'moderator',
     card: {
       title: 'Moderator',
-      text: 'Freely krijgt reacties onder zijn kunst. Jij beslist: laten staan of weghalen. Houd vrijheid én veiligheid in balans.',
+      text: 'Onder de kunst van Freely komen reacties. Jij kiest: laten staan of weghalen. Iedereen mag zijn mening geven, maar niemand mag zich onveilig voelen.',
     },
   },
 
   erasmusbrug: {
     theme: 'Everybody',
     character: { name: 'Every', role: 'brugwachter' },
-    intro: 'Ik ben Every en ik let op de Erasmusbrug. Deze brug verbindt Noord en Zuid, en ik vind dat online ook iedereen moet kunnen meedoen.',
-    problem: 'We moeten een bericht sturen dat de brug even dicht gaat, maar niet iedereen kan dat goed lezen of ontvangen. Help jij het bericht voor iedereen te maken?',
+    intro: 'Hoi, ik ben Every. Ik let op de Erasmusbrug. Deze brug verbindt Noord en Zuid. Online moet ook iedereen mee kunnen doen, vind ik.',
+    problem: 'De brug gaat even dicht en we moeten iedereen een bericht sturen. Maar niet iedereen kan dat goed lezen. Help jij om het voor iedereen duidelijk te maken?',
     facts: [
       'De Erasmusbrug is in 1996 geopend.',
       'Rotterdammers noemen de brug ook wel De Zwaan.',
@@ -80,19 +80,19 @@ export const STOPS = {
       'Een deel van de brug kan open, zodat hoge schepen erdoor kunnen.',
       'Een toegankelijk bericht is ook te begrijpen voor mensen die slechtziend zijn, de taal nog leren of geen mobiele data hebben.',
     ],
-    secret: 'Kijk naar de schuine pyloon: die is 139 meter hoog. Door die vorm herkent iedereen de brug meteen, zelfs van heel ver weg.',
+    secret: 'De schuine paal van de brug is 139 meter hoog. Door die vorm herken je de brug al van heel ver.',
     game: 'over-de-brug',
     card: {
       title: 'Iedereen over de brug',
-      text: 'De brug gaat dicht. Herschrijf het bericht zo dat drie heel verschillende Rotterdammers het snappen.',
+      text: 'De brug gaat dicht. Schrijf het bericht zo dat drie heel verschillende Rotterdammers het snappen.',
     },
   },
 
   rechtbank: {
     theme: 'Rules',
     character: { name: 'Ruly', role: 'griffier' },
-    intro: 'Goedendag, ik ben Ruly, griffier bij de rechtbank. Ik schrijf op wat er in een rechtszaak gebeurt. Hier wordt beslist wat wel en niet mag.',
-    problem: 'Er ligt een zaak op mijn bureau: een foto van een jongere is zonder toestemming online gezet. Wie heeft er gelijk?',
+    intro: 'Hoi, ik ben Ruly. Ik ben griffier bij de rechtbank: ik schrijf op wat er in een rechtszaak gebeurt. Hier wordt beslist wat wel en niet mag.',
+    problem: 'Er ligt een zaak op mijn bureau. Iemand heeft een foto van een jongere online gezet zonder het te vragen. Wie heeft er gelijk?',
     facts: [
       'De rechtbank Rotterdam staat aan het Wilhelminaplein op de Kop van Zuid.',
       'Een griffier helpt de rechter en schrijft op wat er tijdens een zitting gebeurt.',
@@ -100,19 +100,19 @@ export const STOPS = {
       'Je hebt portretrecht: iemand mag een herkenbare foto van jou niet zomaar publiceren als je daar een redelijk belang tegen hebt.',
       'Je kunt een website of platform vragen een foto van jou te verwijderen.',
     ],
-    secret: 'Veel rechtszaken zijn openbaar. Dat betekent dat je als bezoeker mag gaan kijken, zodat iedereen kan zien dat het eerlijk gaat.',
+    secret: 'Veel rechtszaken zijn openbaar. Je mag dus gewoon gaan kijken. Zo kan iedereen zien dat het eerlijk gaat.',
     game: 'kruisverhoor',
     card: {
       title: 'Kruisverhoor',
-      text: 'Een foto is zonder toestemming gedeeld. Stel vier vragen aan de getuigen en doe dan uitspraak.',
+      text: 'Een foto is gedeeld zonder toestemming. Stel de getuigen vier vragen. Daarna beslis jij wie er gelijk heeft.',
     },
   },
 
   euromast: {
     theme: 'Opinion',
     character: { name: 'Opiny', role: 'gids' },
-    intro: 'Hoi, ik ben Opiny, gids bij de Euromast. Van bovenaf zie je de hele stad. Zo wil ik ook dat jongeren overzicht krijgen, en dat hun mening meetelt.',
-    problem: 'De stad moet een keuze maken, en er zijn twee kanten. Ik wil weten wat jij ervan vindt, en waarom.',
+    intro: 'Hoi, ik ben Opiny, gids bij de Euromast. Van hierboven zie je de hele stad. Ik wil dat jongeren ook zo\'n overzicht krijgen, en dat er naar hun mening geluisterd wordt.',
+    problem: 'De stad moet een keuze maken, en er zijn twee kanten. Wat vind jij? En waarom?',
     facts: [
       'De Euromast is gebouwd voor de Floriade van 1960.',
       'Later is er een Space Tower bovenop gezet, waardoor de toren hoger werd.',
@@ -120,38 +120,38 @@ export const STOPS = {
       'Je mening mag je altijd geven, en het helpt als je uitlegt waarom je iets vindt.',
       'Jongeren kunnen in Rotterdam meepraten over plannen voor de stad.',
     ],
-    secret: 'Bij de Euromast kun je naar beneden abseilen. Durf jij dat?',
+    secret: 'Je kunt vanaf de Euromast naar beneden abseilen. Durf jij dat?',
     game: 'overtuig-de-stad',
     card: {
       title: 'Overtuig de stad',
-      text: 'Kies een kant en ga in debat met Opiny. Hoe sterker je argumenten, hoe hoger de lift van de Euromast gaat.',
+      text: 'Kies een kant en ga de discussie aan met Opiny. Hoe beter je argumenten, hoe hoger de lift van de Euromast gaat.',
     },
   },
 
   hetpark: {
     theme: 'Healthy',
     character: { name: 'Healy', role: 'hardloopcoach' },
-    intro: 'Hallo, ik ben Healy, hardloopcoach. Ik train hier in Het Park. Buiten bewegen is goed voor je, maar veel apps doen er alles aan om je binnen op je scherm te houden.',
-    problem: 'Een app op mijn telefoon blijft me maar meldingen sturen. Help jij me de trucs te herkennen die me vasthouden?',
+    intro: 'Hoi, ik ben Healy, hardloopcoach. Ik train hier in Het Park. Buiten bewegen is goed voor je. Maar veel apps doen er alles aan om je binnen op je scherm te houden.',
+    problem: 'Een app op mijn telefoon blijft me maar meldingen sturen. Zie jij met welke trucs hij me vasthoudt?',
     facts: [
       'Het Park ligt naast de Euromast.',
       'Het Park is in de negentiende eeuw aangelegd.',
       'Streaks, autoplay en meldingen zijn trucs om je zo lang mogelijk in een app te houden.',
       'Je kunt meldingen en autoplay bij de meeste apps zelf uitzetten.',
     ],
-    secret: 'Het Park was vroeger bedoeld als wandelpark voor rijke Rotterdammers. Nu is het van iedereen.',
+    secret: 'Vroeger was Het Park vooral voor rijke Rotterdammers. Nu mag iedereen er komen.',
     game: 'ontsnap-uit-de-app',
     card: {
       title: 'Ontsnap uit de app',
-      text: 'Een app wil je zo lang mogelijk vasthouden. Zet binnen een minuut de vijf trucs uit, en trap niet in de lokberichten.',
+      text: 'Een app wil je zo lang mogelijk vasthouden. Zet de vijf trucs uit. En trap niet in de lokberichten.',
     },
   },
 
   politiebureau: {
     theme: 'Safe',
     character: { name: 'Safy', role: 'wijkagent' },
-    intro: 'Hoi, ik ben Safy, wijkagent in het centrum. Steeds vaker krijgen we meldingen van jongeren die online zijn opgelicht.',
-    problem: 'Er komen berichten binnen bij de meldkamer, en ik moet snel weten welke nep zijn. Help jij me ze te ontmaskeren?',
+    intro: 'Hoi, ik ben Safy, wijkagent in het centrum. We krijgen steeds meer meldingen van jongeren die online zijn opgelicht.',
+    problem: 'Er komen berichten binnen bij de meldkamer. Ik moet snel weten welke nep zijn. Help jij me?',
     facts: [
       'Bij gevaar bel je 112. Voor andere zaken kun je de politie bellen op 0900-8844.',
       'Je kunt online oplichting melden bij de politie.',
@@ -160,49 +160,49 @@ export const STOPS = {
       'Een verificatiecode deel je nooit met iemand anders, ook niet met een vriend.',
       'Twijfel je over een bericht? Bel de afzender via een nummer dat je zelf opzoekt.',
     ],
-    secret: 'Het belangrijkste wapen tegen oplichters is niet de politie, maar even pauzeren. Oplichters maken je altijd haastig, want als je nadenkt, val je niet voor ze.',
+    secret: 'Het beste wapen tegen oplichters is niet de politie. Het is even wachten voordat je iets doet. Oplichters willen dat je je haast, want als je nadenkt, trap je er niet in.',
     game: 'nep-of-echt',
     card: {
       title: 'Nep of echt?',
-      text: 'De AI maakt realistische nepberichten binnen vaste sjablonen. Jij ontmaskert ze, en Safy legt uit waaraan je ze herkent.',
+      text: 'De AI maakt nepberichten die echt lijken. Jij moet ze eruit pikken. Safy legt uit waar je ze aan herkent.',
     },
   },
 
   stadhuis: {
     theme: 'Active',
     character: { name: 'Acty', role: 'raadslid' },
-    intro: 'Welkom bij het Stadhuis! Ik ben Acty, gemeenteraadslid. Hier beslissen we over de stad, en ik wil dat jongeren meepraten.',
-    problem: 'Ik hoor te weinig ideeën van jongeren. Wat zou jij in Rotterdam verbeteren?',
+    intro: 'Hoi, ik ben Acty! Ik zit in de gemeenteraad. Hier in het Stadhuis beslissen we hoe Rotterdam eruitziet.',
+    problem: 'Alleen komen er bijna nooit jongeren met ideeën. Wat zou jij anders doen in je buurt?',
     facts: [
       'Het Stadhuis aan de Coolsingel is gebouwd tussen 1914 en 1920.',
       'Het Stadhuis heeft het bombardement van 14 mei 1940 overleefd.',
       'De gemeenteraad van Rotterdam heeft 45 leden.',
       'Iedereen mag een gemeenteraadsvergadering bijwonen.',
     ],
-    secret: 'Tijdens het bombardement van 1940 bleef het Stadhuis staan terwijl veel van het centrum verwoest werd. Daarom is het een van de weinige oude gebouwen in de binnenstad.',
+    secret: 'In 1940 werd bijna het hele centrum platgebombardeerd. Het Stadhuis bleef gewoon staan. Daarom is het een van de weinige oude gebouwen die je hier nog ziet.',
     game: 'pitch-in-de-raad',
     card: {
       title: 'Pitch in de raad',
-      text: 'Bedenk een idee voor je wijk en overtuig drie raadsleden. Je hebt er twee nodig.',
+      text: 'Bedenk een plan voor je buurt. Drie raadsleden stemmen erover. Krijg er twee mee.',
     },
   },
 
   bibliotheek: {
     theme: 'Chances',
     character: { name: 'Chancy', role: 'bibliothecaris' },
-    intro: 'Hoi, ik ben Chancy, bibliothecaris. Hier kan iedereen gratis internet gebruiken, achter een computer zitten en hulp krijgen. Zo krijgt iedereen kansen.',
-    problem: 'Steeds meer bedrijven laten een computer kiezen wie er op gesprek mag. Maar is dat wel eerlijk?',
+    intro: 'Hoi, ik ben Chancy. Ik werk hier in de bieb. Iedereen mag hier gratis internetten, op een computer werken en hulp vragen. Zo krijgt iedereen een kans.',
+    problem: 'Steeds meer bedrijven laten een computer kiezen wie ze uitnodigen voor een sollicitatie. Maar is dat wel eerlijk?',
     facts: [
       'De Centrale Bibliotheek is in 1983 geopend.',
       'Je herkent het gebouw aan de gele buizen aan de buitenkant.',
       'In de bibliotheek kun je gratis internet en computers gebruiken.',
       'Een selectie-algoritme leert van oude keuzes. Als die oude keuzes oneerlijk waren, neemt het algoritme dat over.',
     ],
-    secret: 'Die gele buizen aan de buitenkant zijn niet alleen versiering: ze voeren lucht aan en af. Het gebouw draagt zijn techniek gewoon aan de buitenkant.',
+    secret: 'Die gele buizen aan de buitenkant zijn niet alleen voor de sier. Er gaat lucht doorheen. Het gebouw heeft zijn techniek gewoon aan de buitenkant hangen.',
     game: 'algoritme',
     card: {
       title: 'Jij bent het algoritme',
-      text: 'Een computer kiest wie een bijbaan in de bieb krijgt. Ontdek waarom hij oneerlijk kiest, en of je dat kunt repareren.',
+      text: 'Een computer kiest wie een bijbaantje in de bieb krijgt. Zoek uit waarom hij oneerlijk kiest, en of je dat kunt oplossen.',
     },
   },
 };

@@ -1,31 +1,30 @@
 // "Overtuig de stad" (Opinion, Euromast, Opiny).
 // A debate battle. Pick a statement and a side. The audience sits between you and Opiny, who
 // argues the other side. Each round Opiny attacks with a counterargument and the audience drifts
-// her way; you answer by playing one of three argument cards before the timer runs out. Strong
+// her way; you answer by playing one of three argument cards, with no clock. Strong
 // arguments pull the audience back, fallacies hardly move them, and the card flips to show what
 // kind of argument it was. Win the audience over and the Euromast lift takes you to the top,
 // where you see which side earlier players on this device chose.
 // AI: a joker card lets you write your own argument, which the AI scores (1 to 3).
 
 import { chat, isAvailable, stripPersonal } from '../ai.js';
-import { escapeHtml, shuffle, say, endScreen, parseJson, tally, countdown, typingForm } from './kit.js';
+import { escapeHtml, shuffle, say, endScreen, parseJson, tally, typingForm } from './kit.js';
 
 const HEIGHT_M = 185;
-const TURN_SECONDS = 20;
 const AUDIENCE = 24;
 const PULL = { 3: 50, 2: 28, 1: 6 };
 const ATTACK = 26;
 
 // What kind of argument each weak card is, shown when it flips.
 const FALLACY = {
-  'Vroeger hadden': 'Beroep op vroeger',
+  'Vroeger hadden': 'Vroeger was het ook zo',
   'Niemand zoekt': 'Overdrijving',
-  'Mijn mentor': 'Beroep op autoriteit',
+  'Mijn mentor': 'Iemand zei het',
   'Ik let altijd': 'Eén voorbeeld',
   'Volwassenen zitten': 'Jij-bak',
   'Dat is gewoon een slecht': 'Geen reden',
-  'Als je niks fout': 'Drogreden',
-  'Iedereen maakt weleens': 'Bagatelliseren',
+  'Als je niks fout': 'Nep-argument',
+  'Iedereen maakt weleens': 'Kleiner maken',
   'Dat gebeurt toch': 'Ontkennen',
   'Ik vind camera': 'Alleen een gevoel',
   'Niemand wil': 'Overdrijving',
@@ -33,7 +32,7 @@ const FALLACY = {
   'Ouderen weten': 'Jij-bak',
   'Mijn ouders stemmen': 'Eén voorbeeld',
   'Ingewikkeld is geen': 'Geen reden',
-  'Jongeren hebben toch': 'Generalisatie',
+  'Jongeren hebben toch': 'Iedereen over één kam',
   'Werken is iets anders': 'Geen reden',
   'Dat kan me niet': 'Geen argument',
 };
@@ -59,7 +58,7 @@ const STATEMENTS = [
         counter: 'Telefoons zijn ook handig om dingen op te zoeken in de les.',
         answers: [
           { text: 'Daar heeft school laptops voor, en die leiden minder af met meldingen.', points: 3 },
-          { text: 'Je kunt ook gewoon een boek gebruiken.', points: 2, why: 'Kan, maar je laat zien dat opzoeken nog steeds lukt. Een alternatief noemen is goed, een beter alternatief is sterker.' },
+          { text: 'Je kunt ook gewoon een boek gebruiken.', points: 2, why: 'Kan, maar een boek is niet altijd handig. Met een beter alternatief maak je je argument sterker.' },
           { text: 'Niemand zoekt echt iets op, iedereen zit op TikTok.', points: 1, why: 'Dat is overdreven. Als één persoon het wel goed gebruikt, klopt je argument al niet meer.' },
         ],
       },
@@ -108,7 +107,7 @@ const STATEMENTS = [
         answers: [
           { text: 'Je kunt regels maken: alleen kijken als er iets gebeurd is, en de beelden snel wissen.', points: 3 },
           { text: 'Er hangen nu ook al gewone camera\'s.', points: 2, why: 'Klopt, maar gezichtsherkenning weet ook wíe je bent. Dat is een groter verschil dan je laat zien.' },
-          { text: 'Als je niks fout doet, heb je niks te verbergen.', points: 1, why: 'Een bekende drogreden: privacy is ook voor mensen die niets fout doen.' },
+          { text: 'Als je niks fout doet, heb je niks te verbergen.', points: 1, why: 'Een bekend nep-argument. Ook als je niks fout doet, heb je recht op privacy.' },
         ],
       },
       {
@@ -116,13 +115,13 @@ const STATEMENTS = [
         answers: [
           { text: 'Dan moet een mens altijd controleren voordat er iets gebeurt, en moet het systeem eerst getest worden.', points: 3 },
           { text: 'De techniek wordt steeds beter.', points: 2, why: 'Misschien, maar wat doe je met de fouten van nu?' },
-          { text: 'Iedereen maakt weleens fouten.', points: 1, why: 'Dat maakt het probleem kleiner dan het is: een fout kan betekenen dat een onschuldig iemand wordt opgepakt.' },
+          { text: 'Iedereen maakt weleens fouten.', points: 1, why: 'Zo maak je het probleem kleiner dan het is. Door één fout kan iemand die niks gedaan heeft, worden opgepakt.' },
         ],
       },
       {
         counter: 'Wat als de beelden gehackt of misbruikt worden?',
         answers: [
-          { text: 'Dan moeten de beelden goed beveiligd en kort bewaard worden, met een toezichthouder die controleert.', points: 3 },
+          { text: 'Dan moeten de beelden goed beveiligd zijn en snel weg. En iemand moet controleren of dat echt gebeurt.', points: 3 },
           { text: 'De politie gebruikt de beelden alleen voor onderzoek.', points: 2, why: 'Dat is de bedoeling, maar Opiny vraagt wat er gebeurt als het misgaat.' },
           { text: 'Dat gebeurt toch nooit.', points: 1, why: 'Dat weet je niet. Datalekken gebeuren juist vaak.' },
         ],
@@ -132,8 +131,8 @@ const STATEMENTS = [
       {
         counter: 'Met gezichtsherkenning vind je criminelen veel sneller.',
         answers: [
-          { text: 'Maar dan worden elke dag duizenden onschuldige mensen gescand. Dat is een te grote inbreuk op ieders privacy.', points: 3 },
-          { text: 'Criminelen dragen dan gewoon een pet en een mondkapje.', points: 2, why: 'Kan, maar het werkt dan nog steeds soms. De afweging met privacy is sterker.' },
+          { text: 'Maar dan worden elke dag duizenden onschuldige mensen gescand. Dan blijft er van ieders privacy weinig over.', points: 3 },
+          { text: 'Criminelen dragen dan gewoon een pet en een mondkapje.', points: 2, why: 'Kan, maar soms werkt het dan nog steeds. Een argument over privacy is sterker.' },
           { text: 'Ik vind camera\'s eng.', points: 1, why: 'Een gevoel is echt, maar het is nog geen argument. Wat is er eng aan?' },
         ],
       },
@@ -148,7 +147,7 @@ const STATEMENTS = [
       {
         counter: 'Andere steden doen het ook al.',
         answers: [
-          { text: 'Dat het ergens anders gebeurt, maakt het niet goed. In de EU gelden juist strenge regels voor gezichtsherkenning op straat.', points: 3 },
+          { text: 'Dat het ergens anders gebeurt, maakt het niet goed. In de EU zijn er juist strenge regels voor gezichtsherkenning op straat.', points: 3 },
           { text: 'Rotterdam hoeft niet alles na te doen.', points: 2, why: 'Klopt, maar je zegt niet waarom het hier niet zou moeten.' },
           { text: 'Die steden zijn gewoon dom.', points: 1, why: 'Iemand uitschelden is geen argument.' },
         ],
@@ -179,7 +178,7 @@ const STATEMENTS = [
         counter: 'De gemeenteraad beslist over ingewikkelde dingen, zoals belastingen.',
         answers: [
           { text: 'De gemeente beslist ook over dingen waar jongeren elke dag mee te maken hebben, zoals jongerenwerk, sport en veilig fietsen.', points: 3 },
-          { text: 'Met een stemhulp kun je je laten informeren.', points: 2, why: 'Een handige oplossing, maar je laat zien dat het wel ingewikkeld is.' },
+          { text: 'Met een stemhulp kun je uitzoeken wat partijen willen.', points: 2, why: 'Handig, maar zo geef je toe dat het wel ingewikkeld is.' },
           { text: 'Ingewikkeld is geen reden.', points: 1, why: 'Je zegt alleen dat Opiny ongelijk heeft, niet waarom.' },
         ],
       },
@@ -197,14 +196,14 @@ const STATEMENTS = [
         counter: 'Met 16 mag je ook al werken en belasting betalen.',
         answers: [
           { text: 'Voor veel belangrijke dingen is 18 de grens, zoals een contract tekenen. Eén duidelijke grens is eerlijk.', points: 3 },
-          { text: 'De meeste 16-jarigen werken maar een paar uur.', points: 2, why: 'Een feitelijk punt, maar ook een paar uur werken is werken.' },
+          { text: 'De meeste 16-jarigen werken maar een paar uur.', points: 2, why: 'Klopt, maar ook een paar uur werken is werken.' },
           { text: 'Werken is iets anders dan stemmen, punt.', points: 1, why: '"Punt" is geen uitleg. Waarom is het anders?' },
         ],
       },
       {
         counter: 'In sommige landen mag het al vanaf 16, zoals in Oostenrijk.',
         answers: [
-          { text: 'Elk land maakt eigen keuzes. Onderzoek eerst of het daar goed werkt voordat Rotterdam het overneemt.', points: 3 },
+          { text: 'Elk land maakt eigen keuzes. Zoek eerst uit of het daar goed werkt, voordat Rotterdam het ook doet.', points: 3 },
           { text: 'Nederland is geen Oostenrijk.', points: 2, why: 'Klopt, maar wat is het verschil dat ertoe doet?' },
           { text: 'Dat kan me niet schelen.', points: 1, why: 'Dat is geen argument, en je publiek haakt af.' },
         ],
@@ -219,11 +218,11 @@ async function scoreOwnArgument(statement, side, counter, argument) {
       {
         role: 'system',
         content:
-          'Je beoordeelt argumenten van jongeren (10 tot 20 jaar) in een debatspel. Wees eerlijk en bemoedigend. ' +
+          'Je beoordeelt argumenten van jongeren (13 tot 18 jaar) in een debatspel. Wees eerlijk en bemoedigend. ' +
           'Geef 3 punten voor een argument dat ingaat op het tegenargument en een reden of voorbeeld geeft, ' +
           '2 punten voor een redelijk argument dat niet goed ingaat op het tegenargument of geen reden geeft, ' +
           '1 punt voor geen argument, een drogreden, schelden of iets wat niet over het onderwerp gaat. ' +
-          'Antwoord alleen met JSON: {"punten": 1, "uitleg": "één korte zin in het Nederlands, taalniveau B1"}',
+          'Antwoord alleen met JSON: {"punten": 1, "uitleg": "één korte zin in gewone woorden, zoals tegen een tiener"}',
       },
       {
         role: 'user',
@@ -244,7 +243,6 @@ export function mount(el, { onFinish, character }) {
   let round = 0;
   let points = 0;
   let tug = 0; // -100 = audience with Opiny, +100 = with you
-  let timer = null;
   let destroyed = false;
   let aiOn = false;
   isAvailable().then((ok) => (aiOn = ok));
@@ -252,7 +250,7 @@ export function mount(el, { onFinish, character }) {
   function chooseStatement() {
     el.innerHTML = `
       <div class="g">
-        ${say(character, '<p>Debat op de Euromast! Kies een stelling en een kant. Ik speel de andere kant. Het publiek in het midden beslist wie het overtuigendst is.</p>')}
+        ${say(character, '<p>Tijd voor een debat! Kies een stelling en een kant. Ik neem de andere kant. Het publiek in het midden kiest wie het best overtuigt.</p>')}
         <div class="g__choices">
           ${STATEMENTS.map((s) => `<button class="g__choice" data-id="${s.id}"><strong>${escapeHtml(s.text)}</strong></button>`).join('')}
         </div>
@@ -273,7 +271,7 @@ export function mount(el, { onFinish, character }) {
           <button class="btn btn--action" data-side="eens">Eens</button>
           <button class="btn" data-side="oneens">Oneens</button>
         </div>
-        <p class="g__hint">Er is geen goed of fout antwoord. Je wint met hoe goed je je mening onderbouwt.</p>
+        <p class="g__hint">Er is geen goed of fout. Je wint als je goed uitlegt waarom je iets vindt.</p>
       </div>`;
     el.querySelectorAll('[data-side]').forEach((b) =>
       b.addEventListener('click', () => {
@@ -302,7 +300,6 @@ export function mount(el, { onFinish, character }) {
         </div>
         <div class="tug"><i class="tug__marker" style="left:${(tug + 100) / 2}%"></i></div>
         <div class="battle__speech"></div>
-        <div class="battle__timer"><i></i></div>
         <div class="hand"></div>
       </div>`;
   }
@@ -334,27 +331,9 @@ export function mount(el, { onFinish, character }) {
       b.addEventListener('click', () => play(r, r.answers.find((a) => a.text === b.dataset.text), b)),
     );
     hand.querySelector('[data-joker]')?.addEventListener('click', () => joker(r));
-    startTimer(r);
-  }
-
-  function startTimer(r) {
-    timer?.stop();
-    const bar = el.querySelector('.battle__timer i');
-    timer = countdown(TURN_SECONDS, {
-      onTick: (left, frac) => {
-        bar.style.width = `${frac * 100}%`;
-        bar.classList.toggle('is-low', left < 6);
-      },
-      onEnd: () => {
-        tug = Math.max(-100, tug - 15);
-        updateCrowd();
-        resolve(r, null, 0, 'Te laat! Het publiek wacht niet. Opiny wint deze ronde.', 'Geen antwoord');
-      },
-    });
   }
 
   function play(r, answer, card) {
-    timer?.stop();
     el.querySelectorAll('.arg-card').forEach((c) => {
       c.disabled = true;
       if (c !== card) c.classList.add('is-discarded');
@@ -362,14 +341,12 @@ export function mount(el, { onFinish, character }) {
     card.classList.add('is-played', answer.points === 3 ? 'is-strong' : answer.points === 2 ? 'is-ok' : 'is-weak');
     card.querySelector('.arg-card__face').insertAdjacentHTML('beforeend', `<em class="arg-card__type">${escapeHtml(typeOf(answer))}</em>`);
     setTimeout(
-      () => resolve(r, answer, answer.points, answer.points === 3 ? 'Sterk: je gaat in op mijn punt en geeft een reden.' : answer.why, typeOf(answer)),
+      () => resolve(r, answer, answer.points, answer.points === 3 ? 'Sterk! Je reageert op mijn punt en je zegt waarom.' : answer.why, typeOf(answer)),
       700,
     );
   }
 
   function joker(r) {
-    timer?.stop();
-    el.querySelector('.battle__timer i').style.width = '0';
     el.querySelector('.hand').innerHTML = `
       <form class="g__own">
         <textarea id="ownArgument" maxlength="280" placeholder="Mijn argument tegen wat Opiny zegt…"></textarea>
@@ -402,7 +379,7 @@ export function mount(el, { onFinish, character }) {
     el.querySelector('.hand').innerHTML = `
       <p class="g__verdict ${gained === 3 ? 'is-right' : 'is-wrong'}">${escapeHtml(type)}${gained ? ` +${gained}` : ''}</p>
       ${say(character, `<p>${escapeHtml(why)}</p>`)}
-      ${own ? '<p class="g__ai">Je argument is beoordeeld door de AI. Ben je het er niet mee eens? Bespreek het met je groep.</p>' : ''}
+      ${own ? '<p class="g__ai">Een AI heeft je argument beoordeeld. Ben je het er niet mee eens? Praat er dan over met je groep.</p>' : ''}
       <button class="btn btn--action g__wide" data-next>${round < 2 ? 'Volgende ronde' : 'Uitslag'}</button>`;
     el.querySelector('[data-next]').addEventListener('click', () => {
       el.querySelector('.fighter--you')?.classList.remove('is-attacking');
@@ -413,7 +390,6 @@ export function mount(el, { onFinish, character }) {
   }
 
   function finish() {
-    timer?.stop();
     const won = tug > 0;
     const t = tally(`overtuig-${statement.id}`);
     const total = (t.eens ?? 0) + (t.oneens ?? 0);
@@ -425,8 +401,8 @@ export function mount(el, { onFinish, character }) {
       character,
       line: escapeHtml(
         won
-          ? `De lift neemt je mee naar ${m} meter! Sterke argumenten gaan in op wat de ander zegt en geven een reden of oplossing.`
-          : 'Het publiek liet zich niet overtuigen. Let op drogredenen: wijzen naar een ander, overdrijven of "punt" zeggen overtuigt niemand.',
+          ? `De lift neemt je mee naar ${m} meter! Een sterk argument reageert op wat de ander zegt, en geeft een reden of een oplossing.`
+          : 'Het publiek was niet overtuigd. Pas op met nep-argumenten. Naar een ander wijzen, overdrijven of "punt" zeggen overtuigt niemand.',
       ),
       extra: `<div class="lift-end"><span class="lift-end__tower"><i style="height:${(points / 9) * 100}%"></i></span><span>${points} van 9 argumentpunten</span></div>
         <div class="poll"><p class="poll__q">${escapeHtml(statement.text)}</p>
@@ -440,6 +416,5 @@ export function mount(el, { onFinish, character }) {
   chooseStatement();
   return () => {
     destroyed = true;
-    timer?.stop();
   };
 }

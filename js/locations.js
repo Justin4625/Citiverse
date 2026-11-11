@@ -1,5 +1,5 @@
 // Stamp locations. Coordinates are approximate — double-check them on site.
-export const RADIUS_M = 60;
+export const RADIUS_M = 80;
 
 // photo: img/<id>.jpg from Wikimedia Commons. focus: CSS object-position that keeps the landmark
 // in view when the photo is cropped to a circle. credit: required by the CC BY-SA licences.

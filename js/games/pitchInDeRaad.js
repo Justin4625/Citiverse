@@ -35,34 +35,34 @@ const MEMBERS = [
   {
     id: 'bram',
     name: 'Bram',
-    cares: 'het geld van de stad',
-    question: 'Wat kost het, en wie betaalt het?',
+    cares: 'geld',
+    question: 'Wat kost het? En wie betaalt dat?',
     answers: [
-      { text: 'We gebruiken een plek die er al is. Een deel betalen we uit het geld dat de gemeente voor jongeren heeft, en jongeren helpen zelf mee.', vote: true },
-      { text: 'Het kost niet zoveel, denk ik.', vote: false, why: 'Bram wil weten waar het geld vandaan komt. "Denk ik" overtuigt hem niet.' },
-      { text: 'Geld is niet belangrijk, het gaat om jongeren.', vote: false, why: 'Voor Bram is geld juist het belangrijkste. Je gaat niet in op zijn vraag.' },
+      { text: 'We gebruiken een plek die er al is. De gemeente heeft geld voor jongeren, daar betalen we een deel van. En we helpen zelf mee.', vote: true },
+      { text: 'Het kost vast niet zoveel.', vote: false, why: 'Bram wil weten waar het geld vandaan komt. Met "vast" kom je er niet.' },
+      { text: 'Geld is niet belangrijk, het gaat om jongeren.', vote: false, why: 'Voor Bram draait alles om geld. Je geeft geen antwoord op zijn vraag.' },
     ],
   },
   {
     id: 'esther',
     name: 'Esther',
-    cares: 'de buurtbewoners',
-    question: 'Wat merken de buren ervan? Denk aan geluid of rommel.',
+    cares: 'de buren',
+    question: 'Hebben de buren er last van? Van herrie of rommel?',
     answers: [
-      { text: 'We praten eerst met de buren, er komen afvalbakken, en na tien uur \'s avonds is het rustig.', vote: true },
-      { text: 'De buren moeten maar wennen.', vote: false, why: 'Esther vertegenwoordigt de buren. Zo krijg je ze niet mee.' },
-      { text: 'Daar heb ik nog niet over nagedacht.', vote: false, why: 'Eerlijk, maar Esther wil een plan zien.' },
+      { text: 'We praten eerst met de buren. Er komen afvalbakken. En na tien uur \'s avonds is het stil.', vote: true },
+      { text: 'De buren moeten maar wennen.', vote: false, why: 'Esther komt op voor de buren. Zo krijg je haar niet mee.' },
+      { text: 'Daar heb ik nog niet over nagedacht.', vote: false, why: 'Dan heb je dus nog geen plan. En dat wil Esther wel zien.' },
     ],
   },
   {
     id: 'youssef',
     name: 'Youssef',
     cares: 'veiligheid',
-    question: 'Hoe zorg je dat het veilig is, ook \'s avonds?',
+    question: 'Hoe zorg je dat het veilig blijft, ook als het donker is?',
     answers: [
-      { text: 'Er komt goede verlichting, en het jongerenwerk komt regelmatig langs.', vote: true },
-      { text: 'Jongeren zorgen zelf wel voor elkaar.', vote: false, why: 'Mooi gedacht, maar Youssef wil weten wat je regelt als het misgaat.' },
-      { text: 'Er gebeurt toch nooit iets.', vote: false, why: 'Dat kun je niet beloven. Youssef wil een plan.' },
+      { text: 'Er komen goede lampen. En jongerenwerkers komen vaak langs.', vote: true },
+      { text: 'Jongeren zorgen zelf wel voor elkaar.', vote: false, why: 'Youssef wil weten wat je doet als het tóch misgaat.' },
+      { text: 'Er gebeurt toch nooit iets.', vote: false, why: 'Dat weet je niet zeker. Youssef wil horen wat je regelt.' },
     ],
   },
 ];
@@ -72,7 +72,7 @@ async function aiQuestion(member, idea) {
     [
       {
         role: 'system',
-        content: `Je bent ${member.name}, gemeenteraadslid in Rotterdam. Je let vooral op ${member.cares}. Een jongere pitcht een idee. Stel één korte, vriendelijke vraag over je eigen aandachtspunt, in eenvoudig Nederlands. Alleen de vraag, maximaal 20 woorden.`,
+        content: `Je bent ${member.name}, gemeenteraadslid in Rotterdam. Je let vooral op ${member.cares}. Een jongere pitcht een idee. Stel één korte vraag over waar jij op let. Praat zoals tegen een tiener: gewone woorden, geen moeilijke termen. Alleen de vraag, maximaal 15 woorden.`,
       },
       { role: 'user', content: `Het idee: ${idea}` },
     ],
@@ -88,9 +88,9 @@ async function aiVote(member, idea, question, answer) {
       {
         role: 'system',
         content:
-          `Je bent ${member.name}, gemeenteraadslid. Je let vooral op ${member.cares}. Je beoordeelt het antwoord van een jongere (10 tot 20 jaar) eerlijk maar vriendelijk. ` +
+          `Je bent ${member.name}, gemeenteraadslid. Je let vooral op ${member.cares}. Je beoordeelt het antwoord van een jongere (13 tot 18 jaar) eerlijk maar vriendelijk. ` +
           'Stem "voor" als het antwoord concreet ingaat op je vraag, ook als het niet perfect is. Stem "tegen" als het vaag is, niet ingaat op je vraag, of onbeleefd is. ' +
-          'Antwoord alleen met JSON: {"stem": "voor" of "tegen", "reden": "één korte zin, eenvoudig Nederlands"}',
+          'Antwoord alleen met JSON: {"stem": "voor" of "tegen", "reden": "één korte zin in gewone woorden, zoals tegen een tiener"}',
       },
       { role: 'user', content: `Idee: ${idea}\nJouw vraag: ${question}\nAntwoord van de jongere: ${answer}` },
     ],
@@ -113,7 +113,7 @@ export function mount(el, { onFinish, character }) {
   function chooseTopic() {
     el.innerHTML = `
       <div class="g">
-        ${say(character, '<p>Wat zou jij in je wijk veranderen? Kies een onderwerp. Daarna pitch je je idee bij drie raadsleden. Je hebt er twee nodig.</p>')}
+        ${say(character, '<p>Wat moet er anders in jouw buurt? Kies een onderwerp. Daarna leg je je plan voor aan drie raadsleden. Twee van hen moeten voor stemmen.</p>')}
         <div class="g__choices">${TOPICS.map((t) => `<button class="g__choice" data-t="${t.id}"><strong>${t.label}</strong></button>`).join('')}</div>
       </div>`;
     el.querySelectorAll('[data-t]').forEach((b) =>
@@ -128,13 +128,13 @@ export function mount(el, { onFinish, character }) {
     el.innerHTML = `
       <div class="g">
         <p class="g__title">${topic.label}</p>
-        <p class="g__hint">Kies een idee of schrijf je eigen idee.</p>
+        <p class="g__hint">Kies een plan, of verzin er zelf een.</p>
         <div class="g__choices">${topic.ideas.map((i) => `<button class="g__choice" data-i>${escapeHtml(i)}</button>`).join('')}</div>
         <form class="g__own">
-          <textarea id="ownIdea" maxlength="200" placeholder="Mijn idee…"></textarea>
-          <button class="btn" type="submit">Dit is mijn idee</button>
+          <textarea id="ownIdea" maxlength="200" placeholder="Mijn plan…"></textarea>
+          <button class="btn" type="submit">Dit is mijn plan</button>
         </form>
-        <p class="g__hint">Schrijf geen namen of adressen. Ideeën worden zonder naam bewaard op dit apparaat.</p>
+        <p class="g__hint">Zet er geen namen of adressen in. We bewaren je plan zonder naam, alleen op dit apparaat.</p>
       </div>`;
     el.querySelectorAll('[data-i]').forEach((b) =>
       b.addEventListener('click', () => {
@@ -165,7 +165,7 @@ export function mount(el, { onFinish, character }) {
         return `<span class="council__seat${v === true ? ' is-yes' : v === false ? ' is-no' : i === index ? ' is-now' : ''}" style="--i:${i}">
           <i class="council__lamp"></i><b>${m.name[0]}</b><small>${m.name}</small><em>${escapeHtml(m.cares)}</em></span>`;
       }).join('')}</div>
-      <div class="council__lectern"><small>Jouw voorstel</small><p>${escapeHtml(idea)}</p></div>
+      <div class="council__lectern"><small>Jouw plan</small><p>${escapeHtml(idea)}</p></div>
       <div class="council__tally"><span class="yes">${votes.filter((v) => v === true).length} voor</span><span class="no">${votes.filter((v) => v === false).length} tegen</span></div>
     </div>`;
   }
@@ -175,7 +175,7 @@ export function mount(el, { onFinish, character }) {
     el.innerHTML = `
       <div class="g">
         ${bar()}
-        <div class="say"><span class="say__avatar" aria-hidden="true">${m.name[0]}</span><div class="say__text"><p><strong>${m.name}</strong> · let op ${m.cares}</p><p class="m-q">${escapeHtml(m.question)}</p></div></div>
+        <div class="say"><span class="say__avatar" aria-hidden="true">${m.name[0]}</span><div class="say__text"><p><strong>${m.name}</strong> let vooral op ${m.cares}</p><p class="m-q">${escapeHtml(m.question)}</p></div></div>
         <div class="m-answer"></div>
       </div>`;
     const box = el.querySelector('.m-answer');
@@ -257,15 +257,15 @@ export function mount(el, { onFinish, character }) {
     const yes = votes.filter(Boolean).length;
     const count = tally('ideeen')[topic.id] ?? 1;
     endScreen(el, {
-      big: yes >= 2 ? 'Aangenomen' : 'Verworpen',
+      big: yes >= 2 ? 'Aangenomen' : 'Afgewezen',
       sub: `${yes} van de 3 stemmen voor`,
       character,
       line: escapeHtml(
         yes >= 2
-          ? 'Gefeliciteerd! Je idee is aangenomen. In het echt kun je ook meepraten: iedereen mag inspreken bij de gemeenteraad.'
-          : 'Jammer, deze keer niet. Raadsleden willen concrete antwoorden: wat kost het, wat merken de buren, en is het veilig? Probeer het nog eens.',
+          ? 'Je plan gaat door! Dit kan ook echt: iedereen mag naar de gemeenteraad om iets te zeggen. Dat heet inspreken.'
+          : 'Deze keer niet. Raadsleden willen precies weten hoe je het regelt. Wat kost het? Hebben de buren last? Is het veilig? Probeer het nog een keer.',
       ),
-      extra: `<p class="g__hint">Op dit apparaat zijn ${count} ${count === 1 ? 'idee' : 'ideeën'} ingediend over "${escapeHtml(topic.label.toLowerCase())}".</p>`,
+      extra: `<p class="g__hint">Op dit apparaat kwamen ${count} ${count === 1 ? 'plan' : 'plannen'} binnen over "${escapeHtml(topic.label.toLowerCase())}".</p>`,
       onDone: () => onFinish({ correct: yes, total: 3, summary: 'stemmen voor' }),
     });
   }

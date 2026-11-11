@@ -48,7 +48,7 @@ async function generateFake(template) {
       {
         role: 'system',
         content:
-          'Je schrijft oefenberichten voor een educatief spel waarin jongeren van 10 tot 20 jaar leren nepberichten te herkennen. ' +
+          'Je schrijft oefenberichten voor een educatief spel waarin jongeren van 13 tot 18 jaar leren nepberichten te herkennen. ' +
           'Schrijf in het Nederlands, informeel zoals echte berichten. Geen scheldwoorden, geen enge of seksuele inhoud. ' +
           'Gebruik geen andere bedrijfsnamen of webadressen dan die je krijgt. Maximaal 220 tekens. ' +
           'Antwoord alleen met JSON in deze vorm: {"tekst": "..."}',
@@ -183,7 +183,7 @@ export function mount(el, { onFinish, character = { name: 'Safy' }, difficulty =
     feedback.innerHTML = `
       <p class="noe__verdict ${right ? 'is-right' : 'is-wrong'}">${verdict}</p>
       <div class="noe__karin"><span class="noe__avatar" aria-hidden="true">${character.name[0]}</span><div>${explanation}</div></div>
-      ${msg.aiMade ? '<p class="noe__ai">Dit bericht is door AI gemaakt. Zo makkelijk maken oplichters ze ook.</p>' : ''}
+      ${msg.aiMade ? '<p class="noe__ai">Een AI heeft dit bericht gemaakt. Oplichters maken ze net zo makkelijk.</p>' : ''}
       <button class="btn btn--action noe__next">${index + 1 < ROUNDS ? 'Volgende bericht' : 'Uitslag bekijken'}</button>`;
     feedback.hidden = false;
     feedback.querySelector('.noe__next').addEventListener('click', next);
@@ -198,12 +198,12 @@ export function mount(el, { onFinish, character = { name: 'Safy' }, difficulty =
 
   function finish() {
     const line = correct === ROUNDS
-      ? 'Wauw, alles goed! Jij laat je niet zomaar oplichten.'
+      ? 'Alles goed! Jou lichten ze niet zomaar op.'
       : correct >= 6
-        ? 'Sterk gedaan. Onthoud: oplichters maken je altijd haastig.'
+        ? 'Goed gedaan! Onthoud: oplichters willen altijd dat je je haast.'
         : correct >= 4
-          ? 'Niet slecht, maar een paar oplichters kwamen erdoor. Lees afzender en webadres altijd tot het einde.'
-          : 'Oplichters zijn slim, hè? Kijk de volgende keer goed naar haast, geld en rare webadressen.';
+          ? 'Bijna! Maar een paar oplichters kwamen erdoor. Kijk altijd wie het stuurt, en lees een webadres helemaal tot het eind.'
+          : 'Oplichters zijn slim, hè? Let de volgende keer goed op haast, vragen om geld en rare webadressen.';
     el.innerHTML = `
       <div class="noe noe--end">
         <p class="noe__big">${correct}/${ROUNDS}</p>

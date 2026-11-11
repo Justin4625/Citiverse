@@ -101,20 +101,20 @@ const QUESTIONS = {
   why: {
     q: 'Waarom kiest de computer niemand van Zuid?',
     options: [
-      { text: 'Hij heeft het vooroordeel van de oude manager overgenomen uit de oude data.', right: true },
+      { text: 'Hij heeft het vooroordeel van de oude manager overgenomen.', right: true },
       { text: 'Mensen van Zuid zijn minder geschikt voor deze baan.', right: false },
-      { text: 'De computer kiest willekeurig, dit is toeval.', right: false },
+      { text: 'De computer kiest maar wat. Het is toeval.', right: false },
     ],
-    explain: 'Een model leert van voorbeelden. De oude manager nam bijna nooit iemand van Zuid aan, dus het model denkt dat "woont op Zuid" een slecht teken is. Kijk naar de balken: daar zit het grootste minpunt.',
+    explain: 'De computer leert van voorbeelden. De oude manager nam bijna nooit iemand van Zuid aan. Dus denkt de computer dat "woont op Zuid" slecht is. Kijk maar naar de balken: daar zit het grootste minpunt.',
   },
   proxy: {
     q: 'Waarom moest "reistijd" ook weg?',
     options: [
-      { text: 'Reistijd verraadt waar je woont. Het model gebruikte dat als vervanger voor "woont op Zuid".', right: true },
+      { text: 'Aan je reistijd zie je waar je woont. De computer gebruikte dat in plaats van "woont op Zuid".', right: true },
       { text: 'Reistijd is niet belangrijk voor een bijbaan.', right: false },
       { text: 'Er zat een fout in de computer.', right: false },
     ],
-    explain: 'Wie op Zuid woont, heeft een langere reistijd naar de bieb in het centrum. Het model vond een omweg naar hetzelfde vooroordeel. Daarom is "het kenmerk weghalen" niet genoeg: een mens moet blijven controleren wie er wordt afgewezen.',
+    explain: 'Wie op Zuid woont, reist langer naar de bieb in het centrum. Zo kwam de computer via een omweg toch bij hetzelfde vooroordeel. Eén ding weghalen is dus niet genoeg. Een mens moet blijven checken wie er wordt afgewezen.',
   },
 };
 
@@ -224,8 +224,8 @@ export function mount(el, { onFinish, character }) {
   function computerTurn() {
     el.innerHTML = `
       <div class="g">
-        ${say(character, '<p>Nu laten we een computer kiezen. Die krijgt 300 oude sollicitaties: wie de vorige manager wel en niet aannam. Daar leert hij van.</p>')}
-        <div class="training"><span class="training__bar"><i></i></span><small class="training__txt">Model leert van 300 oude sollicitaties…</small></div>
+        ${say(character, '<p>Nu laten we een computer kiezen. Hij krijgt 300 oude sollicitaties te zien: wie de vorige manager wel en niet aannam. Daar leert hij van.</p>')}
+        <div class="training"><span class="training__bar"><i></i></span><small class="training__txt">De computer leert van 300 oude sollicitaties…</small></div>
       </div>`;
     setTimeout(() => {
       model = train(data, FEATURES.map((f) => f.key));
@@ -239,7 +239,7 @@ export function mount(el, { onFinish, character }) {
           </div>
           <p class="g__title">Wat de computer leerde</p>
           ${weightBars(model.weights)}
-          <p class="g__hint">Rechts van het midden telt als plus, links als min. Hoe langer de balk, hoe zwaarder het weegt.</p>
+          <p class="g__hint">Rechts van het midden is een pluspunt, links een minpunt. Hoe langer de balk, hoe meer het meetelt.</p>
           ${question('why')}
         </div>`;
       bindQuestion('why', youRejected);
@@ -258,8 +258,8 @@ export function mount(el, { onFinish, character }) {
           <strong>${you >= third ? 'Uitgenodigd' : 'Afgewezen'}</strong>
           <span>Score van de computer: ${Math.round(you * 100)} van 100. De nummer drie scoort ${Math.round(third * 100)}.</span>
         </div>
-        <p class="g__hint">Niemand bij de bieb heeft dit besloten. Toch gebeurt het. Kun jij het model repareren?</p>
-        <button class="btn btn--action g__wide" data-go>Repareer het model</button>
+        <p class="g__hint">Niemand bij de bieb heeft dit besloten. Toch gebeurt het. Kun jij de computer repareren?</p>
+        <button class="btn btn--action g__wide" data-go>Repareer de computer</button>
       </div>`;
     el.querySelector('[data-go]').addEventListener('click', repair);
   }
@@ -268,7 +268,7 @@ export function mount(el, { onFinish, character }) {
   function repair() {
     el.innerHTML = `
       <div class="g">
-        ${say(character, `<p>Zet kenmerken uit en de computer traint direct opnieuw. Lukt het om de sterke kandidaten van Zuid een eerlijke kans te geven? Van de 12 wonen er ${ZUID_TOTAL} op Zuid.</p>`)}
+        ${say(character, `<p>Zet dingen uit, dan leert de computer meteen opnieuw. Lukt het om de goede kandidaten van Zuid een eerlijke kans te geven? Van de 12 wonen er ${ZUID_TOTAL} op Zuid.</p>`)}
         <div class="chips">${FEATURES.map((f) => `<button class="chip ${enabled.has(f.key) ? 'is-on' : ''}" data-f="${f.key}" aria-pressed="${enabled.has(f.key)}">${f.label}</button>`).join('')}</div>
         <div class="repair-status"></div>
         <div class="repair-weights"></div>
@@ -293,7 +293,7 @@ export function mount(el, { onFinish, character }) {
           ${question('proxy')}`;
         bindQuestion('proxy', finish);
       } else if (!enabled.has('zuid') && enabled.has('reistijd')) {
-        status.innerHTML = `<p class="g__verdict is-wrong">${r.zuid} van de 3 van Zuid. Nog steeds niet eerlijk!</p><p class="g__hint">"Woont op Zuid" is weg, maar welk ander kenmerk verraadt waar iemand woont? Kijk naar de balken.</p>`;
+        status.innerHTML = `<p class="g__verdict is-wrong">${r.zuid} van de 3 van Zuid. Nog steeds niet eerlijk!</p><p class="g__hint">"Woont op Zuid" is weg. Maar waaraan zie je nog meer waar iemand woont? Kijk naar de balken.</p>`;
       } else if (meritLeft < 2) {
         status.innerHTML = `<p class="g__verdict is-wrong">Nu weet de computer bijna niks meer over wie goed is.</p><p class="g__hint">Laat werkervaring, motivatie en cijfer aan staan: die zeggen wél iets over de baan.</p>`;
       } else {
@@ -356,9 +356,9 @@ export function mount(el, { onFinish, character }) {
       sub: 'punten',
       character,
       line: escapeHtml(
-        'Een algoritme is niet vanzelf eerlijk. Het leert van oude keuzes, ook van de oneerlijke, en vindt omwegen. Daarom heb je het recht om te weten waarom je bent afgewezen, en om een mens te vragen ernaar te kijken.',
+        'Een algoritme is niet vanzelf eerlijk. Het leert van oude keuzes, ook van de oneerlijke. En het vindt omwegen. Daarom mag je altijd vragen waarom je bent afgewezen. En je mag vragen of een mens er nog naar kijkt.',
       ),
-      extra: `<p class="g__hint">${toggles <= 5 ? `Je repareerde het model in ${toggles} stappen.` : `Je had ${toggles} stappen nodig om het model te repareren. Met 2 stappen kan het ook.`}</p>`,
+      extra: `<p class="g__hint">${toggles <= 5 ? `Je had de computer in ${toggles} stappen gerepareerd.` : `Je had ${toggles} stappen nodig om de computer te repareren. Het kan ook in 2.`}</p>`,
       onDone: () => onFinish({ correct, total: 3, summary: 'punten' }),
     });
   }

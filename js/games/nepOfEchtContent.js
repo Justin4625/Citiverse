@@ -49,7 +49,7 @@ export const MESSAGES = [
   {
     id: 'ambassadeur', kind: 'dm', from: 'StreetStyle.Official', level: 3, fake: true,
     text: 'Hoi! We vinden je profiel echt tof 🔥 We zoeken ambassadeurs voor ons merk. Je krijgt gratis kleding! Alleen even €15 inschrijfkosten betalen via de link in onze bio.',
-    tells: ['Je hoeft nooit te betalen om ergens geld of spullen mee te verdienen.', 'Complimenten maken je minder kritisch: dat is precies de bedoeling.'],
+    tells: ['Je hoeft nooit te betalen om ergens geld of spullen mee te verdienen.', 'Door complimenten let je minder goed op. Dat is precies de bedoeling.'],
   },
 
   {
@@ -60,7 +60,7 @@ export const MESSAGES = [
   {
     id: 'deepfake-oproep', kind: 'dm', from: 'Bekende YouTuber ✓', level: 3, fake: true,
     text: 'Ik geef 100 telefoons weg aan mijn volgers! 🎁 Kijk mijn video en vul je gegevens in via de link in mijn profiel. Alleen vandaag!',
-    tells: ['Een vinkje of bekende naam kan nep zijn: accounts en zelfs video\'s worden nagemaakt.', 'Een weggeefactie die om je gegevens vraagt is een bekende truc.', '"Alleen vandaag" zet je onder druk.'],
+    tells: ['Een vinkje of bekende naam kan nep zijn: accounts en zelfs video\'s worden nagemaakt.', 'Iets weggeven en dan om je gegevens vragen is een bekende truc.', '"Alleen vandaag" zet je onder druk.'],
   },
 
   // ---------- Real ----------
@@ -92,7 +92,7 @@ export const MESSAGES = [
   {
     id: 'code-niet-delen', kind: 'sms', from: 'GameHub', level: 3, fake: false,
     text: 'Je verificatiecode is 482913. Deel deze code met niemand, ook niet met medewerkers van GameHub.',
-    why: 'Dit is de code die je zelf aanvroeg. Er staat juist bij dat je hem niet mag delen. Een oplichter zou daarom vragen.',
+    why: 'Dit is de code die je zelf hebt aangevraagd. Er staat zelfs bij dat je hem niet mag delen. Een oplichter zou je juist om die code vragen.',
   },
   {
     id: 'tram-omleiding', kind: 'nieuws', from: 'Je nieuwsapp', level: 3, fake: false,
@@ -107,7 +107,7 @@ export const MESSAGES = [
   {
     id: 'bank-pas-verlopen', kind: 'mail', from: 'MaasBank', level: 3, fake: false,
     text: 'Je bankpas verloopt volgende maand. Je nieuwe pas wordt automatisch naar je huisadres gestuurd. Je hoeft niets te doen.',
-    why: 'Er staat geen link in, er hoeft niets ingevuld te worden en er is geen haast. Echte banken sturen zo\'n bericht vaak gewoon ter informatie.',
+    why: 'Er staat geen link in, er hoeft niets ingevuld te worden en er is geen haast. Echte banken sturen zo\'n bericht vaak gewoon om je iets te laten weten.',
   },
 ];
 
@@ -117,7 +117,7 @@ export const TEMPLATES = [
   {
     id: 'ai-bank', kind: 'sms', from: 'MaasBank', domain: 'maasbank-check.info', level: 2,
     brief: 'De bank meldt dat er iets mis is met je rekening en dat je snel moet inloggen via de link.',
-    tells: ['De bank zet je onder druk om snel te handelen.', 'Een bank stuurt nooit een inloglink via sms.', 'Het webadres is niet van de bank zelf.'],
+    tells: ['Je moet van "de bank" heel snel iets doen.', 'Een bank stuurt nooit een inloglink via sms.', 'Het webadres is niet van de bank zelf.'],
   },
   {
     id: 'ai-vriend', kind: 'whatsapp', from: '+44 7700 900726', domain: null, level: 2,

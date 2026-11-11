@@ -15,13 +15,13 @@ export const LEVELS = [
 ];
 
 export const ACHIEVEMENTS = [
-  { id: 'eerste-stempel', name: 'Eerste stempel', text: 'Verzamel je eerste stempel op locatie.' },
+  { id: 'eerste-stempel', name: 'Eerste stempel', text: 'Haal je eerste stempel op de plek zelf.' },
   { id: 'halverwege', name: 'Halverwege', text: 'Verzamel 5 stempels.' },
   { id: 'heel-rotterdam', name: 'Heel Rotterdam', text: 'Verzamel alle 10 stempels.' },
   { id: 'foutloos', name: 'Foutloos', text: 'Speel een minigame zonder fouten.' },
-  { id: 'oplichtersjager', name: 'Oplichtersjager', text: 'Ontmasker alle berichten bij Nep of echt.' },
-  { id: 'dagtocht', name: 'Dagtocht', text: 'Speel 3 stops op locatie op één dag.' },
-  { id: 'nieuwsgierig', name: 'Nieuwsgierig', text: 'Stel 5 vragen aan personages.' },
+  { id: 'oplichtersjager', name: 'Oplichtersjager', text: 'Haal alles goed bij Nep of echt.' },
+  { id: 'dagtocht', name: 'Dagtocht', text: 'Speel op één dag 3 stops op de plek zelf.' },
+  { id: 'nieuwsgierig', name: 'Nieuwsgierig', text: 'Stel de Buddies samen 5 vragen.' },
   { id: 'thuisspeler', name: 'Thuisspeler', text: 'Speel een stop op afstand.' },
   { id: 'alle-thema', name: 'Alle rechten', text: 'Speel de minigame van alle 10 thema\'s.' },
   { id: 'havenbaas', name: 'Havenbaas', text: 'Bereik het hoogste level.' },

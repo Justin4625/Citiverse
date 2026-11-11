@@ -16,7 +16,7 @@ const MAX_QUESTIONS = 4;
 const CREDIBILITY = 3;
 
 const CASE =
-  'Sanne (15) heeft een foto van Milan (14) in een grote groepsapp gezet, met de tekst "kijk deze clown 🤡". Milan wil dat de foto weg moet en dat Sanne sorry zegt. Sanne zegt dat het een grap was.';
+  'Sanne (15) heeft een foto van Milan (14) in een grote groepsapp gezet, met de tekst "kijk deze clown 🤡". Milan wil dat de foto weggaat en dat Sanne sorry zegt. Sanne zegt dat het een grap was.';
 
 // Facts with `evidence` become evidence cards.
 const WITNESSES = [
@@ -61,13 +61,13 @@ const TESTIMONY = [
 ];
 
 const VERDICTS = [
-  { text: 'De foto moet weg en Sanne moet sorry zeggen. Milan wordt er belachelijk mee gemaakt en vroeg al om verwijdering.', right: true },
+  { text: 'De foto moet weg en Sanne moet sorry zeggen. Milan wordt erom uitgelachen en vroeg al om de foto weg te halen.', right: true },
   { text: 'Sanne mocht de foto delen, want het was een grap.', right: false },
   { text: 'Niemand is schuldig. Het is de schuld van de groepsapp.', right: false },
 ];
 
 const RULING =
-  'Je hebt portretrecht. Een foto waarop je herkenbaar bent, mag niet zomaar gedeeld worden als je daar een goede reden tegen hebt, bijvoorbeeld omdat je belachelijk wordt gemaakt. Dat de foto al ergens anders stond, verandert dat niet, zeker niet als het een privé-account was. En wie gevraagd wordt een foto weg te halen en dat weigert, kan daartoe gedwongen worden.';
+  'Je hebt portretrecht. Staat er een foto online waarop je te herkennen bent, en word je erom uitgelachen? Dan mag die niet zomaar gedeeld worden. Ook niet als de foto al ergens anders stond, en zeker niet als hij van een privé-account kwam. Vraag je iemand de foto weg te halen en weigert die? Dan kan diegene daartoe worden gedwongen.';
 
 async function askFreeQuestion(witness, question) {
   const reply = await chat(
@@ -76,7 +76,7 @@ async function askFreeQuestion(witness, question) {
         role: 'system',
         content: [
           `Je bent ${witness.name}, ${witness.role}, in een rechtszaakspel voor jongeren. De zaak: ${CASE}`,
-          'Beantwoord de vraag in je rol, in één of twee korte zinnen, in eenvoudig Nederlands.',
+          'Beantwoord de vraag in je rol, in één of twee korte zinnen, in gewone woorden zoals een tiener praat.',
           'Gebruik alleen deze feiten. Staat het antwoord er niet in, zeg dan dat je dat niet weet.',
           ...witness.facts.map((f) => `- [${f.id}] ${f.a}`),
           'Antwoord alleen met JSON: {"antwoord": "...", "feit": "id van het feit dat je antwoord vertelt, of null"}',
@@ -124,8 +124,8 @@ export function mount(el, { onFinish, character }) {
           <span class="court__bench">RECHTBANK ROTTERDAM</span>
           <div class="court__row">${WITNESSES.map((w) => portrait(w)).join('')}</div>
         </div>
-        ${say(character, `<p>Vandaag dient deze zaak.</p><p>${escapeHtml(CASE)}</p><p>Straks legt Sanne een verklaring af. Ik denk dat ze niet alles eerlijk vertelt. Verzamel eerst bewijs: je mag ${MAX_QUESTIONS} vragen stellen.</p>`)}
-        <button class="btn btn--action g__wide" data-go>Start het onderzoek</button>
+        ${say(character, `<p>Vandaag komt deze zaak voor.</p><p>${escapeHtml(CASE)}</p><p>Straks vertelt Sanne haar kant van het verhaal. Ik denk dat ze niet alles eerlijk zegt. Zoek dus eerst bewijs. Je mag ${MAX_QUESTIONS} vragen stellen.</p>`)}
+        <button class="btn btn--action g__wide" data-go>Begin met zoeken</button>
       </div>`;
     el.querySelector('[data-go]').addEventListener('click', investigate);
   }
@@ -224,7 +224,7 @@ export function mount(el, { onFinish, character }) {
           <button class="btn btn--objection" data-object ${done ? 'disabled' : ''}>Bezwaar!</button>
           <button class="btn" data-fwd ${statement === TESTIMONY.length - 1 ? 'disabled' : ''} aria-label="Volgende uitspraak">›</button>
         </div>
-        <p class="g__hint">Blader door de verklaring. Klopt een uitspraak niet met je bewijs? Roep "Bezwaar!" en laat het bewijs zien. Een verkeerd bezwaar kost geloofwaardigheid.</p>
+        <p class="g__hint">Blader door wat Sanne zegt. Klopt iets niet met je bewijs? Roep "Bezwaar!" en laat het bewijs zien. Zit je ernaast, dan gelooft de rechter je minder.</p>
         ${evidenceBar()}
         <button class="btn g__wide" data-verdict>Klaar: naar de uitspraak</button>
       </div>`;
@@ -291,7 +291,7 @@ export function mount(el, { onFinish, character }) {
   function verdict() {
     el.innerHTML = `
       <div class="g">
-        ${say(character, `<p>${caught.size === 3 ? 'Je hebt alle leugens ontmaskerd!' : caught.size ? `Je ving ${caught.size} van de 3 onwaarheden.` : 'Je hebt Sanne niet op een leugen kunnen betrappen.'} Wat is jouw uitspraak, rechter?</p>`)}
+        ${say(character, `<p>${caught.size === 3 ? 'Je hebt alle leugens gevonden!' : caught.size ? `Je vond ${caught.size} van de 3 leugens.` : 'Je hebt Sanne niet op een leugen kunnen betrappen.'} Wat is jouw uitspraak, rechter?</p>`)}
         <div class="g__choices">${shuffle(VERDICTS)
           .map((v) => `<button class="g__choice" data-right="${v.right}">${escapeHtml(v.text)}</button>`)
           .join('')}</div>
@@ -314,10 +314,10 @@ export function mount(el, { onFinish, character }) {
       character,
       line: escapeHtml(RULING),
       extra: missed.length
-        ? `<div class="kv__log"><p class="g__hint">Onwaarheden die je miste</p>${missed
+        ? `<div class="kv__log"><p class="g__hint">Leugens die je miste</p>${missed
             .map(({ s }) => `<div class="kv__entry is-key"><small>Sanne: "${escapeHtml(s.text)}"</small><p>${escapeHtml(s.caught)}</p></div>`)
             .join('')}</div>`
-        : '<p class="g__hint">Je ving alle drie de onwaarheden. Een echte advocaat!</p>',
+        : '<p class="g__hint">Je vond alle drie de leugens. Echt een advocaat!</p>',
       onDone: () => onFinish({ correct, total: 5, summary: 'punten voor bezwaren en uitspraak' }),
     });
   }

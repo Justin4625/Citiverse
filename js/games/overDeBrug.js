@@ -69,7 +69,7 @@ export function checks(text) {
 const PEOPLE = [
   { id: 'noor', name: 'Noor', about: 'is slechtziend, haar telefoon leest berichten voor', you: 'Je bent slechtziend en je telefoon leest berichten voor.', ok: 'Mijn telefoon las het duidelijk voor. Ik weet wat ik moet doen!' },
   { id: 'ahmad', name: 'Ahmad', about: 'leert sinds een half jaar Nederlands', you: 'Je leert sinds een half jaar Nederlands.', ok: 'Ik begrijp het. Korte zinnen en gewone woorden, dank je!' },
-  { id: 'mirjam', name: 'Mirjam', about: 'heeft geen mobiel internet, links werken niet', you: 'Je hebt geen mobiel internet, dus links werken niet.', ok: 'Helder: ik weet wanneer, en hoe ik er dan kom. Ik hoef niks op te zoeken.' },
+  { id: 'mirjam', name: 'Mirjam', about: 'heeft geen mobiel internet, links werken niet', you: 'Je hebt geen mobiel internet, dus links werken niet.', ok: 'Duidelijk! Ik weet wanneer, en hoe ik er dan kom. Ik hoef niks op te zoeken.' },
 ];
 
 async function voice(person, problem) {
@@ -77,7 +77,7 @@ async function voice(person, problem) {
     [
       {
         role: 'system',
-        content: `Je bent ${person.name}. ${person.you} Je leest een bericht van de gemeente over de Erasmusbrug. Zeg in één korte zin, in de ik-vorm en eenvoudig Nederlands, hoe het bericht voor jou overkomt. Gebruik precies deze reden en voeg niets toe: "${problem ?? 'Ik begrijp het bericht goed.'}"`,
+        content: `Je bent ${person.name}. ${person.you} Je leest een bericht van de gemeente over de Erasmusbrug. Zeg in één korte zin, in de ik-vorm en in gewone woorden, hoe het bericht voor jou overkomt. Gebruik precies deze reden en voeg niets toe: "${problem ?? 'Ik begrijp het bericht goed.'}"`,
       },
       { role: 'user', content: 'Hoe komt het bericht op jou over?' },
     ],
@@ -140,7 +140,7 @@ export function mount(el, { onFinish, character }) {
       <div class="g">
         <div class="g__bar"><span>Poging ${Math.min(attempt + 1, ATTEMPTS)}/${ATTEMPTS}</span><span>${best}/3 over de brug</span></div>
         ${scene()}
-        ${attempt === 0 ? say(character, '<p>Vannacht gaat de brug dicht. Dit bericht heeft de gemeente gemaakt. Maar niet iedereen snapt het. Herschrijf het zo dat Noor, Ahmad en Mirjam alle drie weten wat ze moeten doen. Wie het snapt, komt veilig aan de overkant.</p>') : ''}
+        ${attempt === 0 ? say(character, '<p>Vannacht gaat de brug dicht. Dit bericht heeft de gemeente gemaakt. Maar niet iedereen snapt het. Pas het aan, zodat Noor, Ahmad en Mirjam alle drie weten wat ze moeten doen. Wie het snapt, komt veilig aan de overkant.</p>') : ''}
         <div class="people">${PEOPLE.map((p) => {
           const r = results?.[p.id];
           return `<div class="person${r ? (r.ok ? ' is-ok' : ' is-no') : ''}">
@@ -153,7 +153,7 @@ export function mount(el, { onFinish, character }) {
         <details class="g__type"><summary>Of typ het bericht zelf</summary>
           <textarea id="bridgeText" maxlength="400" autocapitalize="sentences">${escapeHtml(text)}</textarea>
         </details>
-        ${attempt > 0 ? `<div class="marks"><small>Wat struikelt: <mark class="mk mk--hard">moeilijk woord</mark> <mark class="mk mk--emoji">voorgelezen plaatje</mark> <mark class="mk mk--link">link</mark></small><p class="marks__text">${marks(text)}</p></div>` : ''}
+        ${attempt > 0 ? `<div class="marks"><small>Hier gaat het mis: <mark class="mk mk--hard">moeilijk woord</mark> <mark class="mk mk--emoji">voorgelezen plaatje</mark> <mark class="mk mk--link">link</mark></small><p class="marks__text">${marks(text)}</p></div>` : ''}
         <p class="g__hint">Tip: tijdens de sluiting kun je de Willemsbrug, de Maastunnel of de metro nemen.</p>
         <button class="btn btn--action g__wide" data-test>Test bij Noor, Ahmad en Mirjam (${left} over)</button>
       </div>`;
@@ -222,8 +222,8 @@ export function mount(el, { onFinish, character }) {
       character,
       line: escapeHtml(
         best === 3
-          ? 'Top! Een bericht voor iedereen gebruikt korte zinnen en gewone woorden, zet de belangrijkste informatie in de tekst zelf, en laat plaatjes weg die voorgelezen worden.'
-          : 'Iedereen moet online mee kunnen doen. Gebruik korte zinnen en gewone woorden, zet de belangrijkste informatie in de tekst zelf, en vertrouw niet alleen op een link of plaatjes.',
+          ? 'Top! Zo maak je een bericht voor iedereen: korte zinnen en gewone woorden. Zet alles wat belangrijk is in de tekst zelf. En laat plaatjes weg, want die worden voorgelezen.'
+          : 'Iedereen moet online mee kunnen doen. Gebruik dus korte zinnen en gewone woorden. Zet alles wat belangrijk is in de tekst zelf. En reken niet alleen op een link of plaatjes.',
       ),
       onDone: () => onFinish({ correct: best, total: 3, summary: 'mensen over de brug' }),
     });
