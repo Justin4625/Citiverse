@@ -1,4 +1,5 @@
-import { mapStyle } from './mapStyle.js';
+import { mapStyle, DETAIL_SOURCE } from './mapStyle.js';
+import { loadIndex, keepDetailLoaded } from './mapData.js';
 import { stopElement, setStopState, playerElement, setPlayerThemes, setPlayerWalking } from './markers.js';
 import { distanceM } from './geo.js';
 
@@ -10,6 +11,8 @@ const MIN_ZOOM_SCALE = 0.4;
 const DOT_ZOOM = 13;
 // The Twinny walks to a new position instead of jumping, unless it is further than this.
 const MAX_WALK_M = 600;
+// The area the map was baked for (BBOX in tools/bake_map.py): the camera stays inside it.
+const MAP_BOUNDS = [[4.38, 51.86], [4.60, 51.975]];
 
 function circlePolygon({ lat, lng }, radiusM, steps = 64) {
   const dLat = radiusM / 111320;
@@ -32,6 +35,8 @@ export function createGameMap(container, locations, radiusM) {
     bounds,
     fitBoundsOptions: { padding: { top: 120, bottom: 140, left: 50, right: 50 } },
     maxPitch: 60,
+    maxBounds: MAP_BOUNDS,
+    minZoom: 12,
     attributionControl: { compact: true },
   });
   map.setPitch(40);
@@ -58,6 +63,8 @@ export function createGameMap(container, locations, radiusM) {
     map.addLayer({ id: 'reach-fill', type: 'fill', source: 'reach', paint: { 'fill-color': '#ffffff', 'fill-opacity': 0.25 } }, 'buildings');
     map.addLayer({ id: 'reach-line', type: 'line', source: 'reach', paint: { 'line-color': '#ffffff', 'line-width': 3, 'line-opacity': 0.9 } }, 'buildings');
     if (pendingPlayer) updateReach(pendingPlayer);
+    // Without the index only the coarse overview shows; the game itself still works.
+    loadIndex().then((index) => keepDetailLoaded(map, DETAIL_SOURCE, index)).catch(console.warn);
   });
 
   function updateReach(pos) {

@@ -1,1 +1,4 @@
 .DS_Store
+tools/.cache/
+.venv/
+__pycache__/

@@ -2,7 +2,7 @@
 
 Location-based stamp rally in Rotterdam (Minor DA, Groep D). Walk to a real place and collect a digital stamp there.
 
-Plain HTML/CSS/JS (ES modules), no build step. Map: MapLibre GL on OpenFreeMap tiles.
+Plain HTML/CSS/JS (ES modules), no build step. Map: MapLibre GL, drawn in the game's own colours (`js/mapStyle.js`) from small files in `data/`. They are baked from [3D Rotterdam](https://www.3drotterdam.nl/) © Gemeente Rotterdam (CC BY 4.0, via the Open Urban Platform catalogue) by `tools/bake_map.py`: the BGT 3D ground becomes flat surfaces with a kind (road, cycle path, pavement, green, water), the LoD1 buildings become outlines with a height. The city is cut into grid cells of about 380 x 610 m (`data/map/<x>/<y>.json`); the app loads only the cells around the player (`js/mapData.js`) and shows a coarse overview (`data/overview.geojson`) when zoomed out. The live 3D Tiles are too heavy for a phone (3 MB per ground tile); run the script again when the area or the source data changes.
 
 - Live: https://justin4625.github.io/Citiverse/
 - Test mode: tap **Test** (or add `?debug`) to turn GPS off; tap the map to walk, tap a far stop to teleport, **Reset** clears all stamps.

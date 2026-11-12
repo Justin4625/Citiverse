@@ -1,9 +1,9 @@
 // Network-first with cache fallback, so the app shell still opens offline.
-const CACHE = 'stamprally-v17';
+const CACHE = 'stamprally-v18';
 const SHELL = [
-  './', './index.html', './styles.css', './manifest.webmanifest', './icon.svg',
+  './', './index.html', './styles.css', './manifest.webmanifest', './icon.svg', './data/index.json', './data/overview.geojson',
   './js/app.js', './js/geo.js', './js/storage.js', './js/locations.js',
-  './js/map.js', './js/mapStyle.js', './js/markers.js', './js/book.js',
+  './js/map.js', './js/mapStyle.js', './js/mapData.js', './js/markers.js', './js/book.js',
   './img/centraal.jpg', './img/markthal.jpg', './img/kubuswoningen.jpg', './img/erasmusbrug.jpg', './img/rechtbank.jpg',
   './img/euromast.jpg', './img/hetpark.jpg', './img/politiebureau.jpg', './img/stadhuis.jpg', './img/bibliotheek.jpg',
   './js/stops.js', './js/stop.js', './js/ai.js', './js/progress.js', './js/progressView.js',
