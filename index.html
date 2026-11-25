@@ -13,9 +13,45 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500..900&family=Ubuntu:wght@400;500;700&display=swap">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
   <link rel="stylesheet" href="styles.css">
+  <!-- The map's index starts loading before any script has run (js/mapData.js loadIndex). -->
+  <script>window.citiverseIndex = fetch('data/index.json').then((r) => (r.ok ? r.json() : Promise.reject(r.status)));</script>
+  <!-- All game modules at once, instead of one after the other as each import is found. -->
+  <link rel="modulepreload" href="js/app.js">
+  <link rel="modulepreload" href="js/locations.js">
+  <link rel="modulepreload" href="js/storage.js">
+  <link rel="modulepreload" href="js/geo.js">
+  <link rel="modulepreload" href="js/map.js">
+  <link rel="modulepreload" href="js/mapStyle.js">
+  <link rel="modulepreload" href="js/mapData.js">
+  <link rel="modulepreload" href="js/markers.js">
+  <link rel="modulepreload" href="js/brand.js">
+  <link rel="modulepreload" href="js/stops.js">
+  <link rel="modulepreload" href="js/twinny.js">
+  <link rel="modulepreload" href="js/book.js">
+  <link rel="modulepreload" href="js/stop.js">
+  <link rel="modulepreload" href="js/ai.js">
+  <link rel="modulepreload" href="js/progress.js">
+  <link rel="modulepreload" href="js/games/index.js">
+  <link rel="modulepreload" href="js/games/spoorloos.js">
+  <link rel="modulepreload" href="js/games/kit.js">
+  <link rel="modulepreload" href="js/games/koopjesjacht.js">
+  <link rel="modulepreload" href="js/games/moderator.js">
+  <link rel="modulepreload" href="js/games/overDeBrug.js">
+  <link rel="modulepreload" href="js/games/kruisverhoor.js">
+  <link rel="modulepreload" href="js/games/overtuigDeStad.js">
+  <link rel="modulepreload" href="js/games/ontsnapUitDeApp.js">
+  <link rel="modulepreload" href="js/games/nepOfEcht.js">
+  <link rel="modulepreload" href="js/games/nepOfEchtContent.js">
+  <link rel="modulepreload" href="js/games/pitchInDeRaad.js">
+  <link rel="modulepreload" href="js/games/algoritme.js">
+  <link rel="modulepreload" href="js/ui.js">
+  <link rel="modulepreload" href="js/progressView.js">
+  <link rel="modulepreload" href="js/route.js">
 </head>
 <body>
   <div id="map"></div>
+  <!-- Haze over the far part of the map (styles.css .haze). -->
+  <div class="haze" aria-hidden="true"></div>
 
   <!-- The map screen keeps its chrome in the corners, like Pokémon GO: the logo with your level
        top left (opens your progress), settings top right, the stamp book (with what is nearby)

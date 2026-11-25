@@ -14,9 +14,9 @@ const NAVY = '#16295c';
 // puts the feet exactly on the player's position.
 export const SIZE = { width: 56, height: 76 };
 const FEET_PX = 9;
-// The map camera looks down at the ground at 90 - pitch (60) = 30 degrees. Looking at the
+// The map camera looks down at the ground at 90 - pitch (56) = 34 degrees. Looking at the
 // figure from the same height makes it stand on the map instead of hanging in front of it.
-const LOOK_DOWN = (30 * Math.PI) / 180;
+const LOOK_DOWN = (34 * Math.PI) / 180;
 const CAMERA_DISTANCE = 9.6;
 
 function colourAt(stops, fromTop) {
@@ -201,7 +201,8 @@ export function createTwinny3D(container) {
       body.position.y = still ? 0 : (Math.sin(now / 600) + 1) * 0.012;
       phase = 0;
     }
-    renderer.render(scene, camera);
+    // Not drawn while a menu covers the map.
+    if (!document.body.classList.contains('menu-open')) renderer.render(scene, camera);
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);

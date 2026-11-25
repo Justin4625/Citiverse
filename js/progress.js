@@ -22,7 +22,7 @@ export const ACHIEVEMENTS = [
   { id: 'oplichtersjager', name: 'Oplichtersjager', text: 'Haal alles goed bij Nep of echt.' },
   { id: 'dagtocht', name: 'Dagtocht', text: 'Speel op één dag 3 stops op de plek zelf.' },
   { id: 'nieuwsgierig', name: 'Nieuwsgierig', text: 'Stel de Buddies samen 5 vragen.' },
-  { id: 'thuisspeler', name: 'Thuisspeler', text: 'Speel een stop op afstand.' },
+  { id: 'terugkomer', name: 'Terugkomer', text: 'Speel een minigame nog een keer om je score te verbeteren.' },
   { id: 'alle-thema', name: 'Alle rechten', text: 'Speel de minigame van alle 10 thema\'s.' },
   { id: 'havenbaas', name: 'Havenbaas', text: 'Bereik het hoogste level.' },
 ];
@@ -101,7 +101,7 @@ export function recordGame(stopId, result, { onSite, gameId, stamps = {}, totalS
   const unlocked = [];
   if (result.total && result.correct === result.total) award(p, 'foutloos', unlocked);
   if (gameId === 'nep-of-echt' && result.correct === result.total) award(p, 'oplichtersjager', unlocked);
-  if (!onSite) award(p, 'thuisspeler', unlocked);
+  if (p.plays[stopId] >= 2) award(p, 'terugkomer', unlocked);
   if ((p.days[today()] ?? []).length >= 3) award(p, 'dagtocht', unlocked);
   if (Object.keys(p.plays).length >= totalStops) award(p, 'alle-thema', unlocked);
   checkStamps(p, stamps, totalStops, unlocked);

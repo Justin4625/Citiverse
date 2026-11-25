@@ -13,6 +13,7 @@ export function stopElement(loc) {
   // The inner body scales with the zoom level; the outer element is positioned by MapLibre.
   el.innerHTML = `
     <span class="stop__body" style="${themeVars(loc.id)};--i:${stopCount++}">
+      <span class="stop__beam" aria-hidden="true"></span>
       <span class="stop__label">${loc.name}</span>
       <span class="stop__pin">
         <img class="stop__photo" src="${photoUrl(loc)}" alt="" style="object-position:${loc.focus}" draggable="false">

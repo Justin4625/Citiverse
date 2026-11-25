@@ -1,7 +1,7 @@
 // Network-first with cache fallback, so the app shell still opens offline.
-const CACHE = 'stamprally-v33';
+const CACHE = 'stamprally-v55';
 const SHELL = [
-  './', './index.html', './styles.css', './manifest.webmanifest', './icon.svg', './data/index.json', './data/overview.geojson',
+  './', './index.html', './styles.css', './manifest.webmanifest', './icon.svg', './data/index.json',
   './js/app.js', './js/geo.js', './js/storage.js', './js/locations.js',
   './js/map.js', './js/mapStyle.js', './js/mapData.js', './js/markers.js', './js/book.js', './js/route.js',
   './img/centraal.jpg', './img/markthal.jpg', './img/kubuswoningen.jpg', './img/erasmusbrug.jpg', './img/rechtbank.jpg',
@@ -10,7 +10,7 @@ const SHELL = [
   './js/games/index.js', './js/games/kit.js', './js/games/nepOfEcht.js', './js/games/nepOfEchtContent.js',
   './js/games/spoorloos.js', './js/games/koopjesjacht.js', './js/games/moderator.js', './js/games/overDeBrug.js',
   './js/games/kruisverhoor.js', './js/games/overtuigDeStad.js', './js/games/ontsnapUitDeApp.js',
-  './js/games/pitchInDeRaad.js', './js/games/algoritme.js', './js/brand.js', './js/twinny.js', './js/twinny3d.js',
+  './js/games/pitchInDeRaad.js', './js/games/algoritme.js', './js/brand.js', './js/twinny.js', './js/twinny3d.js', './js/ui.js', './js/stops3d.js',
   // Digital Child Rights artwork (img/dcr): per theme a buddy, icon, GO stamp and star.
   './img/dcr/logo.png', './img/dcr/bg-portrait.jpg', './img/dcr/bg-landscape.jpg',
   './img/dcr/stamp-dcr.png', './img/dcr/star-dcr.png',
@@ -35,7 +35,22 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
-  const sameOrigin = new URL(e.request.url).origin === location.origin;
+  const url = new URL(e.request.url);
+  const sameOrigin = url.origin === location.origin;
+  // Map data and pictures are big and only change with a new version of the app (which gets a
+  // new CACHE and so starts fresh): served from the cache when there, fetched once otherwise.
+  if (sameOrigin && /\/(data|img)\//.test(url.pathname)) {
+    e.respondWith(
+      caches.match(e.request).then((hit) => hit || fetch(e.request).then((res) => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(e.request, copy));
+        }
+        return res;
+      })),
+    );
+    return;
+  }
   // Own files are revalidated with the server every time (GitHub Pages would otherwise serve them from cache for 10 min).
   e.respondWith(
     (sameOrigin ? fetch(e.request.url, { cache: 'no-cache' }) : fetch(e.request))

@@ -1,12 +1,15 @@
-import { mapStyle, DETAIL_SOURCE } from './mapStyle.js';
-import { loadIndex, keepDetailLoaded } from './mapData.js';
+import { mapStyle, DETAIL_SOURCE, NEW_SOURCE, buildingPaint } from './mapStyle.js';
+import { loadIndex, keepDetailLoaded, prefetch } from './mapData.js';
 import { stopElement, setStopState, playerElement, setPlayerThemes, setPlayerWalking } from './markers.js';
 import { distanceM } from './geo.js';
+import { THEMES, themeOf, buddyUrl, themeVars } from './brand.js';
 
 // Pokémon-Go camera: always on the player, tilted, close by. You can zoom a little and turn the
 // view by swiping sideways, but not pan away, so you only see what is around you.
 const PLAY_ZOOM = 17.4;
-const PLAY_PITCH = 60;
+// 56 instead of 60: the view looks a bit more down, so the horizon is closer and the far,
+// empty part of the map takes less of the screen.
+const PLAY_PITCH = 56;
 const MIN_PLAY_ZOOM = 16.2;
 const MAX_PLAY_ZOOM = 18.8;
 // The player stands below the middle of the screen, so you see more of what lies ahead.
@@ -32,13 +35,6 @@ const MIN_ZOOM_SCALE = 0.4;
 const DOT_ZOOM = 13;
 // The Twinny walks to a new position instead of jumping, unless it is further than this.
 const MAX_WALK_M = 600;
-// Buildings closer to the player than LOW_NEAR_M are lowered to LOW_MIN of their height,
-// rising smoothly to full height at LOW_FAR_M. The camera looks down at only 30 degrees, so a
-// tall block between it and the player would hide the street the player walks on and make the
-// figure seem to float on its roof.
-const LOW_NEAR_M = 25;
-const LOW_FAR_M = 85;
-const LOW_MIN = 0.06;
 // Stops shrink with distance down to PERSP_MIN, and grow up to PERSP_MAX close by.
 const PERSP_MIN = 0.62;
 const PERSP_MAX = 1.15;
@@ -47,6 +43,19 @@ const MAP_BOUNDS = [[4.38, 51.86], [4.60, 51.975]];
 // Phones have up to 3 screen pixels per CSS pixel; drawing the tilted 3D map at 3x is more than
 // most phones can do smoothly, and 2x looks the same at arm's length.
 const MAX_PIXEL_RATIO = 2;
+// A landmark point may miss its building's outline by this much.
+const LANDMARK_M = 15;
+// Stops in the top HORIZON_SHARE of the screen are far off and fade out.
+const HORIZON_SHARE = 0.26;
+// The edge pointer keeps clear of the top buttons and the GO button (CSS pixels).
+const EDGE = { side: 38, top: 150, bottom: 180 };
+
+// The theme colour mixed with white, so landmarks stay in the soft pastel look of the map.
+function landmarkColour(id) {
+  const hex = THEMES[themeOf(id)][0];
+  const mix = (i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * 0.55 + 255 * 0.45);
+  return `rgb(${mix(1)}, ${mix(3)}, ${mix(5)})`;
+}
 
 function circlePolygon({ lat, lng }, radiusM, steps = 64) {
   const dLat = radiusM / 111320;
@@ -59,6 +68,8 @@ function circlePolygon({ lat, lng }, radiusM, steps = 64) {
 }
 
 export function createGameMap(container, locations, radiusM) {
+  // The map data starts loading right away, while MapLibre is still starting up.
+  loadIndex().then((index) => prefetch(index, START)).catch(() => {});
   const map = new maplibregl.Map({
     container,
     style: mapStyle,
@@ -102,6 +113,9 @@ export function createGameMap(container, locations, radiusM) {
   // turn. Moving the camera from several places at once (easeTo, setBearing, jumpTo) made it
   // stutter.
   let follow = null; // [lng, lat] the camera should be on
+  let zoomBeforeFocus = null;
+  let unfocusTimer = 0;
+  let focusing = false; // while the camera flies to a stop (focusStop), the loop leaves it alone
   let followMoved = false;
   let bearing = map.getBearing();
   let bearingMoved = false;
@@ -116,7 +130,7 @@ export function createGameMap(container, locations, radiusM) {
   function cameraLoop(now) {
     const dt = Math.min(now - lastFrame, 50);
     lastFrame = now;
-    if (!wheeling()) {
+    if (!wheeling() && !focusing) {
       if (spin && !grab) {
         bearing += spin * dt;
         spin *= Math.exp(-dt / SPIN_FADE_MS);
@@ -235,11 +249,14 @@ export function createGameMap(container, locations, radiusM) {
     const centre = metresPer20px(map.project(map.getCenter()));
     for (const loc of locations) {
       const el = stops.get(loc.id);
-      if (el.hidden) continue;
+      if (!el || el.hidden) continue;
       const point = map.project([loc.lng, loc.lat]);
       const here = point.y > 0 ? metresPer20px(point) : Infinity;
       const persp = Math.max(PERSP_MIN, Math.min(PERSP_MAX, centre / here));
       el.style.setProperty('--persp', persp.toFixed(3));
+      // Up near the horizon a stop is a tiny, unreadable pin among the top buttons: it fades
+      // out there, and the pointer at the screen edge shows the way instead.
+      el.classList.toggle('stop--horizon', point.y < map.getContainer().clientHeight * HORIZON_SHARE);
     }
   }
   map.on('move', perspectiveStops);
@@ -264,26 +281,45 @@ export function createGameMap(container, locations, radiusM) {
     map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: lineLayout, paint: { 'line-color': '#e2457f', 'line-width': 8 } });
     if (pendingRoute) map.getSource('route').setData(pendingRoute);
     if (pendingPlayer) updateReach(pendingPlayer);
-    if (lowerPos) lowerAround(lowerPos);
+    loadStops3D();
     // Without the index only the coarse overview shows; the game itself still works.
-    loadIndex().then((index) => keepDetailLoaded(map, DETAIL_SOURCE, index, setBuildings)).catch(console.warn);
+    loadIndex()
+      .then((index) => keepDetailLoaded(map, DETAIL_SOURCE, NEW_SOURCE, index, {
+        around: () => playerMarker?.getLngLat() ?? map.getCenter(),
+        grow: (g) => {
+          const paint = buildingPaint(g);
+          map.setPaintProperty('buildings-new', 'fill-extrusion-height', paint['fill-extrusion-height']);
+          map.setPaintProperty('buildings-new', 'fill-extrusion-opacity', paint['fill-extrusion-opacity']);
+        },
+        onData: (features) => {
+          setBuildings(features);
+          if (!overviewLoaded) {
+            overviewLoaded = true;
+            setTimeout(() => map.getSource('overview').setData('data/overview.geojson'), 1500);
+          }
+        },
+      }))
+      .catch(console.warn);
   });
 
+  let overviewLoaded = false;
   // Buildings of the detail data as outer rings, with their map id (see mapData.js).
   let buildings = [];
-  const lowered = new Map(); // id -> k currently set
-  let lowerPos = null;
   function setBuildings(features) {
     buildings = [];
     features.forEach((f, id) => {
       if (!f.properties.h) return;
       const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
-      buildings.push({ id, rings: polys.map((p) => p[0]) });
+      const rings = polys.map((p) => p[0]);
+      // A rough circle around the building, to skip the far ones quickly.
+      const pts = rings.flat();
+      const c = { lng: pts.reduce((a, q) => a + q[0], 0) / pts.length, lat: pts.reduce((a, q) => a + q[1], 0) / pts.length };
+      const r = Math.max(...pts.map((q) => distanceM(c, { lng: q[0], lat: q[1] })));
+      buildings.push({ id, h: f.properties.h, rings, c, r });
     });
     // New data means new ids: start over.
     map.removeFeatureState({ source: DETAIL_SOURCE });
-    lowered.clear();
-    if (lowerPos) lowerAround(lowerPos);
+    markLandmarks();
   }
   // Metres from (0, 0) to the segment a-b, all in metres.
   function segmentDistance(ax, ay, bx, by) {
@@ -292,55 +328,168 @@ export function createGameMap(container, locations, radiusM) {
     const t = Math.max(0, Math.min(1, -(ax * dx + ay * dy) / (dx * dx + dy * dy || 1)));
     return Math.hypot(ax + t * dx, ay + t * dy);
   }
-  function lowerAround(pos) {
-    lowerPos = pos;
-    if (!loaded || !buildings.length) return;
+  // Metres from pos to the nearest edge of a building (0 inside it), or Infinity when its first
+  // corner is already further than `within` (a quick skip for the far ones).
+  function buildingDistance(pos, rings, within) {
     const mLat = 111320;
     const mLng = mLat * Math.cos((pos.lat * Math.PI) / 180);
-    for (const { id, rings } of buildings) {
-      let d = Infinity;
-      for (const ring of rings) {
-        // Quick skip: a building whose first corner is far away cannot be near.
-        if (Math.abs(ring[0][1] - pos.lat) * mLat > LOW_FAR_M + 400) continue;
-        let inside = false;
-        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-          const ax = (ring[j][0] - pos.lng) * mLng;
-          const ay = (ring[j][1] - pos.lat) * mLat;
-          const bx = (ring[i][0] - pos.lng) * mLng;
-          const by = (ring[i][1] - pos.lat) * mLat;
-          d = Math.min(d, segmentDistance(ax, ay, bx, by));
-          if ((ay > 0) !== (by > 0) && 0 < ((bx - ax) * -ay) / (by - ay) + ax) inside = !inside;
-        }
-        if (inside) d = 0;
+    let d = Infinity;
+    for (const ring of rings) {
+      if (Math.abs(ring[0][1] - pos.lat) * mLat > within + 400) continue;
+      let inside = false;
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const ax = (ring[j][0] - pos.lng) * mLng;
+        const ay = (ring[j][1] - pos.lat) * mLat;
+        const bx = (ring[i][0] - pos.lng) * mLng;
+        const by = (ring[i][1] - pos.lat) * mLat;
+        d = Math.min(d, segmentDistance(ax, ay, bx, by));
+        if ((ay > 0) !== (by > 0) && 0 < ((bx - ax) * -ay) / (by - ay) + ax) inside = !inside;
       }
-      const t = Math.max(0, Math.min(1, (d - LOW_NEAR_M) / (LOW_FAR_M - LOW_NEAR_M)));
-      const k = +(LOW_MIN + (1 - LOW_MIN) * t * t * (3 - 2 * t)).toFixed(2);
-      const was = lowered.get(id) ?? 1;
-      if (k === was) continue;
-      map.setFeatureState({ source: DETAIL_SOURCE, id }, { k });
-      if (k === 1) lowered.delete(id);
-      else lowered.set(id, k);
+      if (inside) d = 0;
+    }
+    return d;
+  }
+  // The landmark of each stop (the building at its landmark point, see locations.js) is painted
+  // in a light tint of the stop's theme, so Markthal or Centraal stand out from the lilac city.
+  function markLandmarks() {
+    for (const loc of locations) {
+      if (!loc.landmark) continue;
+      const [lat, lng] = loc.landmark;
+      let best = null;
+      for (const b of buildings) {
+        const d = buildingDistance({ lat, lng }, b.rings, LANDMARK_M);
+        if (d <= LANDMARK_M && (!best || d < best.d)) best = { id: b.id, d };
+      }
+      if (best) map.setFeatureState({ source: DETAIL_SOURCE, id: best.id }, { lm: landmarkColour(loc.id) });
     }
   }
-  // While walking, often enough to look smooth, not every frame.
-  let lowerAt = 0;
-  function lowerAroundSoon(pos, now = performance.now()) {
-    if (now - lowerAt < 120) return;
-    lowerAt = now;
-    lowerAround(pos);
-  }
+
 
   function updateReach(pos) {
     map.getSource('reach').setData(circlePolygon(pos, radiusM));
   }
 
-  const stops = new Map(
-    locations.map((loc) => {
+  // The stops are 3D models inside the map (stops3d.js). Only when Three.js or WebGL is not
+  // available they fall back to the flat HTML markers (markers.js) in `stops`.
+  const stops = new Map();
+  let stops3d = null;
+  let stopTap = () => {};
+  function useFlatStops() {
+    for (const loc of locations) {
       const el = stopElement(loc);
       new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat([loc.lng, loc.lat]).addTo(map);
-      return [loc.id, el];
-    }),
-  );
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        stopTap(loc.id);
+      });
+      if (states.has(loc.id)) setStopState(el, states.get(loc.id));
+      stops.set(loc.id, el);
+    }
+    if (lastPos) showNearbyStops(lastPos);
+    perspectiveStops();
+  }
+  function loadStops3D() {
+    import('./stops3d.js')
+      .then(({ createStops3D }) => {
+        stops3d = createStops3D(map, locations, { origin: START, onFrame: updatePointer });
+        map.addLayer(stops3d.layer);
+        for (const [id, state] of states) stops3d.setState(id, state);
+        if (lastPos) showNearbyStops(lastPos);
+      })
+      .catch((err) => {
+        console.warn('3D stops unavailable, using flat markers', err);
+        useFlatStops();
+      });
+  }
+  // A tap on a 3D stop; true when it hit one.
+  function tapStop3D(point) {
+    const id = stops3d?.hitTest(point);
+    if (id) stopTap(id);
+    return Boolean(id);
+  }
+  map.on('click', (e) => {
+    if (performance.now() - swipedAt < 400) return;
+    tapStop3D(e.point);
+  });
+
+  // ---------- Pointer to the next stop ----------
+  // When the stop you still have to do that is nearest (or the stop of your route) is not on
+  // screen, a Buddy face at the screen edge points the way, with the distance. Tap it for a route.
+  const states = new Map();
+  const pointer = document.createElement('button');
+  pointer.className = 'pointer';
+  pointer.hidden = true;
+  pointer.innerHTML = '<span class="pointer__arrow" aria-hidden="true"></span><img class="pointer__buddy" alt="" draggable="false"><b class="pointer__dist"></b>';
+  document.body.append(pointer);
+  let pointerId = null;
+  let pointerTap = () => {};
+  pointer.addEventListener('click', () => pointerId && pointerTap(pointerId));
+
+  function bearingTo(a, b) {
+    const r = Math.PI / 180;
+    const y = Math.sin((b.lng - a.lng) * r) * Math.cos(b.lat * r);
+    const x = Math.cos(a.lat * r) * Math.sin(b.lat * r) - Math.sin(a.lat * r) * Math.cos(b.lat * r) * Math.cos((b.lng - a.lng) * r);
+    return Math.atan2(y, x) / r;
+  }
+  const shortDistance = (m) => (m < 1000 ? `${Math.max(10, Math.round(m / 10) * 10)} m` : `${(m / 1000).toFixed(1).replace('.', ',')} km`);
+
+  function updatePointer() {
+    if (!playerMarker) return;
+    const { lat, lng } = playerMarker.getLngLat();
+    const here = { lat, lng };
+    let target = routeTarget && locations.find((l) => l.id === routeTarget);
+    if (!target) {
+      let best = Infinity;
+      for (const loc of locations) {
+        if (states.get(loc.id) === 'done') continue;
+        const d = distanceM(here, loc);
+        if (d < best) [best, target] = [d, loc];
+      }
+    }
+    const { clientWidth: w, clientHeight: h } = map.getContainer();
+    let onScreen = false;
+    if (target && stops3d) {
+      const point = stops3d.screenPoint(target.id);
+      onScreen = stops3d.isShown(target.id) && point && point.x > 0 && point.x < w && point.y > EDGE.top && point.y < h;
+    } else if (target && stops.has(target.id)) {
+      const el = stops.get(target.id);
+      const point = map.project([target.lng, target.lat]);
+      onScreen = !el.hidden && !el.classList.contains('stop--horizon') && point.x > 0 && point.x < w && point.y > EDGE.top && point.y < h;
+    }
+    pointer.hidden = !target || onScreen;
+    if (pointer.hidden) return;
+    if (target.id !== pointerId) {
+      pointerId = target.id;
+      pointer.querySelector('img').src = buddyUrl(target.id);
+      pointer.setAttribute('style', themeVars(target.id));
+      pointer.setAttribute('aria-label', `Route naar ${target.name}`);
+    }
+    pointer.querySelector('b').textContent = shortDistance(distanceM(here, target));
+    // From the player's spot on screen, in the stop's direction (up = the way the view looks),
+    // to where that line leaves the free part of the screen.
+    const angle = ((bearingTo(here, target) - map.getBearing()) * Math.PI) / 180;
+    const dx = Math.sin(angle);
+    const dy = -Math.cos(angle);
+    const o = map.project([lng, lat]);
+    const ox = Math.max(EDGE.side, Math.min(w - EDGE.side, o.x));
+    const oy = Math.max(EDGE.top, Math.min(h - EDGE.bottom, o.y));
+    let t = Infinity;
+    if (dx > 1e-6) t = Math.min(t, (w - EDGE.side - ox) / dx);
+    if (dx < -1e-6) t = Math.min(t, (EDGE.side - ox) / dx);
+    if (dy < -1e-6) t = Math.min(t, (EDGE.top - oy) / dy);
+    let x = ox + dx * t;
+    let y = oy + dy * t;
+    // A stop behind you would put the pointer at the bottom, on the player and the GO button:
+    // it goes to the lower corner on that side instead.
+    if (dy > 0 && (!Number.isFinite(t) || y > h - EDGE.bottom)) {
+      x = dx < 0 ? EDGE.side : w - EDGE.side;
+      y = h - EDGE.bottom;
+    }
+    pointer.style.translate = `${x}px ${y}px`;
+    pointer.style.setProperty('--angle', `${angle}rad`);
+  }
+  map.on('move', updatePointer);
+
 
   function followTo(lngLat) {
     follow = lngLat;
@@ -349,7 +498,11 @@ export function createGameMap(container, locations, radiusM) {
 
   function showNearbyStops(pos) {
     lastPos = pos;
-    for (const loc of locations) stops.get(loc.id).hidden = loc.id !== routeTarget && distanceM(pos, loc) > VIEW_M;
+    for (const loc of locations) {
+      const shown = loc.id === routeTarget || distanceM(pos, loc) <= VIEW_M;
+      stops3d?.setShown(loc.id, shown);
+      if (stops.has(loc.id)) stops.get(loc.id).hidden = !shown;
+    }
   }
 
   let walk = 0; // id of the running walk, so a newer position cancels the old one
@@ -366,7 +519,6 @@ export function createGameMap(container, locations, radiusM) {
       setPlayerWalking(playerEl, false);
       if (keepOnPlayer) followTo([pos.lng, pos.lat]);
       if (loaded) updateReach(pos);
-      lowerAround(pos);
       showNearbyStops(pos);
       return;
     }
@@ -384,8 +536,6 @@ export function createGameMap(container, locations, radiusM) {
       // The camera loop picks this up in the same frame.
       if (keepOnPlayer) followTo([here.lng, here.lat]);
       if (loaded) updateReach(here);
-      if (t < 1) lowerAroundSoon(here, now);
-      else lowerAround(here);
       if (t < 1) requestAnimationFrame(step);
       else setPlayerWalking(playerEl, false);
     };
@@ -398,7 +548,6 @@ export function createGameMap(container, locations, radiusM) {
       if (!playerMarker) {
         playerMarker = new maplibregl.Marker({ element: playerEl, anchor: 'bottom' }).setLngLat(lngLat).addTo(map);
         followTo(lngLat);
-        lowerAround(pos);
         showNearbyStops(pos);
       } else {
         walkTo(pos, keepOnPlayer);
@@ -415,6 +564,7 @@ export function createGameMap(container, locations, radiusM) {
       if (loaded) map.getSource('route').setData(data);
       else pendingRoute = data;
       if (lastPos) showNearbyStops(lastPos);
+      updatePointer();
     },
 
     // Themes of the collected stamps, so the Twinny wears their colours.
@@ -423,16 +573,52 @@ export function createGameMap(container, locations, radiusM) {
     },
 
     setStopStates(stateById) {
-      for (const [id, state] of Object.entries(stateById)) setStopState(stops.get(id), state);
+      for (const [id, state] of Object.entries(stateById)) {
+        if (stops.has(id)) setStopState(stops.get(id), state);
+        stops3d?.setState(id, state);
+        states.set(id, state);
+      }
+      updatePointer();
+    },
+
+    // Flies the camera close to a stop (a menu then grows out of it). Resolves with the stop's
+    // place on screen once there. unfocus() flies back to the player.
+    focusStop(id, ms = 560) {
+      const loc = locations.find((l) => l.id === id);
+      if (!loc || matchMedia('(prefers-reduced-motion: reduce)').matches) return Promise.resolve(this.stopScreenPoint(id));
+      // A second tap while the camera is still out on a stop keeps the zoom from before the first.
+      if (!focusing) zoomBeforeFocus = map.getZoom();
+      clearTimeout(unfocusTimer);
+      focusing = true;
+      map.stop();
+      map.easeTo({ center: [loc.lng, loc.lat], zoom: Math.min(MAX_PLAY_ZOOM + 0.6, map.getZoom() + 1.4), duration: ms, easing: (t) => 1 - (1 - t) ** 3 });
+      return new Promise((resolve) => setTimeout(() => resolve(this.stopScreenPoint(id)), ms));
+    },
+    unfocus(ms = 520) {
+      if (!focusing) return;
+      const back = follow ?? map.getCenter().toArray();
+      map.easeTo({ center: back, zoom: zoomBeforeFocus ?? PLAY_ZOOM, bearing, duration: ms, easing: (t) => 1 - (1 - t) ** 3 });
+      clearTimeout(unfocusTimer);
+      unfocusTimer = setTimeout(() => {
+        focusing = false;
+        followMoved = true;
+      }, ms);
+    },
+
+    // Where a stop is on screen (CSS pixels), e.g. for a menu to unfold from.
+    stopScreenPoint(id) {
+      const loc = locations.find((l) => l.id === id);
+      if (!loc) return null;
+      return stops3d?.screenPoint(id) ?? map.project([loc.lng, loc.lat]);
+    },
+
+    // Tapping the edge pointer: cb(stopId).
+    onPointerTap(cb) {
+      pointerTap = cb;
     },
 
     onStopTap(cb) {
-      for (const [id, el] of stops) {
-        el.addEventListener('click', (e) => {
-          e.stopPropagation();
-          cb(id);
-        });
-      }
+      stopTap = cb;
     },
 
     center() {
@@ -443,6 +629,7 @@ export function createGameMap(container, locations, radiusM) {
     onMapTap(cb) {
       map.on('click', (e) => {
         if (performance.now() - swipedAt < 400) return;
+        if (stops3d?.hitTest(e.point)) return; // that tap was on a stop
         cb({ lat: e.lngLat.lat, lng: e.lngLat.lng });
       });
     },

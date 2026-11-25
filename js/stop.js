@@ -9,6 +9,7 @@ import { recordQuestion } from './progress.js';
 import { GAMES } from './games/index.js';
 import { escapeHtml } from './games/kit.js';
 import { buddyUrl, iconUrl, themeVars } from './brand.js';
+import { show, hide } from './ui.js';
 
 const MAX_HISTORY = 8;
 
@@ -40,7 +41,7 @@ const CLOSE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12
 // onCollect(loc): save the stamp. onPlayed(loc, result, { onSite, gameId }): record XP, returns
 // the outcome from progress.recordGame. getDifficulty(): 0..4 from the player's level.
 // onAchievements(list): show achievements unlocked outside a game (e.g. by asking questions).
-export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAchievements }) {
+export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAchievements, onRoute = () => {}, onClose = () => {} }) {
   let loc = null;
   let stop = null;
   let history = [];
@@ -55,11 +56,13 @@ export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAc
   // locked: no close button and no closing by tapping beside the card, so a stamp that is
   // ready to collect after a game can't be lost by accident.
   function shell(bodyHtml, { banner = false, game = false, locked = false } = {}) {
+    // The card slides up only when the panel opens; a new step inside it just fades its content in.
+    const opening = root.hidden || root.classList.contains('is-leaving');
     if (locked) root.dataset.locked = '1';
     else delete root.dataset.locked;
     const { name, role } = stop.character;
     root.innerHTML = `
-      <div class="stop-panel__card${game ? ' stop-panel__card--game' : ''}" style="${themeVars(loc.id)}">
+      <div class="stop-panel__card${game ? ' stop-panel__card--game' : ''}${opening ? '' : ' is-step'}" style="${themeVars(loc.id)}">
         <div class="sheet__grip" aria-hidden="true"></div>
         ${game ? `<img class="stop-panel__ghost" src="${buddyUrl(loc.id)}" alt="" aria-hidden="true">` : ''}
         ${banner ? `<div class="stop-panel__banner"><img src="${photoUrl(loc)}" alt="" style="object-position:${loc.focus}"><img class="stop-panel__icon" src="${iconUrl(loc.id)}" alt="Thema ${escapeHtml(stop.theme)}"></div>` : ''}
@@ -72,10 +75,9 @@ export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAc
           </div>
           ${locked ? '' : `<button class="sheet__close" data-close aria-label="Sluiten">${CLOSE_ICON}</button>`}
         </header>
-        ${onSite ? '' : '<p class="remote-note">Je speelt op afstand, dus je krijgt de helft van de XP. De stempel krijg je alleen op de plek zelf.</p>'}
         <div class="stop-panel__body">${bodyHtml}</div>
       </div>`;
-    root.hidden = false;
+    show(root);
     root.querySelector('.stop-panel__card').scrollTop = 0;
     return root.querySelector('.stop-panel__body');
   }
@@ -84,16 +86,23 @@ export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAc
     const game = GAMES[stop.game];
     const body = shell(
       `
-      <p class="speech">${escapeHtml(stop.intro)}</p>
-      <p class="speech">${escapeHtml(stop.problem)}</p>
-      ${game ? `<p class="game-name"><small>Minigame</small><strong>${escapeHtml(stop.card.title)}</strong></p>` : ''}
+      <p class="speech speech--in">${escapeHtml(stop.intro)}</p>
+      <p class="speech speech--in speech--later">${escapeHtml(stop.problem)}</p>
       <div class="stop-panel__actions">
-        <button class="btn btn--action" data-go="help">${game ? `Help ${stop.character.name}` : 'Bekijk de minigame'}</button>
-        <button class="btn" data-go="chat">Stel ${stop.character.name} een vraag</button>
+        ${onSite
+          ? `<button class="btn btn--action btn--play" data-go="help">
+              ${game ? `Help ${stop.character.name}<small>Minigame: ${escapeHtml(stop.card.title)}</small>` : 'Bekijk de minigame'}
+            </button>`
+          : `<button class="btn btn--action btn--play" data-go="route">
+              Route naar ${escapeHtml(loc.name)}<small>Helpen kan alleen op de plek zelf</small>
+            </button>`}
+        <button class="btn btn--quiet" data-go="chat">Stel ${stop.character.name} een vraag</button>
       </div>`,
       { banner: true },
     );
-    body.querySelector('[data-go="help"]').addEventListener('click', game ? showGame : showCard);
+    // The minigame is only played at the place itself; from afar you get the way there.
+    body.querySelector('[data-go="help"]')?.addEventListener('click', game ? showGame : showCard);
+    body.querySelector('[data-go="route"]')?.addEventListener('click', () => onRoute(loc));
     body.querySelector('[data-go="chat"]').addEventListener('click', showChat);
   }
 
@@ -239,10 +248,10 @@ export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAc
   }
 
   function close() {
+    if (!root.hidden && !root.classList.contains('is-leaving')) onClose();
     cleanupGame?.();
     cleanupGame = null;
-    root.hidden = true;
-    root.innerHTML = '';
+    hide(root, { then: () => { root.innerHTML = ''; } });
   }
 
   return { open, close };

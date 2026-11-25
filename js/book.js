@@ -41,7 +41,7 @@ function card(loc, { done, near, m, routeTo }) {
   }
 
   return `<li class="card${done ? ' card--done' : ''}${near ? ' card--here' : ''}">
-    <button class="card__open" data-id="${loc.id}" aria-label="${loc.name} spelen">
+    <button class="card__open" data-id="${loc.id}" aria-label="${loc.name} bekijken">
       <span class="card__photo">
         <img src="${photoUrl(loc)}" alt="" loading="lazy" style="object-position:${loc.focus}">
         ${done ? `<img class="card__stamp" src="${stampUrl(loc.id)}" alt="">` : `<img class="card__buddy" src="${buddyUrl(loc.id)}" alt="">`}

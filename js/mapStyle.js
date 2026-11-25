@@ -3,23 +3,52 @@
 //   overview  data/overview.geojson: water, green and roads of the whole city, coarse
 //   detail    the grid cells around the player (js/mapData.js): surfaces with a kind and a level,
 //             and building outlines with their height h in metres
+// The look is a cartoon city: soft fills with a slightly darker edge line, like an inked drawing,
+// buildings that cast a soft shadow on the ground and are lit by one fixed sun.
 const C = {
-  land: '#b6e7a8',
-  plot: '#c6edb9',
-  green: '#8fd98a',
-  water: '#63cdf0',
-  road: '#fff6c9',
-  pavement: '#e9f6d2',
-  cycle: '#ffb3a7',
-  rail: '#d9d3ea',
-  sand: '#ffe9a8',
-  building: '#dccfff',
+  land: '#b4e6a2',
+  plot: '#c4ecb4',
+  green: '#86d67f',
+  water: '#5ccaf2',
+  road: '#fff3c2',
+  pavement: '#e8f5cf',
+  cycle: '#ffb0a3',
+  rail: '#d6cfe9',
+  sand: '#ffe6a0',
+  building: '#e3d9ff',
+  buildingTall: '#c9b7fb',
   sky: '#7fd3f7',
-  horizon: '#dff6ff',
+  horizon: '#e2f6ff',
+};
+
+// Edge lines: the same colour family, a step darker, so every shape reads without hard black ink.
+const EDGE = {
+  water: '#2fa6d8',
+  green: '#5fbf5c',
+  road: '#ead79a',
+  cycle: '#f08d80',
+  rail: '#b6acd6',
 };
 
 export const ATTRIBUTION = '<a href="https://www.3drotterdam.nl/" target="_blank" rel="noopener">3D Rotterdam</a> © Gemeente Rotterdam (CC BY 4.0)';
 export const DETAIL_SOURCE = 'detail';
+export const NEW_SOURCE = 'detail-new';
+
+// The buildings' paint; `grow` (0..1) raises them out of the ground and fades them in.
+export function buildingPaint(grow) {
+  return {
+    // A stop's landmark (feature-state 'lm', a colour set in map.js) wears its theme tint.
+    // Taller blocks are a step deeper lilac, so a busy street still has some variety.
+    'fill-extrusion-color': ['case',
+      ['==', ['typeof', ['feature-state', 'lm']], 'string'], ['to-color', ['feature-state', 'lm']],
+      ['interpolate', ['linear'], ['get', 'h'], 6, C.building, 40, C.buildingTall]],
+    // Every block keeps one fixed height once it is there, so nothing changes while you walk or
+    // turn. Towers are capped at MAX_HEIGHT, so one high block never fills the screen.
+    'fill-extrusion-height': ['*', ['min', ['*', ['get', 'h'], HEIGHT_SCALE], MAX_HEIGHT], grow],
+    'fill-extrusion-vertical-gradient': true,
+    'fill-extrusion-opacity': Math.max(0.01, Math.min(1, grow * 1.4)),
+  };
+}
 
 // Drawn bottom to top, so roads lie over pavements and water over everything on the ground.
 const KINDS = ['plot', 'pavement', 'sand', 'green', 'rail', 'road', 'cycle', 'water'];
@@ -31,15 +60,36 @@ const fill = (source, kind, filter) => ({
   paint: { 'fill-color': C[kind], 'fill-antialias': false },
 });
 
-// Buildings are kept low and soft so stops and the player stay readable.
-const HEIGHT_SCALE = 0.5;
+// Thin edge on the ground shapes. Only from close by: far away the lines would turn into noise.
+const edge = (source, kind, filter, minzoom = 15) => ({
+  id: `${source}-${kind}-edge`, type: 'line', source, filter, minzoom,
+  layout: { 'line-join': 'round' },
+  paint: {
+    'line-color': EDGE[kind],
+    'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 15, 0.8, 18, kind === 'water' ? 3.5 : 2.2],
+    'line-opacity': ['interpolate', ['linear'], ['zoom'], minzoom, 0, minzoom + 0.8, 0.9],
+  },
+});
+
+// Buildings are kept low and soft (about a third of their real height) so the street, the
+// stops and the player stay readable, also with a block between the camera and the player.
+const HEIGHT_SCALE = 0.35;
+const MAX_HEIGHT = 16;
+const ground0 = (kind) => ['all', ['==', ['get', 'kind'], kind], ['==', ['get', 'level'], 0]];
 
 export const mapStyle = {
   version: 8,
   sources: {
-    overview: { type: 'geojson', data: 'data/overview.geojson', tolerance: 0.5, attribution: ATTRIBUTION },
+    // Filled by map.js once the streets around the player are in: the overview is only seen
+    // far off under the haze, so it must not hold up the start.
+    overview: { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, tolerance: 0.5, maxzoom: 12, attribution: ATTRIBUTION },
     // generateId: a feature's id is its place in the data, so map.js can lower single buildings.
-    [DETAIL_SOURCE]: { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, tolerance: 0.2, generateId: true },
+    // maxzoom 14: MapLibre cuts GeoJSON into tiles and only makes a tile when it comes into view.
+    // With its default (18) turning the view kept asking for new small tiles, and buildings
+    // vanished and popped back while they were made. A z14 tile is ~2.4 km wide, so the few tiles
+    // around the player cover everything and are reused while you turn (detail stays ~0.6 m).
+    [DETAIL_SOURCE]: { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, tolerance: 0.2, maxzoom: 14, generateId: true },
+    [NEW_SOURCE]: { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, tolerance: 0.2, maxzoom: 14 },
   },
   sky: {
     'sky-color': C.sky,
@@ -50,24 +100,45 @@ export const mapStyle = {
     'fog-ground-blend': 0.35,
     'horizon-fog-blend': 0.8,
   },
-  light: { anchor: 'viewport', color: '#ffffff', intensity: 0.25 },
+  // One sun fixed to the map (from the south-west, fairly high), so the walls keep the same
+  // light and shade while the view turns, like a real afternoon.
+  light: { anchor: 'map', position: [1.4, 210, 40], color: '#ffffff', intensity: 0.32 },
   layers: [
     { id: 'land', type: 'background', paint: { 'background-color': C.land } },
     ...OVERVIEW_KINDS.map((kind) => fill('overview', kind, ['==', ['get', 'kind'], kind])),
-    ...KINDS.map((kind) => fill(DETAIL_SOURCE, kind, ['all', ['==', ['get', 'kind'], kind], ['==', ['get', 'level'], 0]])),
+    edge('overview', 'water', ['==', ['get', 'kind'], 'water'], 12),
+    ...KINDS.map((kind) => fill(DETAIL_SOURCE, kind, ground0(kind))),
+    ...['green', 'rail', 'road', 'cycle', 'water'].map((kind) => edge(DETAIL_SOURCE, kind, ground0(kind))),
     // Bridges and other decks above the ground cover whatever runs underneath.
     {
       id: 'detail-raised', type: 'fill', source: DETAIL_SOURCE, filter: ['>', ['get', 'level'], 0],
       paint: { 'fill-color': colourByKind, 'fill-antialias': false },
     },
     {
-      id: 'buildings', type: 'fill-extrusion', source: DETAIL_SOURCE, filter: ['has', 'h'],
+      id: 'detail-raised-edge', type: 'line', source: DETAIL_SOURCE, filter: ['>', ['get', 'level'], 0], minzoom: 15,
+      paint: { 'line-color': '#ffffff', 'line-width': ['interpolate', ['linear'], ['zoom'], 15, 0.8, 18, 2.5], 'line-opacity': 0.8 },
+    },
+    // A soft shadow on the ground, away from the sun, so the blocks stand on the street instead
+    // of floating above it.
+    {
+      id: 'building-shadow', type: 'fill', source: DETAIL_SOURCE, filter: ['has', 'h'], minzoom: 14.5,
       paint: {
-        'fill-extrusion-color': C.building,
-        // Feature-state 'k' (0..1, set in map.js) lowers the buildings right around the player.
-        'fill-extrusion-height': ['*', ['get', 'h'], HEIGHT_SCALE, ['coalesce', ['feature-state', 'k'], 1]],
-        'fill-extrusion-opacity': 0.92,
+        'fill-color': '#5b4d9c',
+        'fill-opacity': ['interpolate', ['linear'], ['zoom'], 14.5, 0, 15.5, 0.16],
+        'fill-translate': [5, 7],
+        'fill-translate-anchor': 'map',
+        'fill-antialias': false,
       },
+    },
+    {
+      id: 'buildings', type: 'fill-extrusion', source: DETAIL_SOURCE, filter: ['has', 'h'],
+      paint: buildingPaint(1),
+    },
+    // Buildings of cells that just arrived (js/mapData.js) rise out of the ground here before
+    // they join the others.
+    {
+      id: 'buildings-new', type: 'fill-extrusion', source: NEW_SOURCE, filter: ['has', 'h'],
+      paint: buildingPaint(0),
     },
   ],
 };

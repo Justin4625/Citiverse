@@ -54,6 +54,21 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
 }
 
 #map { position: fixed; inset: 0; }
+/* A soft haze where the tilted map runs into the sky: the far city fades into the light
+   horizon colour (mapStyle.js C.horizon) instead of ending at the edge of the loaded detail.
+   The camera's pitch is fixed, so the horizon always sits at the same height on screen. */
+.haze {
+  position: fixed;
+  inset: 0 0 auto;
+  height: 56%;
+  pointer-events: none;
+  background: linear-gradient(to bottom,
+    rgba(226, 246, 255, 0.97) 0%,
+    rgba(226, 246, 255, 0.9) 22%,
+    rgba(226, 246, 255, 0.6) 42%,
+    rgba(226, 246, 255, 0.22) 62%,
+    rgba(226, 246, 255, 0) 100%);
+}
 /* The game handles every finger on the map itself (swipe turns, pinch zooms). MapLibre leaves
    pan-x pan-y here, so a phone took a sideways swipe as a page pan and cancelled it. */
 #map .maplibregl-canvas-container, #map .maplibregl-canvas { touch-action: none; }
@@ -746,8 +761,9 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
   position: relative;
   z-index: 1;
   flex: 1 0 auto;
-  justify-content: center;
-  padding: 20px 0 12px;
+  /* The game starts a little under the header: centred left a big empty band on tall phones. */
+  justify-content: flex-start;
+  padding: clamp(16px, 5dvh, 48px) 0 12px;
 }
 .stop-panel__ghost {
   position: fixed;
@@ -1169,8 +1185,8 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
 .kv__tab small { font-size: 0.7rem; font-weight: 600; color: var(--muted); line-height: 1.2; }
 .kv__tab.is-on { border-color: var(--ink); box-shadow: 0 3px 0 var(--ink); }
 .kv__log { display: grid; gap: 6px; text-align: left; }
-.kv__entry { padding: 10px 12px; background: var(--card); border-left: 4px solid var(--line); border-radius: 8px; }
-.kv__entry.is-key { border-left-color: var(--green); }
+.kv__entry { padding: 10px 12px; background: var(--card); border: 2px solid var(--line); border-radius: 8px; }
+.kv__entry.is-key { border-color: var(--green); background: color-mix(in srgb, var(--green) 10%, var(--card)); }
 .kv__entry small { font-size: 0.75rem; font-weight: 700; color: var(--muted); }
 .kv__entry p { margin: 2px 0 0; line-height: 1.4; }
 .kv__entry i { font-size: 0.72rem; color: var(--muted); }
@@ -1209,10 +1225,10 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
 .clock__steps i.is-done { background: var(--green); }
 .clock__steps i.is-now { background: var(--ink); }
 .traces { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; text-align: left; }
-.traces li { padding: 10px 12px; line-height: 1.4; background: var(--card); border-left: 4px solid var(--line); border-radius: 8px; }
-.traces li.w3 { border-left-color: var(--pink-deep); }
-.traces li.w2 { border-left-color: var(--pink); }
-.traces li.w1 { border-left-color: #f2b27a; }
+.traces li { padding: 10px 12px; line-height: 1.4; background: var(--card); border: 2px solid var(--line); border-radius: 8px; }
+.traces li.w3 { border-color: var(--pink-deep); background: color-mix(in srgb, var(--pink-deep) 10%, var(--card)); }
+.traces li.w2 { border-color: var(--pink); background: color-mix(in srgb, var(--pink) 8%, var(--card)); }
+.traces li.w1 { border-color: #f2b27a; background: color-mix(in srgb, #f2b27a 12%, var(--card)); }
 
 /* Koopjesjacht */
 .offers { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 96px; }
@@ -1522,9 +1538,9 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
 .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .compare > div { display: grid; gap: 6px; align-content: start; padding: 10px; background: var(--card); border-radius: var(--radius); box-shadow: 0 2px 0 var(--line); }
 .compare .g__hint { margin: 0; }
-.pick { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 10px; font-weight: 800; background: var(--paper); border-left: 4px solid #2b7de9; border-radius: 6px; }
+.pick { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 10px; font-weight: 800; background: color-mix(in srgb, #2b7de9 10%, var(--paper)); border: 2px solid #2b7de9; border-radius: 6px; }
 .pick small { font-weight: 700; color: var(--muted); }
-.pick.is-zuid { border-left-color: var(--pink); }
+.pick.is-zuid { border-color: var(--pink); background: color-mix(in srgb, var(--pink) 10%, var(--paper)); }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { min-height: 44px; padding: 0 12px; font-size: 0.85rem; font-weight: 800; text-decoration: line-through; color: var(--muted); border: 2px dashed var(--line); border-radius: 999px; background: var(--paper); }
 .chip.is-on { text-decoration: none; color: var(--ink); border: 2px solid var(--ink); background: var(--card); box-shadow: 0 2px 0 var(--ink); }
@@ -1694,6 +1710,423 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
   to { transform: scale(1) rotate(-10deg); opacity: 1; }
 }
 
+/* ---------- Motion polish ----------
+   One motion language for every overlay: things arrive with a quick spring-free ease-out
+   (fast start, soft landing) and leave faster than they came, so the map is back in reach at once.
+   ui.js adds .is-leaving and hides the element when its exit animation ends. */
+:root {
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.5, 0, 0.75, 0);
+}
+
+
+/* The stop panel: the backdrop fades, the card slides. A new step inside the open panel does not
+   slide the card again; only its content fades in. */
+
+
+.toast { animation: toast-in 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+.toast.is-leaving { animation: toast-out 0.24s var(--ease-in) forwards; }
+
+.tools__menu { transform-origin: calc(100% - 22px) -8px; animation: menu-in 0.24s var(--ease-out) both; }
+.tools__menu.is-leaving { animation: menu-out 0.16s var(--ease-in) forwards; }
+.tools__btn { transition: scale 0.15s, rotate 0.4s var(--ease-out); }
+.tools__btn:active { scale: 0.92; }
+.tools__btn[aria-expanded='true'] { rotate: 60deg; }
+
+.btn { transition: translate 0.08s, box-shadow 0.08s, opacity 0.2s, filter 0.2s; }
+.btn--action:not(:disabled):hover { filter: brightness(1.06); }
+
+/* Start screen: the logo lands, then title, text, buddies and button follow one by one.
+   Pressing Start zooms the screen softly away into the map. */
+.splash > * { animation: rise-in 0.6s var(--ease-out) both; }
+.splash > .splash__logo { animation: pop-in 0.6s cubic-bezier(0.2, 1.5, 0.4, 1) both; }
+.splash > h1 { animation-delay: 0.12s; }
+.splash > p { animation-delay: 0.2s; }
+.splash > .splash__buddies { animation: none; }
+.splash > .splash__start { animation-delay: 0.45s; }
+.splash > small { animation-delay: 0.55s; }
+.splash__buddies img {
+  animation:
+    buddy-in 0.55s calc(0.25s + var(--i) * 0.045s) cubic-bezier(0.2, 1.5, 0.4, 1) both,
+    hop 0.9s calc(0.9s + var(--i) * 0.09s) ease-in-out infinite;
+}
+.splash__twinny {
+  animation:
+    buddy-in 0.6s 0.5s cubic-bezier(0.2, 1.5, 0.4, 1) both,
+    hop 0.9s 1.2s ease-in-out infinite;
+}
+.splash--out { animation: splash-out 0.45s var(--ease-in) forwards; }
+.splash--out > * { animation: none; }
+
+/* The map chrome drops in as the start screen leaves (not behind it, where nobody sees it). */
+body:has(.splash--out) :is(.logo, .tools, .go-btn) { animation: chrome-in 0.55s 0.25s var(--ease-out) both; }
+body:has(.splash--out) .tools { animation-delay: 0.31s; }
+body:has(.splash--out) .go-btn { animation-name: go-in; animation-delay: 0.37s; }
+
+/* Stop panel banner: the theme icon sits on the right, so it does not stack on the Buddy below. */
+.stop-panel__banner .stop-panel__icon { left: auto; right: 16px; }
+
+/* Badges: icon above the name, so long names fit the half-width card without odd hyphens. */
+.pv-badge { grid-template-columns: minmax(0, 1fr); row-gap: 6px; align-content: start; }
+.pv-badge img { grid-row: auto; width: 36px; height: 36px; }
+.pv-badge strong { hyphens: manual; overflow-wrap: break-word; letter-spacing: 0; }
+
+/* Browser surfaces in the house colours. */
+::selection { color: #fff; background: var(--pink); }
+.sheet, .stop-panel__card, .tools__credits ul { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+
+@keyframes sheet-in { from { transform: translateY(105%); } }
+@keyframes sheet-out { to { transform: translateY(105%); } }
+@keyframes dim-in { from { background-color: transparent; } }
+@keyframes dim-out { to { background-color: transparent; } }
+@keyframes step-in { from { opacity: 0; transform: translateY(10px); } }
+@keyframes toast-in { from { transform: translate(-50%, -42%) scale(0.86); opacity: 0; } }
+@keyframes toast-out { to { transform: translate(-50%, -50%) scale(0.92); opacity: 0; } }
+@keyframes menu-in { from { transform: scale(0.9); opacity: 0; } }
+@keyframes menu-out { to { transform: scale(0.94); opacity: 0; } }
+@keyframes rise-in { from { transform: translateY(16px); opacity: 0; } }
+@keyframes buddy-in { from { transform: translateY(26px) scale(0.6); opacity: 0; } }
+@keyframes splash-out { to { opacity: 0; transform: scale(1.08); filter: blur(6px); visibility: hidden; } }
+@keyframes chrome-in { from { transform: translateY(-14px); opacity: 0; } }
+@keyframes go-in { from { transform: translateY(30px) scale(0.7); opacity: 0; } }
+
+/* ---------- Far stops and the edge pointer ---------- */
+.stop__body { transition: opacity 0.4s; }
+.stop.stop--horizon .stop__body { opacity: 0; }
+
+/* A beam of light in the theme colour rises from every stop you still have to do, so even a
+   stop far off behind the blocks shows where it is (like a beacon). Done stops have none. */
+.stop__beam {
+  position: absolute;
+  left: 50%;
+  bottom: 30px;
+  z-index: -1;
+  width: 20px;
+  height: 280px;
+  translate: -50% 0;
+  border-radius: 10px 10px 0 0;
+  background: linear-gradient(to top, color-mix(in srgb, var(--t1) 70%, #fff) 0%, color-mix(in srgb, var(--t2) 85%, transparent) 45%, transparent);
+  box-shadow: 0 0 18px 4px color-mix(in srgb, var(--t1) 45%, transparent);
+  filter: blur(1.5px);
+  opacity: 0.9;
+  pointer-events: none;
+  transform-origin: 50% 100%;
+  animation: beam 2.4s ease-in-out calc(var(--i, 0) * -0.4s) infinite;
+}
+/* Far away the stop itself is small, so its beam is wider and taller to stay easy to spot. */
+.stop[data-state='far'] .stop__beam { width: 26px; height: 360px; }
+.stop[data-state='near'] .stop__beam { display: none; }
+.stop[data-state='done'] .stop__beam, .stops--dots .stop__beam { display: none; }
+@keyframes beam {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.1); filter: blur(1.5px) brightness(1.15); }
+}
+.stop.stop--horizon .stop__pin { pointer-events: none; }
+
+/* A Buddy face at the screen edge that points to the next stop (map.js updatePointer). Its
+   position is set with translate, from the top left corner, centred on the point. */
+.pointer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: 52px;
+  height: 52px;
+  margin: -26px 0 0 -26px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: var(--theme-grad);
+  box-shadow: var(--float-shadow);
+  animation: pop-in 0.35s var(--ease-out) both;
+}
+.pointer[hidden] { display: none; }
+.pointer:active { scale: 0.92; }
+.pointer:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
+.pointer__buddy { width: 40px; height: 46px; object-fit: cover; object-position: 50% 0; margin-top: 6px; border-radius: 0 0 20px 20px; pointer-events: none; }
+/* The arrow sits on the outside of the circle, turned towards the stop. */
+.pointer__arrow {
+  position: absolute;
+  inset: -15px;
+  rotate: var(--angle, 0rad);
+  pointer-events: none;
+}
+.pointer__arrow::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  translate: -50% 0;
+  border: 8px solid transparent;
+  border-top: 0;
+  border-bottom: 11px solid #fff;
+  filter: drop-shadow(0 -1px 1px rgba(22, 41, 92, 0.25));
+  animation: nudge-out 1.2s ease-in-out infinite;
+}
+.pointer__dist {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  translate: -50% 0;
+  padding: 2px 7px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  white-space: nowrap;
+  color: var(--ink);
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(22, 41, 92, 0.3);
+  font-variant-numeric: tabular-nums;
+}
+@keyframes nudge-out { 50% { translate: -50% -3px; } }
+
+/* ---------- Collect celebration ---------- */
+/* A soft halo in the stop's colours around the card, confetti bursting out of it. */
+.toast { overflow: visible; }
+.toast {
+  box-shadow:
+    0 20px 60px rgba(20, 23, 28, 0.45),
+    0 0 140px 70px color-mix(in srgb, var(--t1, var(--pink)) 40%, transparent);
+}
+.toast__burst { position: absolute; left: 50%; top: 42%; width: 0; height: 0; pointer-events: none; }
+.toast__burst i {
+  position: absolute;
+  width: 9px;
+  height: 14px;
+  margin: -7px 0 0 -4px;
+  background: var(--c);
+  border-radius: 2px;
+  box-shadow: 0 1px 2px rgba(22, 41, 92, 0.25);
+  opacity: 0;
+  animation: confetti 1.1s calc(0.2s + var(--d)) cubic-bezier(0.1, 0.8, 0.3, 1) both;
+}
+.toast__burst i:nth-child(3n) { width: 10px; height: 10px; border-radius: 50%; }
+.toast__photo .toast__stamp { animation: stamp-slam 0.55s 0.15s cubic-bezier(0.3, 1.5, 0.5, 1) both; }
+.toast__photo { animation: photo-thud 0.35s 0.42s ease-out both; }
+.stamp-fly { position: fixed; z-index: 30; border: 4px solid #fff; border-radius: 50%; box-shadow: 0 6px 16px rgba(22, 41, 92, 0.35); pointer-events: none; }
+html body .go-btn.is-bump { animation: go-bump 0.5s cubic-bezier(0.3, 1.6, 0.5, 1); }
+
+@keyframes confetti {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0) scale(0.4); }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--x), calc(var(--y) + 90px)) rotate(var(--r)) scale(1); }
+}
+@keyframes stamp-slam {
+  0% { transform: scale(2.6) rotate(24deg); opacity: 0; }
+  55% { transform: scale(0.92) rotate(-12deg); opacity: 1; }
+  100% { transform: scale(1) rotate(-10deg); opacity: 1; }
+}
+@keyframes photo-thud { 40% { transform: translateY(3px) scale(0.985); } }
+@keyframes go-bump { 40% { scale: 1.22; } 70% { scale: 0.94; } }
+
+/* ---------- Stop intro: talk first, then play ----------
+   The Buddy's two lines come in like chat messages, the second a moment later. The game's name
+   rides along inside the play button, so there is one less block to read before you play. */
+.speech--in { animation: speech-in 0.4s 0.15s var(--ease-out) both; transform-origin: 0 0; }
+.speech--later { animation-delay: 0.75s; }
+.stop-panel__card.is-step .speech--in { animation-delay: 0s; }
+.stop-panel__card.is-step .speech--later { animation-delay: 0.35s; }
+.btn--play { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 64px; }
+.btn--play small { font-family: var(--body); font-size: 0.78rem; font-weight: 600; text-transform: none; letter-spacing: 0; opacity: 0.88; }
+.btn--quiet { min-height: 48px; font-size: 1rem; border-color: var(--line); box-shadow: 0 2px 0 var(--line); }
+.stop-panel__actions { animation: rise-in 0.4s 1s var(--ease-out) both; }
+.stop-panel__card.is-step .stop-panel__actions { animation-delay: 0.5s; }
+@keyframes speech-in { from { opacity: 0; transform: translateY(8px) scale(0.96); } }
+
+/* ---------- First-time tip ---------- */
+.coach {
+  position: fixed;
+  left: var(--edge);
+  right: var(--edge);
+  bottom: calc(var(--bottom) + 92px);
+  z-index: 6;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 4px 12px;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 14px 14px 14px 10px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 14px 40px rgba(22, 41, 92, 0.35);
+  animation: coach-in 0.5s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+.coach.is-leaving { animation: coach-out 0.24s var(--ease-in) forwards; }
+.coach__buddy { grid-row: span 2; width: 64px; align-self: end; margin-bottom: -14px; animation: hop 0.9s 0.6s ease-in-out 3; }
+.coach__text strong { font-family: var(--display); font-size: 1.15rem; font-weight: 850; text-transform: uppercase; }
+.coach__text p { margin: 4px 0 0; font-size: 0.92rem; line-height: 1.4; }
+.coach__ok { grid-column: 2; margin-top: 8px; min-height: 48px; }
+@keyframes coach-in { from { opacity: 0; transform: translateY(24px) scale(0.95); } }
+@keyframes coach-out { to { opacity: 0; transform: translateY(16px); } }
+
+/* ---------- Finale: all ten stamps ---------- */
+.finale {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  display: grid;
+  place-items: center;
+  padding: 24px var(--edge);
+  background: url('img/dcr/bg-portrait.jpg') center / cover, var(--navy-grad);
+  animation: dim-in 0.4s ease-out both, fade-in 0.4s ease-out both;
+}
+.finale.is-leaving { animation: fade-out 0.3s ease-in forwards; }
+.finale__card { width: min(100%, 380px); display: flex; flex-direction: column; align-items: center; gap: 12px; color: #fff; text-align: center; }
+.finale__twinny { height: 150px; animation: buddy-in 0.7s 0.1s cubic-bezier(0.2, 1.5, 0.4, 1) both, hop 0.9s 1s ease-in-out infinite; }
+.finale__twinny svg { height: 100%; width: auto; overflow: visible; filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.3)); }
+.finale h2 { margin: 4px 0 0; font-family: var(--display); font-size: 2.2rem; font-weight: 850; line-height: 1; text-transform: uppercase; animation: rise-in 0.5s 0.3s var(--ease-out) both; }
+.finale p { margin: 0; max-width: 30ch; line-height: 1.45; animation: rise-in 0.5s 0.4s var(--ease-out) both; }
+.finale__stamps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; width: 100%; margin: 8px 0; padding: 0; list-style: none; }
+.finale__stamps li { aspect-ratio: 1; animation: stamp-slam 0.5s calc(0.7s + var(--i) * 0.12s) cubic-bezier(0.3, 1.5, 0.5, 1) both; }
+.finale__stamps img { width: 100%; height: 100%; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25); }
+.finale .btn { width: 100%; animation: rise-in 0.5s 2s var(--ease-out) both; }
+.finale .btn--quiet { color: #fff; background: transparent; border-color: rgba(255, 255, 255, 0.6); box-shadow: none; }
+@keyframes fade-in { from { opacity: 0; } }
+
+/* ---------- Full-screen menus ----------
+   The stamp book, your progress and a stop open as a whole screen that unfolds as a circle from
+   what you tapped (--ox/--oy, set by ui.js show()) and folds back into it when you close it.
+   The top bar with the title and the close button stays at the top while you scroll, so the
+   ✕ is always in reach. The content follows a moment later, rising softly. */
+.sheet, .stop-panel__card {
+  --pad: max(16px, calc((100vw - 560px) / 2));
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  padding: 0 var(--pad) calc(32px + env(safe-area-inset-bottom));
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--paper);
+  scroll-padding-top: 90px;
+}
+.sheet__grip { display: none; }
+.sheet__head, .stop-panel__head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  margin: 0 calc(-1 * var(--pad)) 14px;
+  padding: calc(14px + env(safe-area-inset-top)) var(--pad) 12px;
+  /* Solid, not a blur: a blurred bar is costly to draw on a phone while scrolling. */
+  background: var(--paper);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--line) 70%, transparent);
+}
+.sheet__head { align-items: center; }
+.sheet__close, .stop-panel__head .sheet__close {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  color: var(--ink);
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(22, 41, 92, 0.18);
+  transition: scale 0.15s, rotate 0.3s var(--ease-out);
+}
+.sheet__close:active { scale: 0.9; rotate: 90deg; }
+.sheet__close:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
+
+.stop-panel { align-items: stretch; background: none; }
+.stop-panel__card { padding-top: 0; }
+/* The photo runs under the status bar; the bar with the Buddy sticks below it when scrolling. */
+.stop-panel__banner { margin: 0 calc(-1 * var(--pad)) 0; }
+.stop-panel__banner img { aspect-ratio: 16 / 8; }
+.stop-panel__banner + .stop-panel__head { padding-top: 18px; }
+.stop-panel__card--game { padding-top: 0; }
+.stop-panel__card--game .stop-panel__head {
+  margin: 0 calc(-1 * var(--pad)) 0;
+  padding: calc(12px + env(safe-area-inset-top)) var(--pad) 14px;
+  background: linear-gradient(120deg, var(--t1), var(--t2));
+}
+.stop-panel__card--game .sheet__close { color: #fff; background: rgba(255, 255, 255, 0.22); box-shadow: none; }
+
+/* The theme icon sits inside the photo, so the bar below can never cover half of it. */
+.stop-panel__banner .stop-panel__icon { bottom: 14px; width: 58px; height: 58px; }
+
+/* ---------- Menu transitions: each screen its own ----------
+   Stop:        the camera dives at the stop (map.js focusStop), then the screen grows out of the
+                stop as a circle that opens into the full screen; the photo settles, the Buddy
+                pops, the lines come in like chat. Closing shrinks it back into the stop while the
+                camera flies out again.
+   Stamp book:  opens like a book: the page swings open from its spine on the left, then the
+                stamps pop and the cards are dealt one by one. Closing swings the page shut.
+   Progress:    the level card drops down out of the logo with a tilt, the rest unrolls below it.
+                Closing tips it back up into the logo.
+   Settings:    a small menu that springs out of the gear.
+   Only transform and opacity (plus a one-off radius), so a phone keeps up. */
+:root { --snap: cubic-bezier(0.2, 0.9, 0.1, 1); --spring: cubic-bezier(0.3, 1.45, 0.5, 1); }
+.sheet, .stop-panel__card { will-change: transform, opacity; }
+
+/* Stop: grow out of the stop. */
+.stop-panel__card {
+  transform-origin: var(--ox, 50%) var(--oy, 60%);
+  animation: grow-from-stop 0.55s var(--snap) both;
+}
+.stop-panel__card:not(.is-step) .stop-panel__banner img:first-child { animation: photo-settle 1s var(--snap) both; }
+.stop-panel__card:not(.is-step) .stop-panel__icon { animation: icon-spin 0.6s 0.3s var(--spring) both; }
+.stop-panel__card:not(.is-step) .stop-panel__badge { animation: pop-big 0.55s 0.25s var(--spring) both; }
+.stop-panel__card:not(.is-step) .stop-panel__who { animation: rise-in 0.45s 0.3s var(--snap) both; }
+.stop-panel__card .speech--in { animation: bubble-in 0.45s 0.45s var(--spring) both; transform-origin: 0 0; }
+.stop-panel__card .speech--later { animation-delay: 0.75s; }
+.stop-panel__card .stop-panel__actions { animation: rise-in 0.45s 1s var(--snap) both; }
+.stop-panel__card.is-step .speech--in { animation-delay: 0.05s; }
+.stop-panel__card.is-step .speech--later { animation-delay: 0.3s; }
+.stop-panel__card.is-step .stop-panel__actions { animation-delay: 0.45s; }
+/* Into a minigame: the game screen zooms up towards you. */
+.stop-panel__card--game.is-step { animation: game-in 0.45s var(--snap) both; }
+.stop-panel.is-leaving .stop-panel__card { animation: shrink-to-stop 0.36s cubic-bezier(0.55, 0, 0.8, 0.2) forwards; }
+
+/* Stamp book: swings open from its spine. */
+#sheet { transform-origin: 0 50%; animation: book-open 0.6s var(--snap) both; }
+#sheet .stamp-row li { animation: pop-big 0.45s calc(0.35s + var(--k, 0) * 0.04s) var(--spring) both; }
+#sheet .card { animation: deal-in 0.5s calc(0.4s + var(--k, 0) * 0.06s) var(--snap) both; }
+#sheet.is-leaving { animation: book-close 0.34s cubic-bezier(0.55, 0, 0.8, 0.2) forwards; }
+
+/* Progress: drops out of the logo. */
+#progressSheet { transform-origin: 40px 40px; animation: drop-from-logo 0.6s var(--snap) both; }
+#progressSheet #progressBody > * { animation: unroll 0.5s calc(0.3s + var(--k, 0) * 0.08s) var(--snap) both; transform-origin: 50% 0; }
+#progressSheet.is-leaving { animation: lift-to-logo 0.32s cubic-bezier(0.55, 0, 0.8, 0.2) forwards; }
+
+.sheet.is-leaving *, .stop-panel.is-leaving .stop-panel__card * { animation: none !important; }
+
+/* Settings: springs out of the gear. */
+.tools__menu { animation: menu-spring 0.4s var(--spring) both; }
+
+@keyframes grow-from-stop {
+  from { transform: scale(0.08); opacity: 0; border-radius: 50%; }
+  35% { opacity: 1; border-radius: 40%; }
+  to { transform: none; border-radius: 0; }
+}
+@keyframes shrink-to-stop { to { transform: scale(0.06); opacity: 0; border-radius: 50%; } }
+@keyframes photo-settle { from { transform: scale(1.4); } }
+@keyframes icon-spin { from { opacity: 0; transform: scale(0.2) rotate(-200deg); } }
+@keyframes pop-big { from { opacity: 0; transform: scale(0.3) rotate(-20deg); } }
+@keyframes bubble-in { from { opacity: 0; transform: scale(0.6) translateY(10px); } }
+@keyframes game-in { from { opacity: 0; transform: scale(0.85) translateY(30px); } }
+@keyframes book-open {
+  from { transform: perspective(1400px) rotateY(80deg); opacity: 0.4; }
+  to { transform: perspective(1400px) rotateY(0); opacity: 1; }
+}
+@keyframes book-close { to { transform: perspective(1400px) rotateY(85deg); opacity: 0; } }
+@keyframes deal-in { from { opacity: 0; transform: translate(-30px, 60px) rotate(-8deg) scale(0.9); } }
+@keyframes drop-from-logo {
+  from { transform: perspective(1200px) rotateX(-70deg) scale(0.3); opacity: 0; }
+  60% { opacity: 1; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes lift-to-logo { to { transform: perspective(1200px) rotateX(-60deg) scale(0.25); opacity: 0; } }
+@keyframes unroll { from { opacity: 0; transform: perspective(800px) rotateX(-50deg); } }
+@keyframes menu-spring { from { opacity: 0; transform: scale(0.4) rotate(-6deg); } }
+
+/* While a menu is open the buttons on the map step back. */
+body:has(.sheet:not([hidden]):not(.is-leaving), .stop-panel:not([hidden]):not(.is-leaving)) :is(.go-btn, .logo, .tools, .pointer) {
+  opacity: 0;
+  scale: 0.8;
+  pointer-events: none;
+}
+.go-btn, .logo, .tools, .pointer { transition: opacity 0.25s, scale 0.3s var(--ease-out); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; }
 }
@@ -1727,9 +2160,10 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
 
 .route {
   position: fixed;
-  top: var(--top);
+  /* Under the top row, so the logo (your progress) and settings stay reachable. */
+  top: calc(var(--top) + 70px);
   left: var(--edge);
-  right: calc(var(--edge) + 52px);
+  right: var(--edge);
   z-index: 2;
   display: flex;
   align-items: center;
@@ -1741,6 +2175,9 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
   box-shadow: var(--float-shadow);
 }
 .route[hidden] { display: none; }
+.route:not([hidden]) { animation: chrome-in 0.4s var(--ease-out) both; }
+/* With a route on screen, short messages show under it instead of on top of it. */
+body:has(.route:not([hidden])) .status { top: calc(var(--top) + 150px); }
 .route > img { flex: none; width: 36px; height: 44px; object-fit: contain; }
 .route__text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
 .route__text small { font-size: 0.72rem; font-weight: 600; opacity: 0.85; }
