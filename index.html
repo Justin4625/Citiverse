@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#16295c">
   <title>Citiverse GO Rotterdam</title>
   <link rel="manifest" href="manifest.webmanifest">
@@ -17,47 +17,42 @@
 <body>
   <div id="map"></div>
 
-  <header class="hud">
-    <img class="hud__logo" src="img/dcr/logo.png" alt="Citiverse GO">
-    <div class="hud__left">
-      <button id="levelChip" class="level-chip">
-        <b id="levelNum">1</b>
-        <span><strong id="levelName">Nieuwkomer</strong><i class="level-chip__bar"><i id="levelBar"></i></i></span>
-      </button>
-      <p id="status" class="status">Locatie zoeken…</p>
-    </div>
-    <div class="hud__tools">
-      <button id="testToggle" class="chip-btn" aria-pressed="false">Test</button>
-      <button id="reset" class="chip-btn" hidden>Reset</button>
-    </div>
-  </header>
-
-  <button id="collect" class="collect" hidden></button>
-  <button id="bookToggle" class="dock" aria-label="Stempelboek">
-    <img src="img/dcr/stamp-dcr.png" alt="">
-    <span>Stempelboek</span>
+  <!-- The map screen keeps its chrome in the corners, like Pokémon GO: the logo with your level
+       top left (opens your progress), settings top right, the stamp book (with what is nearby)
+       bottom middle. Messages show up only when they matter. -->
+  <button id="levelChip" class="logo">
+    <img src="img/dcr/logo.png" alt="">
+    <b id="levelNum" class="logo__level">1</b>
+    <span class="sr-only"><span id="levelName">Nieuwkomer</span><i id="levelBar"></i></span>
   </button>
+  <p id="status" class="status" role="status" hidden></p>
+
+  <div class="tools">
+    <button id="toolsToggle" class="tools__btn" aria-label="Instellingen" aria-expanded="false" aria-controls="toolsMenu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+    <div id="toolsMenu" class="tools__menu" hidden>
+      <button id="testToggle" class="tools__item" role="switch" aria-checked="false">
+        <span>Testmodus<small>Tik op de kaart om te lopen</small></span>
+        <i class="tools__switch" aria-hidden="true"></i>
+      </button>
+      <button id="reset" class="tools__item tools__item--danger">Stempels wissen</button>
+      <details class="tools__credits">
+        <summary class="tools__item">Bronnen</summary>
+        <p>Kaart: <a href="https://www.3drotterdam.nl/" target="_blank" rel="noopener">3D Rotterdam</a> © Gemeente Rotterdam (CC BY 4.0)</p>
+        <p>Foto's van Wikimedia Commons, bijgesneden en verkleind:</p>
+        <ul id="credits"></ul>
+      </details>
+    </div>
+  </div>
 
   <div id="route" class="route" role="status" hidden></div>
 
-  <button id="nearbyToggle" class="nearby-btn" aria-label="In de buurt">
-    <span class="nearby-btn__faces" aria-hidden="true"></span>
-    <span>In de buurt</span>
+  <button id="bookToggle" class="go-btn" aria-label="Stempelboek">
+    <img src="img/dcr/stamp-dcr.png" alt="">
   </button>
 
-  <section id="nearbySheet" class="sheet" hidden>
-    <div class="sheet__grip" aria-hidden="true"></div>
-    <div class="sheet__head">
-      <div>
-        <h2>In de buurt</h2>
-        <p class="sheet__count">Alle plekken, dichtstbij eerst</p>
-      </div>
-      <button id="nearbyClose" class="sheet__close" aria-label="Sluiten">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
-      </button>
-    </div>
-    <ul id="nearbyList" class="nearby"></ul>
-  </section>
+
 
   <section id="sheet" class="sheet" hidden>
     <div class="sheet__grip" aria-hidden="true"></div>
@@ -70,12 +65,8 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
     </div>
-    <ul id="book" class="cards"></ul>
-    <details class="credits">
-      <summary>Fotobronnen</summary>
-      <ul id="credits"></ul>
-      <p>Foto's van Wikimedia Commons, bijgesneden en verkleind.</p>
-    </details>
+    <ol id="stampRow" class="stamp-row" aria-hidden="true"></ol>
+    <div id="book"></div>
   </section>
 
   <section id="progressSheet" class="sheet" hidden>

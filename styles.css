@@ -45,7 +45,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 /* DCR theme labels: heavy slab serif, uppercase. */
-.chip-btn, .collect strong, .dock span, .sheet__head h2,
+.sheet__head h2,
 .card__info strong, .stop__label, .toast strong, .toast__stamp {
   font-family: var(--display);
   font-weight: 850;
@@ -54,97 +54,213 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
 }
 
 #map { position: fixed; inset: 0; }
+/* The game handles every finger on the map itself (swipe turns, pinch zooms). MapLibre leaves
+   pan-x pan-y here, so a phone took a sideways swipe as a page pan and cancelled it. */
+#map .maplibregl-canvas-container, #map .maplibregl-canvas { touch-action: none; }
 
-/* ---------- HUD ---------- */
-.hud {
+/* ---------- Map screen chrome ----------
+   Pokémon-GO calm: the map fills the screen, controls sit in the corners as round, soft-shadowed
+   buttons, and text shows up only when it matters. */
+:root {
+  --float-shadow: 0 6px 16px rgba(22, 41, 92, 0.28), 0 1px 3px rgba(22, 41, 92, 0.2);
+  --edge: 16px;
+  --top: calc(12px + env(safe-area-inset-top));
+  --bottom: calc(20px + env(safe-area-inset-bottom));
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.logo:focus-visible, .go-btn:focus-visible, .tools__btn:focus-visible, .tools__item:focus-visible,
+.card__open:focus-visible, .card__go:focus-visible {
+  outline: 3px solid var(--pink);
+  outline-offset: 3px;
+}
+
+/* The Citiverse GO logo top left, with your level on it: tap it for your progress. */
+.logo {
   position: fixed;
-  top: calc(12px + env(safe-area-inset-top));
-  left: 16px;
-  right: 16px;
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  pointer-events: none;
-}
-.hud__tools { display: flex; flex-direction: column; gap: 8px; margin-left: auto; }
-.chip-btn {
-  min-width: 64px;
-  min-height: 44px;
-  padding: 0 14px;
-  border: 2px solid var(--ink);
-  border-radius: var(--radius);
-  font-size: 0.95rem;
-  background: var(--card);
-  box-shadow: 0 3px 0 var(--ink);
-  pointer-events: auto;
-}
-.chip-btn:active { translate: 0 2px; box-shadow: 0 1px 0 var(--ink); }
-.chip-btn[aria-pressed='true'] { color: #fff; background: var(--pink); border-color: var(--pink-deep); box-shadow: 0 3px 0 var(--pink-deep); }
-.chip-btn[hidden] { display: none; }
-
-.status {
-  min-width: 0;
-  margin: 8px 0 0;
-  padding: 6px 10px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 8px;
-  pointer-events: none;
-}
-
-/* ---------- Bottom actions ---------- */
-.collect {
-  position: fixed;
-  left: 50%;
-  bottom: calc(108px + env(safe-area-inset-bottom));
-  transform: translateX(-50%);
-  width: min(100% - 32px, 340px);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 18px 8px 8px;
-  border: 0;
-  border-radius: 999px;
-  text-align: left;
-  color: #fff;
-  background: linear-gradient(90deg, var(--pink), #9b3186);
-  box-shadow: 0 5px 0 var(--pink-deep), 0 10px 24px rgba(22, 41, 92, 0.3);
-  animation: nudge 1.4s ease-in-out infinite;
-}
-.collect[hidden] { display: none; }
-.collect:active { translate: 0 3px; box-shadow: 0 2px 0 var(--pink-deep); }
-.collect img {
-  width: 48px;
+  top: var(--top);
+  left: var(--edge);
+  z-index: 2;
+  width: 56px;
   height: 56px;
-  flex: none;
-  margin: -14px 0 -4px 4px;
-  object-fit: contain;
-  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.3));
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  box-shadow: var(--float-shadow);
+  transition: scale 0.15s;
 }
-.collect span { display: flex; flex-direction: column; min-width: 0; }
-.collect strong { font-size: 1.3rem; line-height: 1.05; }
-.collect small { font-size: 0.8rem; font-weight: 600; opacity: 0.9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-.dock {
-  position: fixed;
+.logo:active { scale: 0.94; }
+.logo img { display: block; width: 100%; height: 100%; border-radius: 50%; }
+/* Your level as a small label under the logo (not a corner badge, which reads as a
+   notification count). */
+.logo__level {
+  position: absolute;
   left: 50%;
-  bottom: calc(28px + env(safe-area-inset-bottom));
-  transform: translateX(-50%);
+  bottom: -9px;
+  padding: 2px 7px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: var(--ink);
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(22, 41, 92, 0.3);
+  translate: -50% 0;
+  font-variant-numeric: tabular-nums;
+}
+.logo__level::before { content: 'LV '; }
+
+/* A short message under the top corners: GPS state, the test hint. Fades away by itself
+   (app.js). */
+.status {
+  position: fixed;
+  top: calc(var(--top) + 56px);
+  left: 50%;
+  z-index: 3;
+  width: max-content;
+  max-width: calc(100% - 2 * var(--edge));
+  margin: 0;
+  padding: 9px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+  color: #fff;
+  background: rgba(22, 41, 92, 0.86);
+  border-radius: 18px;
+  text-wrap: balance;
+  box-shadow: var(--float-shadow);
+  translate: -50% 0;
+  transition: opacity 0.3s, translate 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+.status[hidden] { display: block; opacity: 0; translate: -50% -12px; }
+
+/* Test tools: one small button top right, the rest in a menu under it. */
+.tools {
+  position: fixed;
+  top: var(--top);
+  right: var(--edge);
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.tools__btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--float-shadow);
+}
+.tools__btn svg { width: 20px; height: 20px; }
+/* A pink dot says test mode is on. */
+.tools--on .tools__btn::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--pink);
+}
+.tools__menu {
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  padding: 6px;
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: var(--float-shadow);
+}
+.tools__menu[hidden] { display: none; }
+.tools__item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 56px;
-  padding: 0 24px 0 18px;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 12px;
   border: 0;
-  border-radius: var(--radius);
-  color: #fff;
-  background: var(--navy-grad);
-  box-shadow: 0 4px 0 #0d1a3d, 0 10px 24px rgba(22, 41, 92, 0.35);
+  border-radius: 10px;
+  font-weight: 700;
+  text-align: left;
+  background: none;
 }
-.dock:active { translate: 0 2px; box-shadow: 0 2px 0 #0d1a3d; }
-.dock img { width: 34px; height: 34px; margin-left: -6px; }
-.dock span { font-size: 1.15rem; }
+.tools__item:active { background: var(--paper); }
+.tools__item span { display: flex; flex-direction: column; gap: 2px; }
+.tools__item small { font-size: 0.75rem; font-weight: 500; color: var(--muted); }
+.tools__item--danger { color: var(--pink-deep); }
+.tools__credits summary { list-style: none; }
+.tools__credits summary::-webkit-details-marker { display: none; }
+.tools__credits summary::after { content: '+'; font-size: 1.2rem; color: var(--muted); }
+.tools__credits[open] summary::after { content: '−'; }
+.tools__credits p, .tools__credits ul { margin: 0 12px 8px; font-size: 0.75rem; line-height: 1.4; color: var(--muted); }
+.tools__credits ul { max-height: 30dvh; overflow-y: auto; padding-left: 16px; }
+.tools__credits li { margin-bottom: 4px; }
+.tools__credits a { color: var(--ink); }
+.tools__menu { max-width: calc(100vw - 2 * var(--edge)); }
+.tools__switch {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--line);
+  transition: background 0.2s;
+}
+.tools__switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(22, 41, 92, 0.3);
+  transition: translate 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.tools__item[aria-checked='true'] .tools__switch { background: var(--pink); }
+.tools__item[aria-checked='true'] .tools__switch::after { translate: 16px 0; }
+
+/* The stamp book, with what is nearby, bottom middle. */
+.go-btn {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--bottom) - 4px);
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  background: var(--navy-grad);
+  box-shadow: var(--float-shadow);
+  translate: -50% 0;
+  transition: scale 0.15s;
+}
+.go-btn:active { scale: 0.94; }
+.go-btn img { width: 46px; height: 46px; }
+
 
 /* ---------- Stamp book sheet ---------- */
 .sheet {
@@ -187,11 +303,65 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
   gap: 10px;
 }
 .card {
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   background: var(--card);
   border-radius: var(--radius);
-  box-shadow: 0 2px 0 var(--line);
+  box-shadow: 0 1px 2px rgba(22, 41, 92, 0.12), 0 4px 12px rgba(22, 41, 92, 0.08);
 }
+.card__open {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 0;
+  border: 0;
+  text-align: left;
+  background: none;
+}
+/* The buddy waiting at a stop you have not done yet. */
+.card__photo .card__buddy {
+  position: absolute;
+  right: 8px;
+  bottom: -10px;
+  width: 34px;
+  height: 42px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 3px rgba(22, 41, 92, 0.35));
+}
+.card--here { box-shadow: 0 0 0 3px var(--pink), 0 4px 12px rgba(168, 40, 93, 0.25); }
+.card--here .card__detail { color: var(--pink-deep); }
+.card__go {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin: 0 10px 10px;
+  border: 0;
+  border-radius: 999px;
+  font-family: var(--display);
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #fff;
+  background: var(--navy-grad);
+}
+.card__go:active { scale: 0.97; }
+.card__go--here { background: linear-gradient(90deg, var(--pink), #9b3186); }
+.card__go--on { color: var(--ink); background: var(--concrete); }
+
+.book__head {
+  margin: 20px 0 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.book__all { margin: 16px 0 0; font-weight: 700; text-align: center; color: var(--green-deep); }
+/* Ten stamps under the title, coloured in as you collect them. */
+.stamp-row { display: flex; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.stamp-row li { flex: 1; max-width: 34px; aspect-ratio: 1; }
+.stamp-row img { width: 100%; height: 100%; border-radius: 50%; filter: grayscale(1); opacity: 0.3; }
+.stamp-row .is-done img { filter: none; opacity: 1; }
 .card__photo { position: relative; display: block; aspect-ratio: 4 / 3; background: var(--concrete); }
 .card__photo img {
   width: 100%;
@@ -236,12 +406,6 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
 .card__detail { font-size: 0.78rem; font-weight: 600; color: var(--muted); }
 .card--done .card__detail { color: var(--green-deep); }
 
-.credits { margin-top: 18px; font-size: 0.75rem; color: var(--muted); }
-.credits summary { min-height: 44px; display: flex; align-items: center; font-weight: 700; cursor: pointer; }
-.credits ul { margin: 0; padding-left: 18px; }
-.credits li { margin-bottom: 4px; }
-.credits a { color: var(--ink); }
-.credits p { margin: 8px 0 0; }
 
 /* ---------- Map markers ---------- */
 .stop { pointer-events: none; }
@@ -250,7 +414,8 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
   display: flex;
   flex-direction: column;
   align-items: center;
-  transform: scale(var(--stop-scale, 1));
+  /* --persp: smaller further away on the tilted map (map.js perspectiveStops). */
+  transform: scale(calc(var(--stop-scale, 1) * var(--persp, 1)));
   transform-origin: 50% 100%;
 }
 .stop__pin { pointer-events: auto; cursor: pointer; }
@@ -313,20 +478,142 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
   filter: drop-shadow(0 2px 2px rgba(22, 41, 92, 0.35));
   pointer-events: none;
 }
-.stop__shadow { width: 22px; height: 7px; margin-top: -3px; border-radius: 50%; background: rgba(20, 23, 28, 0.3); }
+/* A soft round shadow lying on the ground (half as high as wide, like the map's 60 degree tilt)
+   under the pole and the buddy. */
+.stop__shadow {
+  width: 52px;
+  height: 18px;
+  margin-top: -9px;
+  translate: 8px 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(22, 41, 92, 0.42), rgba(22, 41, 92, 0.2) 60%, rgba(22, 41, 92, 0));
+}
 
-.stop[data-state='far'] .stop__photo { filter: saturate(0.5); }
+/* Three looks, like Pokémon GO, so you see at a glance which stop you can play. Every stop
+   keeps its theme colours, so you can tell them apart from far away:
+   far  = waiting: a bit smaller, softer colours, bobbing slowly;
+   near = awake: full size, a spinning ring and a glow in the theme colours, a ripple on the
+          ground and the buddy calling for help. Tap it to play;
+   done = collected: the photo in full colour with the stamp on it, calm.
+   --i (markers.js) puts each stop on its own rhythm. */
+.stop__body { transition: scale 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.stop__pin {
+  isolation: isolate;
+  animation: float 3.2s ease-in-out calc(var(--i, 0) * -0.7s) infinite;
+  transition: box-shadow 0.3s;
+}
+/* Light falling on the photo from the top left, like a glass dome. */
+.stop__pin::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 42%);
+  pointer-events: none;
+}
+.stop__photo, .stop__buddy { transition: filter 0.3s, opacity 0.3s, scale 0.3s; }
+.stop__buddy { animation: sway 2.8s ease-in-out calc(var(--i, 0) * -0.5s) infinite; transform-origin: 50% 100%; }
+
+.stop[data-state='far'] .stop__body { scale: 0.9; }
+.stop[data-state='far'] .stop__photo { filter: saturate(0.55) brightness(1.05); }
+
+.stop[data-state='near'] .stop__body { scale: 1.12; }
 .stop[data-state='near'] .stop__label { opacity: 1; background: var(--theme-grad); }
-.stop[data-state='near'] .stop__pin { animation: float 1.2s ease-in-out infinite, pulse 1.2s ease-out infinite; }
-.stop[data-state='near'] .stop__buddy { animation: hop 0.6s ease-in-out infinite; }
-.stop[data-state='done'] .stop__check { display: block; }
+.stop[data-state='near'] .stop__pin {
+  box-shadow: 0 0 0 3px #fff, 0 0 26px 6px color-mix(in srgb, var(--t1) 70%, transparent), 0 10px 22px rgba(22, 41, 92, 0.35);
+  animation: float 1.6s ease-in-out infinite, glow 1.6s ease-in-out infinite;
+}
+/* The ring turns round the photo. */
+.stop[data-state='near'] .stop__pin::before {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  z-index: -1;
+  border-radius: 50%;
+  background: conic-gradient(var(--t1), var(--t2), #fff, var(--t1));
+  animation: spin 2.2s linear infinite;
+}
+.stop[data-state='near'] .stop__buddy { animation: hop 0.7s ease-in-out infinite; }
+.stop[data-state='near'] .stop__call { display: block; }
+/* Ripples spreading over the ground from the pole. */
+.stop[data-state='near'] .stop__shadow { position: relative; }
+.stop[data-state='near'] .stop__shadow::before,
+.stop[data-state='near'] .stop__shadow::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 130px;
+  height: 50px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  translate: -50% -50%;
+  animation: ripple 1.8s ease-out infinite;
+}
+.stop[data-state='near'] .stop__shadow::after { animation-delay: -0.9s; }
+
+.stop[data-state='done'] .stop__body { scale: 0.86; }
+.stop[data-state='done'] .stop__pin { animation: float 4.5s ease-in-out calc(var(--i, 0) * -0.7s) infinite; }
+.stop[data-state='done'] .stop__check { display: block; animation: stamp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.stop[data-state='done'] .stop__buddy { animation: none; }
+
+/* "Help!" in a speech bubble above the buddy of a stop you can play. */
+.stop__call {
+  position: absolute;
+  left: calc(50% + 30px);
+  bottom: 44px;
+  display: none;
+  padding: 4px 9px;
+  font-family: var(--display);
+  font-size: 0.8rem;
+  font-weight: 850;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 3px 8px rgba(22, 41, 92, 0.3);
+  transform-origin: 10px 100%;
+  animation: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both, wiggle 2.4s ease-in-out 0.4s infinite;
+  pointer-events: none;
+}
+.stop__call::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  bottom: -5px;
+  border: 6px solid transparent;
+  border-top-color: #fff;
+  border-bottom: 0;
+}
+.stops--small .stop__call { display: none !important; }
+@keyframes spin { to { rotate: 1turn; } }
+@keyframes ripple {
+  from { scale: 0.3; opacity: 1; }
+  to { scale: 1; opacity: 0; }
+}
+@keyframes pop { from { scale: 0.4; opacity: 0; } }
+@keyframes sway {
+  0%, 100% { rotate: -3deg; }
+  50% { rotate: 3deg; }
+}
+@keyframes glow {
+  50% { box-shadow: 0 0 0 3px #fff, 0 0 38px 12px color-mix(in srgb, var(--t2) 75%, transparent), 0 10px 22px rgba(22, 41, 92, 0.35); }
+}
+@keyframes wiggle {
+  0%, 80%, 100% { rotate: 0deg; }
+  85% { rotate: -8deg; }
+  90% { rotate: 6deg; }
+  95% { rotate: -3deg; }
+}
 
 /* The player shrinks with the stops when you zoom out (--stop-scale, set in map.js). */
 .player { width: 34px; height: 51px; pointer-events: none; }
 .player > * { transform: scale(var(--stop-scale, 1)); transform-origin: 50% 100%; }
 .player svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 2px 2px rgba(11, 26, 61, 0.35)); }
-/* 3D Twinny (js/twinny3d.js SIZE): the canvas bottom is the feet. */
-.player--3d { width: 50px; height: 72px; }
+/* 3D Twinny (js/twinny3d.js SIZE): the feet stand FEET_PX (9) above the canvas bottom, so the
+   canvas moves down by that much to put them on the player's position. */
+.player--3d { width: 56px; height: 76px; }
+.player__3d { translate: 0 9px; }
 .player__3d canvas { display: block; }
 
 /* ---------- Collect celebration ---------- */
@@ -634,40 +921,6 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
 .noe__next, .noe__done { width: 100%; }
 
 /* ---------- Level, XP and progress ---------- */
-.hud__left { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
-.hud__left .status { margin: 0; }
-.level-chip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 4px 12px 4px 4px;
-  border: 2px solid var(--ink);
-  border-radius: var(--radius);
-  background: var(--card);
-  box-shadow: 0 3px 0 var(--ink);
-  pointer-events: auto;
-}
-.level-chip:active { translate: 0 2px; box-shadow: 0 1px 0 var(--ink); }
-.level-chip b {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  font-size: 1.1rem;
-  font-weight: 900;
-  color: #fff;
-  background: var(--brand-grad);
-  border-radius: 50%;
-  font-variant-numeric: tabular-nums;
-}
-.level-chip span { display: flex; flex-direction: column; gap: 4px; align-items: stretch; }
-.level-chip strong { font-size: 0.95rem; font-family: var(--display); font-weight: 850; text-transform: uppercase; line-height: 1; }
-.level-chip__bar { display: block; width: 92px; height: 5px; background: var(--line); border-radius: 3px; overflow: hidden; }
-.level-chip__bar i { display: block; height: 100%; width: 0; background: var(--brand-grad); transition: width 0.4s; }
-
-.card[data-id] { cursor: pointer; }
-.card[data-id]:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
 
 .remote-note {
   margin: -4px 0 12px;
@@ -1385,13 +1638,6 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
 }
 
 /* ---------- Citiverse GO logo and start screen ---------- */
-.hud__logo {
-  width: 52px;
-  height: 52px;
-  flex: none;
-  border-radius: 50%;
-  box-shadow: 0 3px 8px rgba(22, 41, 92, 0.35);
-}
 .splash {
   position: fixed;
   inset: 0;
@@ -1428,10 +1674,6 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
 @keyframes float {
   0%, 100% { translate: 0 0; }
   50% { translate: 0 -5px; }
-}
-@keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.9); }
-  100% { box-shadow: 0 0 0 16px rgba(255, 255, 255, 0); }
 }
 @keyframes hop { 50% { translate: 0 -6px; } }
 @keyframes nudge {
@@ -1480,89 +1722,14 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
 .g__type summary { min-height: 44px; display: flex; align-items: center; font-weight: 700; color: var(--blue-deep); cursor: pointer; }
 .g__type textarea { margin-top: 6px; }
 
-/* ---------- Pokémon-Go camera: nearby button + list ---------- */
+/* ---------- Pokémon-Go camera: stops out of view, walking route ---------- */
 .stop[hidden] { display: none; }
 
-.nearby-btn {
-  position: fixed;
-  right: 16px;
-  bottom: calc(28px + env(safe-area-inset-bottom));
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  width: 64px;
-  min-height: 64px;
-  padding: 6px 4px;
-  border: 0;
-  border-radius: var(--radius);
-  background: #fff;
-  box-shadow: 0 4px 0 var(--line), 0 10px 24px rgba(22, 41, 92, 0.3);
-}
-.nearby-btn:active { translate: 0 2px; box-shadow: 0 2px 0 var(--line); }
-.nearby-btn__faces { display: flex; height: 30px; }
-.nearby-btn__faces img { width: 24px; height: 30px; object-fit: contain; margin: 0 -4px; }
-.nearby-btn__faces img:nth-child(2) { translate: 0 -3px; }
-.nearby-btn > span:last-child { font-family: var(--display); font-size: 0.62rem; font-weight: 800; line-height: 1; text-transform: uppercase; }
-
-.nearby { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
-.near {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px;
-  border-radius: var(--radius);
-  background: var(--card);
-  box-shadow: 0 2px 0 var(--line);
-}
-.near__photo { position: relative; flex: none; width: 56px; height: 56px; }
-.near__photo > img:first-child { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; filter: saturate(0.5); }
-.near--done .near__photo > img:first-child { filter: none; }
-.near__buddy { position: absolute; right: -8px; bottom: -6px; width: 30px; height: 36px; object-fit: contain; }
-.near__info { display: flex; flex: 1; flex-direction: column; gap: 1px; min-width: 0; }
-.near__info small {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-family: var(--display);
-  font-size: 0.68rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.near__info small img { width: 16px; height: 16px; }
-.near__info strong { font-family: var(--display); font-size: 1rem; line-height: 1.15; overflow-wrap: break-word; }
-.near__info > span { font-size: 0.8rem; font-weight: 600; color: var(--muted); }
-.near--here .near__info > span { color: var(--green-deep); }
-.near__go {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 76px;
-  min-height: 44px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: 999px;
-  font-family: var(--display);
-  font-size: 0.85rem;
-  font-weight: 800;
-  text-decoration: none;
-  color: #fff;
-  background: var(--navy-grad);
-  box-shadow: 0 3px 0 #0d1a3d;
-}
-.near__go:active { translate: 0 2px; box-shadow: 0 1px 0 #0d1a3d; }
-.near__go--here { max-width: 120px; background: linear-gradient(90deg, var(--pink), #9b3186); box-shadow: 0 3px 0 var(--pink-deep); }
-.near__go:focus-visible, .nearby-btn:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
-
-/* Walking route banner, under the top bar while a route is on. */
 .route {
   position: fixed;
-  top: calc(122px + env(safe-area-inset-top));
-  left: 16px;
-  right: 16px;
+  top: var(--top);
+  left: var(--edge);
+  right: calc(var(--edge) + 52px);
   z-index: 2;
   display: flex;
   align-items: center;
@@ -1571,7 +1738,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
   border-radius: var(--radius);
   color: #fff;
   background: var(--navy-grad);
-  box-shadow: 0 4px 0 #0d1a3d, 0 10px 24px rgba(22, 41, 92, 0.35);
+  box-shadow: var(--float-shadow);
 }
 .route[hidden] { display: none; }
 .route > img { flex: none; width: 36px; height: 44px; object-fit: contain; }
@@ -1592,4 +1759,4 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
 }
 .route__close svg { width: 18px; height: 18px; stroke-width: 2.5; }
 .route__close:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
-.near__go--on { background: var(--muted); box-shadow: 0 3px 0 var(--ink); }
+

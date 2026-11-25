@@ -2,13 +2,12 @@ import { LOCATIONS, RADIUS_M, photoUrl } from './locations.js';
 import { loadStamps, saveStamp, clearStamps, requestPersistence } from './storage.js';
 import { distanceM, isInRange, watchPosition, formatDistance } from './geo.js';
 import { createGameMap } from './map.js';
-import { renderBook, renderCredits } from './book.js';
+import { renderBook, renderCredits, renderStampRow } from './book.js';
 import { THEMES, buddyUrl, stampUrl, themeOf } from './brand.js';
 import { twinnySvg } from './twinny.js';
 import { createStopPanel, hasStop, characterOf } from './stop.js';
 import { loadProgress, clearProgress, recordGame, recordStamps, levelFor } from './progress.js';
 import { renderProgress } from './progressView.js';
-import { renderNearby, renderNearbyButton } from './nearby.js';
 import { fetchRoute, progressOn } from './route.js';
 
 // Test mode: GPS off, tap the map to move the player, plus a reset button. ?debug starts in it.
@@ -18,7 +17,6 @@ const els = {
   sheetCount: document.getElementById('sheetCount'),
   credits: document.getElementById('credits'),
   status: document.getElementById('status'),
-  collect: document.getElementById('collect'),
   book: document.getElementById('book'),
   sheet: document.getElementById('sheet'),
   bookToggle: document.getElementById('bookToggle'),
@@ -26,6 +24,8 @@ const els = {
   toast: document.getElementById('toast'),
   testToggle: document.getElementById('testToggle'),
   reset: document.getElementById('reset'),
+  toolsToggle: document.getElementById('toolsToggle'),
+  toolsMenu: document.getElementById('toolsMenu'),
   stopPanel: document.getElementById('stopPanel'),
   levelChip: document.getElementById('levelChip'),
   levelNum: document.getElementById('levelNum'),
@@ -34,10 +34,7 @@ const els = {
   progressSheet: document.getElementById('progressSheet'),
   progressBody: document.getElementById('progressBody'),
   progressClose: document.getElementById('progressClose'),
-  nearbyToggle: document.getElementById('nearbyToggle'),
-  nearbySheet: document.getElementById('nearbySheet'),
-  nearbyList: document.getElementById('nearbyList'),
-  nearbyClose: document.getElementById('nearbyClose'),
+  stampRow: document.getElementById('stampRow'),
   route: document.getElementById('route'),
 };
 
@@ -71,6 +68,20 @@ function renderLevel() {
   if (!els.progressSheet.hidden) renderProgress(els.progressBody, p, LOCATIONS, stamps);
 }
 
+// A short message at the top of the map. It fades away after a few seconds, unless it stays
+// true until something changes (searching for GPS, no permission).
+let statusTimer;
+function showStatus(text, { stay = false } = {}) {
+  clearTimeout(statusTimer);
+  els.status.textContent = text;
+  els.status.hidden = false;
+  if (!stay) statusTimer = setTimeout(hideStatus, 3500);
+}
+function hideStatus() {
+  clearTimeout(statusTimer);
+  els.status.hidden = true;
+}
+
 function isNear(loc) {
   return position && isInRange(distanceM(position, loc), position.accuracy, RADIUS_M);
 }
@@ -82,6 +93,8 @@ function nearestCollectable() {
       .sort((a, b) => distanceM(position, a) - distanceM(position, b))[0] ?? null
   );
 }
+
+let calledFor = null; // the stop whose "tap the stop" message was shown last
 
 const collectedThemes = () => LOCATIONS.filter((loc) => stamps[loc.id]).map((loc) => themeOf(loc.id));
 
@@ -96,24 +109,21 @@ function render() {
     ),
   );
 
+  // Arriving at a stop you can play: say once that the stop is awake and waits for a tap.
   const target = nearestCollectable();
-  els.collect.hidden = !target;
-  if (target && els.collect.dataset.id !== target.id) {
-    els.collect.dataset.id = target.id;
+  if (target && target.id !== calledFor) {
     const character = characterOf(target.id);
-    els.collect.innerHTML = `<img src="${buddyUrl(target.id)}" alt="">
-      <span><strong>${character ? `Help ${character.name}` : 'Stempel pakken'}</strong><small>${target.name}</small></span>`;
+    showStatus(`${character ? `${character.name} heeft je hulp nodig` : target.name}. Tik op de stop!`);
   }
-  if (!target) delete els.collect.dataset.id;
+  calledFor = target?.id ?? null;
 
-  renderBook(els.book, LOCATIONS, stamps, position);
-  renderNearbyButton(els.nearbyToggle, LOCATIONS, { stamps, position });
+  renderStampRow(els.stampRow, LOCATIONS, stamps);
   renderRoute();
-  if (!els.nearbySheet.hidden) renderNearbyList();
+  if (!els.sheet.hidden) renderBookList();
 }
 
-function renderNearbyList() {
-  renderNearby(els.nearbyList, LOCATIONS, { stamps, position, isNear, routeTo: route?.loc.id });
+function renderBookList() {
+  renderBook(els.book, LOCATIONS, stamps, { position, isNear, routeTo: route?.loc.id });
 }
 
 // ---------- Walking route to a stop ----------
@@ -126,7 +136,7 @@ let route = null; // { loc, data, fetchedAt, loading }
 async function startRoute(loc) {
   if (!position) return;
   route = { loc, data: null, fetchedAt: Date.now(), loading: true };
-  toggleNearby(false);
+  toggleSheet(false);
   renderRoute();
   const data = await fetchRoute(position, loc);
   if (route?.loc !== loc) return; // stopped or replaced meanwhile
@@ -180,13 +190,16 @@ function collect(loc, { onSite = true } = {}) {
 function onFix(fix) {
   position = fix;
   gameMap.setPlayer(fix);
-  els.status.textContent = testMode ? TEST_STATUS : `GPS ±${Math.round(fix.accuracy)} m`;
+  // Found you: the searching message can go.
+  if (!testMode && !els.status.hidden) hideStatus();
   render();
 }
 
 function onGeoError(err) {
-  els.status.textContent =
-    err.code === 1 ? 'De app mag je locatie niet zien. Zet dat aan om te kunnen spelen.' : `Je locatie is niet gevonden (${err.message}).`;
+  showStatus(
+    err.code === 1 ? 'De app mag je locatie niet zien. Zet dat aan om te kunnen spelen.' : `Je locatie is niet gevonden (${err.message}).`,
+    { stay: true },
+  );
 }
 
 let toastTimer;
@@ -202,8 +215,8 @@ function showToast(loc, achievements = []) {
 
 function setTestMode(on) {
   testMode = on;
-  els.testToggle.setAttribute('aria-pressed', String(on));
-  els.reset.hidden = !on;
+  els.testToggle.setAttribute('aria-checked', String(on));
+  els.toolsToggle.parentElement.classList.toggle('tools--on', on);
   if (on) {
     stopWatch?.();
     stopWatch = null;
@@ -214,11 +227,11 @@ function setTestMode(on) {
       const start = LOCATIONS[0];
       onFix({ lat: start.lat - 0.0006, lng: start.lng, accuracy: 5 });
     }
-    els.status.textContent = TEST_STATUS;
+    showStatus(TEST_STATUS);
   } else {
     lastPosition = position;
     position = null;
-    els.status.textContent = 'Locatie zoeken…';
+    showStatus('Locatie zoeken…', { stay: true });
     stopWatch = watchPosition(onFix, onGeoError);
   }
   render();
@@ -227,20 +240,14 @@ function setTestMode(on) {
 function closeSheets() {
   els.sheet.hidden = true;
   els.progressSheet.hidden = true;
-  els.nearbySheet.hidden = true;
 }
 
 function toggleSheet(open) {
-  if (open) closeSheets();
-  els.sheet.hidden = !open;
-}
-
-function toggleNearby(open) {
   if (open) {
     closeSheets();
-    renderNearbyList();
+    renderBookList();
   }
-  els.nearbySheet.hidden = !open;
+  els.sheet.hidden = !open;
 }
 
 function toggleProgress(open) {
@@ -260,7 +267,6 @@ function enterStop(loc) {
   stopPanel.open(loc, { isCollected: Boolean(stamps[loc.id]), isOnSite: Boolean(isNear(loc)) });
 }
 
-els.collect.addEventListener('click', () => enterStop(nearestCollectable()));
 const teleportTo = (loc) => onFix({ lat: loc.lat - 0.00025, lng: loc.lng, accuracy: 5 });
 gameMap.onStopTap((id) => {
   const loc = LOCATIONS.find((l) => l.id === id);
@@ -268,39 +274,42 @@ gameMap.onStopTap((id) => {
   if (testMode && !isNear(loc)) teleportTo(loc);
   else enterStop(loc);
 });
-els.nearbyToggle.addEventListener('click', () => toggleNearby(els.nearbySheet.hidden));
-els.nearbyClose.addEventListener('click', () => toggleNearby(false));
-els.nearbyList.addEventListener('click', (e) => {
-  const play = e.target.closest('[data-play]');
-  const go = e.target.closest('[data-route]');
-  if (play) enterStop(LOCATIONS.find((l) => l.id === play.dataset.play));
-  if (go?.dataset.route) startRoute(LOCATIONS.find((l) => l.id === go.dataset.route));
-  else if (go) {
-    stopRoute();
-    renderNearbyList();
-  }
-});
 els.route.addEventListener('click', (e) => {
   if (e.target.closest('[data-stop-route]')) stopRoute();
 });
 els.bookToggle.addEventListener('click', () => toggleSheet(els.sheet.hidden));
-// Tapping a stop in the stamp book plays it: on site when you are there, otherwise from a distance.
+// Tapping a stop in the stamp book plays it: on site when you are there, otherwise from a
+// distance. Its button starts or stops the walking route, or opens the stop when you are there.
 els.book.addEventListener('click', (e) => {
-  const card = e.target.closest('[data-id]');
-  if (card) enterStop(LOCATIONS.find((l) => l.id === card.dataset.id));
-});
-els.book.addEventListener('keydown', (e) => {
-  const card = e.target.closest('[data-id]');
-  if (card && (e.key === 'Enter' || e.key === ' ')) {
-    e.preventDefault();
-    enterStop(LOCATIONS.find((l) => l.id === card.dataset.id));
+  const byId = (id) => LOCATIONS.find((l) => l.id === id);
+  const open = e.target.closest('[data-id]');
+  const play = e.target.closest('[data-play]');
+  const go = e.target.closest('[data-route]');
+  if (open) enterStop(byId(open.dataset.id));
+  else if (play) enterStop(byId(play.dataset.play));
+  else if (go?.dataset.route) startRoute(byId(go.dataset.route));
+  else if (go) {
+    stopRoute();
+    renderBookList();
   }
 });
 els.levelChip.addEventListener('click', () => toggleProgress(els.progressSheet.hidden));
 els.progressClose.addEventListener('click', () => toggleProgress(false));
 els.sheetClose.addEventListener('click', () => toggleSheet(false));
 
-els.testToggle.addEventListener('click', () => setTestMode(!testMode));
+function toggleTools(open) {
+  els.toolsMenu.hidden = !open;
+  els.toolsToggle.setAttribute('aria-expanded', String(open));
+}
+els.toolsToggle.addEventListener('click', () => toggleTools(els.toolsMenu.hidden));
+// A tap anywhere else closes the menu.
+document.addEventListener('pointerdown', (e) => {
+  if (!els.toolsMenu.hidden && !e.target.closest('.tools')) toggleTools(false);
+});
+els.testToggle.addEventListener('click', () => {
+  setTestMode(!testMode);
+  toggleTools(false);
+});
 gameMap.onMapTap((pos) => {
   if (testMode) onFix({ ...pos, accuracy: 5 });
 });
@@ -310,6 +319,8 @@ els.reset.addEventListener('click', () => {
   clearProgress();
   render();
   renderLevel();
+  toggleTools(false);
+  showStatus('Stempels gewist');
 });
 
 // Start screen: the Citiverse GO logo and all ten buddies with your own Twinny in the middle,

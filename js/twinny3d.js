@@ -9,8 +9,15 @@ const HEIGHT = 2.44; // top of the head, feet at 0
 const VISOR = '#c4c8cf';
 const NAVY = '#16295c';
 
-// Canvas size in CSS pixels; the marker anchors its bottom (the feet) on the player's position.
-export const SIZE = { width: 50, height: 72 };
+// Canvas size in CSS pixels. The feet stand FEET_PX above the canvas bottom, so the shadow
+// around them fits; styles.css moves the canvas down by the same amount (.player__3d), which
+// puts the feet exactly on the player's position.
+export const SIZE = { width: 56, height: 76 };
+const FEET_PX = 9;
+// The map camera looks down at the ground at 90 - pitch (60) = 30 degrees. Looking at the
+// figure from the same height makes it stand on the map instead of hanging in front of it.
+const LOOK_DOWN = (30 * Math.PI) / 180;
+const CAMERA_DISTANCE = 9.6;
 
 function colourAt(stops, fromTop) {
   if (fromTop <= stops[0][0]) return new THREE.Color(stops[0][1]);
@@ -61,8 +68,14 @@ export function createTwinny3D(container) {
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(22, SIZE.width / SIZE.height, 0.1, 50);
-  camera.position.set(0, 2.6, 8.6);
-  camera.lookAt(0, 1.25, 0);
+  const aim = new THREE.Vector3(0, 1.1, 0);
+  camera.position.set(0, aim.y + CAMERA_DISTANCE * Math.sin(LOOK_DOWN), CAMERA_DISTANCE * Math.cos(LOOK_DOWN));
+  camera.lookAt(aim);
+  camera.updateMatrixWorld();
+  // Shift the picture so the feet land FEET_PX above the bottom edge.
+  const feet = new THREE.Vector3(0, 0, 0).project(camera);
+  const feetY = ((1 - feet.y) / 2) * SIZE.height;
+  camera.setViewOffset(SIZE.width, SIZE.height, 0, feetY - (SIZE.height - FEET_PX), SIZE.width, SIZE.height);
 
   scene.add(new THREE.HemisphereLight('#ffffff', '#8a9bb8', 1.6));
   const sun = new THREE.DirectionalLight('#ffffff', 2.2);
@@ -80,6 +93,24 @@ export function createTwinny3D(container) {
     coloured.push(mesh);
     return mesh;
   };
+
+  // A soft round shadow on the ground under the feet, seen at the same angle as the map.
+  const shadowCanvas = document.createElement('canvas');
+  shadowCanvas.width = shadowCanvas.height = 64;
+  const sg = shadowCanvas.getContext('2d');
+  const grad = sg.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grad.addColorStop(0, 'rgba(22, 41, 92, 0.55)');
+  grad.addColorStop(0.55, 'rgba(22, 41, 92, 0.28)');
+  grad.addColorStop(1, 'rgba(22, 41, 92, 0)');
+  sg.fillStyle = grad;
+  sg.fillRect(0, 0, 64, 64);
+  const shadow = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.9, 1.9),
+    new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(shadowCanvas), transparent: true, depthWrite: false }),
+  );
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.y = 0.01;
+  scene.add(shadow);
 
   const figure = new THREE.Group(); // turns to face the walking direction
   const body = new THREE.Group(); // bobs while walking
@@ -122,14 +153,6 @@ export function createTwinny3D(container) {
   );
   badge.position.set(0, 1.36, 0.527);
   body.add(badge);
-
-  const shadow = new THREE.Mesh(
-    new THREE.CircleGeometry(0.62, 32),
-    new THREE.MeshBasicMaterial({ color: '#0b1a3d', transparent: true, opacity: 0.22, depthWrite: false }),
-  );
-  shadow.rotation.x = -Math.PI / 2;
-  shadow.position.y = 0.005;
-  scene.add(shadow);
 
   // Vertex colours follow the height in the figure's rest pose, so a stripe stays on the same
   // part of the body while the limbs swing.

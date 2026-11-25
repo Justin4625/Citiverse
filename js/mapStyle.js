@@ -38,7 +38,8 @@ export const mapStyle = {
   version: 8,
   sources: {
     overview: { type: 'geojson', data: 'data/overview.geojson', tolerance: 0.5, attribution: ATTRIBUTION },
-    [DETAIL_SOURCE]: { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, tolerance: 0.2 },
+    // generateId: a feature's id is its place in the data, so map.js can lower single buildings.
+    [DETAIL_SOURCE]: { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, tolerance: 0.2, generateId: true },
   },
   sky: {
     'sky-color': C.sky,
@@ -63,7 +64,8 @@ export const mapStyle = {
       id: 'buildings', type: 'fill-extrusion', source: DETAIL_SOURCE, filter: ['has', 'h'],
       paint: {
         'fill-extrusion-color': C.building,
-        'fill-extrusion-height': ['*', ['get', 'h'], HEIGHT_SCALE],
+        // Feature-state 'k' (0..1, set in map.js) lowers the buildings right around the player.
+        'fill-extrusion-height': ['*', ['get', 'h'], HEIGHT_SCALE, ['coalesce', ['feature-state', 'k'], 1]],
         'fill-extrusion-opacity': 0.92,
       },
     },

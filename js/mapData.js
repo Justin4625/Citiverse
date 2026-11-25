@@ -19,8 +19,9 @@ export async function loadIndex() {
   return res.json();
 }
 
-// Keeps the map's detail source filled with the cells around its centre.
-export function keepDetailLoaded(map, sourceId, index) {
+// Keeps the map's detail source filled with the cells around its centre. onData gets the
+// features each time they change; a feature's place in that array is its map id.
+export function keepDetailLoaded(map, sourceId, index, onData = () => {}) {
   const size = 180 / 2 ** index.zoom;
   const available = new Set(index.cells);
   const cache = new Map(); // "x/y" -> features, or a promise while loading
@@ -62,7 +63,9 @@ export function keepDetailLoaded(map, sourceId, index) {
     const signature = ready.join(' ');
     if (signature === shown) return;
     shown = signature;
-    map.getSource(sourceId).setData({ type: 'FeatureCollection', features: ready.flatMap((key) => cache.get(key)) });
+    const features = ready.flatMap((key) => cache.get(key));
+    map.getSource(sourceId).setData({ type: 'FeatureCollection', features });
+    onData(features);
     // Forget the cells furthest back in time once the cache is full.
     for (const key of cache.keys()) {
       if (cache.size <= MAX_CACHED) break;
