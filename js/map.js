@@ -3,8 +3,20 @@ import { loadIndex, keepDetailLoaded } from './mapData.js';
 import { stopElement, setStopState, playerElement, setPlayerThemes, setPlayerWalking } from './markers.js';
 import { distanceM } from './geo.js';
 
-const PLAY_ZOOM = 16.6;
-const PLAY_PITCH = 55;
+// Pokémon-Go camera: always on the player, tilted, close by. You can zoom a little and turn the
+// view by swiping sideways, but not pan away, so you only see what is around you.
+const PLAY_ZOOM = 17.4;
+const PLAY_PITCH = 60;
+const MIN_PLAY_ZOOM = 16.2;
+const MAX_PLAY_ZOOM = 18.8;
+// The player stands below the middle of the screen, so you see more of what lies ahead.
+const PLAYER_OFFSET = 0.28;
+// Degrees the view turns per pixel of sideways swipe.
+const ROTATE_PER_PX = 0.35;
+// Stops further away than this are hidden; the nearby list shows them all.
+const VIEW_M = 900;
+// Where the camera waits until the first position is known.
+const START = { lat: 51.9225, lng: 4.4792 };
 // Stops shrink when you zoom out (full size from FULL_ZOOM) and become plain dots below DOT_ZOOM.
 const FULL_ZOOM = 15.5;
 const MIN_ZOOM_SCALE = 0.4;
@@ -25,21 +37,57 @@ function circlePolygon({ lat, lng }, radiusM, steps = 64) {
 }
 
 export function createGameMap(container, locations, radiusM) {
-  const bounds = locations.reduce(
-    (b, loc) => b.extend([loc.lng, loc.lat]),
-    new maplibregl.LngLatBounds([locations[0].lng, locations[0].lat], [locations[0].lng, locations[0].lat]),
-  );
   const map = new maplibregl.Map({
     container,
     style: mapStyle,
-    bounds,
-    fitBoundsOptions: { padding: { top: 120, bottom: 140, left: 50, right: 50 } },
-    maxPitch: 60,
+    center: [START.lng, START.lat],
+    zoom: PLAY_ZOOM,
+    pitch: PLAY_PITCH,
+    minPitch: PLAY_PITCH,
+    maxPitch: PLAY_PITCH,
+    minZoom: MIN_PLAY_ZOOM,
+    maxZoom: MAX_PLAY_ZOOM,
     maxBounds: MAP_BOUNDS,
-    minZoom: 12,
+    dragPan: false,
+    dragRotate: false,
+    keyboard: false,
+    doubleClickZoom: false,
+    pitchWithRotate: false,
     attributionControl: { compact: true },
   });
-  map.setPitch(40);
+  // Zoom always around the player, never towards the finger.
+  map.scrollZoom.enable({ around: 'center' });
+  map.touchZoomRotate.enable({ around: 'center' });
+  map.touchZoomRotate.disableRotation();
+  map.touchPitch.disable();
+
+  const keepPlayerLow = () => map.setPadding({ top: map.getContainer().clientHeight * PLAYER_OFFSET * 2, bottom: 0, left: 0, right: 0 });
+  keepPlayerLow();
+  map.on('resize', keepPlayerLow);
+
+  // One finger swiping sideways turns the view around the player. Two fingers are a pinch zoom.
+  const fingers = new Map();
+  let swipeX = null;
+  // A swipe that turned the view is not a tap, so it must not walk the player there.
+  let swipedAt = 0;
+  const canvas = map.getCanvasContainer();
+  canvas.addEventListener('pointerdown', (e) => {
+    fingers.set(e.pointerId, e.clientX);
+    swipeX = fingers.size === 1 ? e.clientX : null;
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (swipeX === null || !fingers.has(e.pointerId)) return;
+    if (Math.abs(e.clientX - swipeX) < 2) return;
+    map.setBearing(map.getBearing() - (e.clientX - swipeX) * ROTATE_PER_PX);
+    swipeX = e.clientX;
+    swipedAt = performance.now();
+  });
+  const lift = (e) => {
+    fingers.delete(e.pointerId);
+    swipeX = null;
+  };
+  canvas.addEventListener('pointerup', lift);
+  canvas.addEventListener('pointercancel', lift);
 
   function scaleStops() {
     const zoom = map.getZoom();
@@ -79,6 +127,10 @@ export function createGameMap(container, locations, radiusM) {
     }),
   );
 
+  function showNearbyStops(pos) {
+    for (const loc of locations) stops.get(loc.id).hidden = distanceM(pos, loc) > VIEW_M;
+  }
+
   let walk = 0; // id of the running walk, so a newer position cancels the old one
 
   // Moves the player marker to `pos` over time while the Twinny plays its walk cycle, turned
@@ -91,21 +143,24 @@ export function createGameMap(container, locations, radiusM) {
     if (dist < 1 || dist > MAX_WALK_M) {
       playerMarker.setLngLat([pos.lng, pos.lat]);
       setPlayerWalking(playerEl, false);
-      if (follow) map.easeTo({ center: [pos.lng, pos.lat], duration: 800 });
+      if (follow) map.jumpTo({ center: [pos.lng, pos.lat] });
       if (loaded) updateReach(pos);
+      showNearbyStops(pos);
       return;
     }
     const duration = Math.min(Math.max(dist * 15, 500), 2500);
     const a = map.project([start.lng, start.lat]);
     const b = map.project([pos.lng, pos.lat]);
     setPlayerWalking(playerEl, true, Math.atan2(b.x - a.x, b.y - a.y));
-    if (follow) map.easeTo({ center: [pos.lng, pos.lat], duration, easing: (t) => t });
+    showNearbyStops(pos);
     const t0 = performance.now();
     const step = (now) => {
       if (id !== walk) return;
       const t = Math.min((now - t0) / duration, 1);
       const here = { lat: start.lat + (pos.lat - start.lat) * t, lng: start.lng + (pos.lng - start.lng) * t };
       playerMarker.setLngLat([here.lng, here.lat]);
+      // The camera moves with the player frame by frame, so turning the view keeps working.
+      if (follow) map.jumpTo({ center: [here.lng, here.lat] });
       if (loaded) updateReach(here);
       if (t < 1) requestAnimationFrame(step);
       else setPlayerWalking(playerEl, false);
@@ -118,7 +173,8 @@ export function createGameMap(container, locations, radiusM) {
       const lngLat = [pos.lng, pos.lat];
       if (!playerMarker) {
         playerMarker = new maplibregl.Marker({ element: playerEl, anchor: 'bottom' }).setLngLat(lngLat).addTo(map);
-        map.flyTo({ center: lngLat, zoom: PLAY_ZOOM, pitch: PLAY_PITCH, duration: 1500 });
+        map.jumpTo({ center: lngLat });
+        showNearbyStops(pos);
       } else {
         walkTo(pos, follow);
         return;
@@ -151,7 +207,10 @@ export function createGameMap(container, locations, radiusM) {
     },
 
     onMapTap(cb) {
-      map.on('click', (e) => cb({ lat: e.lngLat.lat, lng: e.lngLat.lng }));
+      map.on('click', (e) => {
+        if (performance.now() - swipedAt < 400) return;
+        cb({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+      });
     },
   };
 }

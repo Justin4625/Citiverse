@@ -38,6 +38,25 @@
     <span>Stempelboek</span>
   </button>
 
+  <button id="nearbyToggle" class="nearby-btn" aria-label="In de buurt">
+    <span class="nearby-btn__faces" aria-hidden="true"></span>
+    <span>In de buurt</span>
+  </button>
+
+  <section id="nearbySheet" class="sheet" hidden>
+    <div class="sheet__grip" aria-hidden="true"></div>
+    <div class="sheet__head">
+      <div>
+        <h2>In de buurt</h2>
+        <p class="sheet__count">Alle plekken, dichtstbij eerst</p>
+      </div>
+      <button id="nearbyClose" class="sheet__close" aria-label="Sluiten">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <ul id="nearbyList" class="nearby"></ul>
+  </section>
+
   <section id="sheet" class="sheet" hidden>
     <div class="sheet__grip" aria-hidden="true"></div>
     <div class="sheet__head">

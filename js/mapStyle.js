@@ -44,6 +44,10 @@ export const mapStyle = {
     'sky-color': C.sky,
     'horizon-color': C.horizon,
     'sky-horizon-blend': 0.6,
+    // The ground fades into the horizon, so far away is a soft haze instead of the whole city.
+    'fog-color': C.horizon,
+    'fog-ground-blend': 0.35,
+    'horizon-fog-blend': 0.8,
   },
   light: { anchor: 'viewport', color: '#ffffff', intensity: 0.25 },
   layers: [

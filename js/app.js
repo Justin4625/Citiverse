@@ -8,6 +8,7 @@ import { twinnySvg } from './twinny.js';
 import { createStopPanel, hasStop, characterOf } from './stop.js';
 import { loadProgress, clearProgress, recordGame, recordStamps, levelFor } from './progress.js';
 import { renderProgress } from './progressView.js';
+import { renderNearby, renderNearbyButton } from './nearby.js';
 
 // Test mode: GPS off, tap the map to move the player, plus a reset button. ?debug starts in it.
 const TEST_STATUS = 'Tik op de kaart om te lopen';
@@ -32,6 +33,10 @@ const els = {
   progressSheet: document.getElementById('progressSheet'),
   progressBody: document.getElementById('progressBody'),
   progressClose: document.getElementById('progressClose'),
+  nearbyToggle: document.getElementById('nearbyToggle'),
+  nearbySheet: document.getElementById('nearbySheet'),
+  nearbyList: document.getElementById('nearbyList'),
+  nearbyClose: document.getElementById('nearbyClose'),
 };
 
 let stamps = loadStamps();
@@ -100,6 +105,12 @@ function render() {
   if (!target) delete els.collect.dataset.id;
 
   renderBook(els.book, LOCATIONS, stamps, position);
+  renderNearbyButton(els.nearbyToggle, LOCATIONS, { stamps, position });
+  if (!els.nearbySheet.hidden) renderNearbyList();
+}
+
+function renderNearbyList() {
+  renderNearby(els.nearbyList, LOCATIONS, { stamps, position, isNear, testMode });
 }
 
 // onSite: false when the stop panel hands over, so walking off during a minigame still counts.
@@ -143,8 +154,13 @@ function setTestMode(on) {
     stopWatch?.();
     stopWatch = null;
     // Keep the player where it is; with no position yet, the first map tap places it.
+    // The camera follows the player, so without a position there is nothing to tap: start at Centraal.
     position ??= lastPosition;
-    els.status.textContent = position ? TEST_STATUS : 'Tik op de kaart om jezelf neer te zetten';
+    if (!position) {
+      const start = LOCATIONS[0];
+      onFix({ lat: start.lat - 0.0006, lng: start.lng, accuracy: 5 });
+    }
+    els.status.textContent = TEST_STATUS;
   } else {
     lastPosition = position;
     position = null;
@@ -154,15 +170,29 @@ function setTestMode(on) {
   render();
 }
 
+function closeSheets() {
+  els.sheet.hidden = true;
+  els.progressSheet.hidden = true;
+  els.nearbySheet.hidden = true;
+}
+
 function toggleSheet(open) {
+  if (open) closeSheets();
   els.sheet.hidden = !open;
-  if (open) els.progressSheet.hidden = true;
+}
+
+function toggleNearby(open) {
+  if (open) {
+    closeSheets();
+    renderNearbyList();
+  }
+  els.nearbySheet.hidden = !open;
 }
 
 function toggleProgress(open) {
+  if (open) closeSheets();
   els.progressSheet.hidden = !open;
   if (open) {
-    els.sheet.hidden = true;
     renderProgress(els.progressBody, loadProgress(), LOCATIONS, stamps);
   }
 }
@@ -172,17 +202,28 @@ function toggleProgress(open) {
 function enterStop(loc) {
   if (!loc) return;
   if (!hasStop(loc.id)) return collect(loc);
-  els.sheet.hidden = true;
-  els.progressSheet.hidden = true;
+  closeSheets();
   stopPanel.open(loc, { isCollected: Boolean(stamps[loc.id]), isOnSite: Boolean(isNear(loc)) });
 }
 
 els.collect.addEventListener('click', () => enterStop(nearestCollectable()));
+const teleportTo = (loc) => onFix({ lat: loc.lat - 0.00025, lng: loc.lng, accuracy: 5 });
 gameMap.onStopTap((id) => {
   const loc = LOCATIONS.find((l) => l.id === id);
   // In test mode, tapping a far-away stop teleports you there.
-  if (testMode && !isNear(loc)) onFix({ lat: loc.lat - 0.00025, lng: loc.lng, accuracy: 5 });
+  if (testMode && !isNear(loc)) teleportTo(loc);
   else enterStop(loc);
+});
+els.nearbyToggle.addEventListener('click', () => toggleNearby(els.nearbySheet.hidden));
+els.nearbyClose.addEventListener('click', () => toggleNearby(false));
+els.nearbyList.addEventListener('click', (e) => {
+  const play = e.target.closest('[data-play]');
+  const jump = e.target.closest('[data-jump]');
+  if (play) enterStop(LOCATIONS.find((l) => l.id === play.dataset.play));
+  if (jump) {
+    teleportTo(LOCATIONS.find((l) => l.id === jump.dataset.jump));
+    toggleNearby(false);
+  }
 });
 els.bookToggle.addEventListener('click', () => toggleSheet(els.sheet.hidden));
 // Tapping a stop in the stamp book plays it: on site when you are there, otherwise from a distance.
