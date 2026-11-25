@@ -3,12 +3,7 @@ import { photoUrl } from './locations.js';
 import { buddyUrl, iconUrl, themeOf } from './brand.js';
 import { characterOf } from './stop.js';
 
-// The "In de buurt" list: every stop, nearest first, with a walking route in Google Maps.
-// The route opens Google Maps itself (app on a phone, website elsewhere), so no API key is needed.
-
-export function routeUrl(loc) {
-  return `https://www.google.com/maps/dir/?api=1&destination=${loc.lat},${loc.lng}&travelmode=walking`;
-}
+// The "In de buurt" list: every stop, nearest first. "Route" draws the walking route on the map.
 
 // About 5 km/h, rounded up to whole minutes.
 function walkTime(m) {
@@ -25,7 +20,7 @@ export function sortByDistance(locations, position) {
   return [...locations].sort((a, b) => distanceM(position, a) - distanceM(position, b));
 }
 
-export function renderNearby(listEl, locations, { stamps, position, isNear, testMode }) {
+export function renderNearby(listEl, locations, { stamps, position, isNear, routeTo }) {
   listEl.innerHTML = sortByDistance(locations, position)
     .map((loc) => {
       const done = Boolean(stamps[loc.id]);
@@ -35,9 +30,9 @@ export function renderNearby(listEl, locations, { stamps, position, isNear, test
       const where = near ? 'Je bent er!' : m === null ? loc.area : `${formatM(m)} · ${walkTime(m)}`;
       const action = near
         ? `<button class="near__go near__go--here" data-play="${loc.id}">${who ? `Help ${who.name}` : 'Stempel pakken'}</button>`
-        : testMode
-          ? `<button class="near__go" data-jump="${loc.id}">Ga hierheen</button>`
-          : `<a class="near__go" href="${routeUrl(loc)}" target="_blank" rel="noopener">Route</a>`;
+        : routeTo === loc.id
+          ? `<button class="near__go near__go--on" data-route="">Stop route</button>`
+          : `<button class="near__go" data-route="${loc.id}">Route</button>`;
       return `<li class="near${done ? ' near--done' : ''}${near ? ' near--here' : ''}">
         <span class="near__photo">
           <img src="${photoUrl(loc)}" alt="" loading="lazy" style="object-position:${loc.focus}">

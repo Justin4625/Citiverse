@@ -1,6 +1,6 @@
 import { LOCATIONS, RADIUS_M, photoUrl } from './locations.js';
 import { loadStamps, saveStamp, clearStamps, requestPersistence } from './storage.js';
-import { distanceM, isInRange, watchPosition } from './geo.js';
+import { distanceM, isInRange, watchPosition, formatDistance } from './geo.js';
 import { createGameMap } from './map.js';
 import { renderBook, renderCredits } from './book.js';
 import { THEMES, buddyUrl, stampUrl, themeOf } from './brand.js';
@@ -9,6 +9,7 @@ import { createStopPanel, hasStop, characterOf } from './stop.js';
 import { loadProgress, clearProgress, recordGame, recordStamps, levelFor } from './progress.js';
 import { renderProgress } from './progressView.js';
 import { renderNearby, renderNearbyButton } from './nearby.js';
+import { fetchRoute, progressOn } from './route.js';
 
 // Test mode: GPS off, tap the map to move the player, plus a reset button. ?debug starts in it.
 const TEST_STATUS = 'Tik op de kaart om te lopen';
@@ -37,6 +38,7 @@ const els = {
   nearbySheet: document.getElementById('nearbySheet'),
   nearbyList: document.getElementById('nearbyList'),
   nearbyClose: document.getElementById('nearbyClose'),
+  route: document.getElementById('route'),
 };
 
 let stamps = loadStamps();
@@ -106,11 +108,63 @@ function render() {
 
   renderBook(els.book, LOCATIONS, stamps, position);
   renderNearbyButton(els.nearbyToggle, LOCATIONS, { stamps, position });
+  renderRoute();
   if (!els.nearbySheet.hidden) renderNearbyList();
 }
 
 function renderNearbyList() {
-  renderNearby(els.nearbyList, LOCATIONS, { stamps, position, isNear, testMode });
+  renderNearby(els.nearbyList, LOCATIONS, { stamps, position, isNear, routeTo: route?.loc.id });
+}
+
+// ---------- Walking route to a stop ----------
+// Drawn on the map from the player to the stop; shrinks as you walk, is fetched again when you
+// wander off it, and disappears once you are there.
+const OFF_ROUTE_M = 40;
+const REROUTE_AFTER_MS = 8000;
+let route = null; // { loc, data, fetchedAt, loading }
+
+async function startRoute(loc) {
+  if (!position) return;
+  route = { loc, data: null, fetchedAt: Date.now(), loading: true };
+  toggleNearby(false);
+  renderRoute();
+  const data = await fetchRoute(position, loc);
+  if (route?.loc !== loc) return; // stopped or replaced meanwhile
+  route = { loc, data, fetchedAt: Date.now(), loading: false };
+  renderRoute();
+}
+
+function stopRoute() {
+  route = null;
+  gameMap.showRoute(null);
+  renderRoute();
+}
+
+function renderRoute() {
+  els.route.hidden = !route;
+  if (!route) return;
+  const { loc } = route;
+  if (isNear(loc)) {
+    stopRoute();
+    return;
+  }
+  let detail = 'Route zoeken…';
+  let next = '';
+  if (route.data && position) {
+    const p = progressOn(route.data, position);
+    gameMap.showRoute(p.line, loc.id);
+    detail = `${formatDistance(p.metres).replace(' verderop', '')} · ${p.minutes} min lopen`;
+    next = p.next ? `Over ${Math.max(10, Math.round(p.nextM / 10) * 10)} m: ${p.next.text}` : 'Rechtdoor naar de stop';
+    if (p.offRouteM > OFF_ROUTE_M && !route.loading && Date.now() - route.fetchedAt > REROUTE_AFTER_MS) {
+      startRoute(loc);
+      return;
+    }
+  }
+  els.route.innerHTML = `<img src="${buddyUrl(loc.id)}" alt="">
+    <span class="route__text"><small>Route naar ${loc.name}</small><strong>${next || detail}</strong>${next ? `<span>${detail}</span>` : ''}</span>
+    <button class="route__close" data-stop-route aria-label="Route stoppen">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>`;
 }
 
 // onSite: false when the stop panel hands over, so walking off during a minigame still counts.
@@ -218,12 +272,16 @@ els.nearbyToggle.addEventListener('click', () => toggleNearby(els.nearbySheet.hi
 els.nearbyClose.addEventListener('click', () => toggleNearby(false));
 els.nearbyList.addEventListener('click', (e) => {
   const play = e.target.closest('[data-play]');
-  const jump = e.target.closest('[data-jump]');
+  const go = e.target.closest('[data-route]');
   if (play) enterStop(LOCATIONS.find((l) => l.id === play.dataset.play));
-  if (jump) {
-    teleportTo(LOCATIONS.find((l) => l.id === jump.dataset.jump));
-    toggleNearby(false);
+  if (go?.dataset.route) startRoute(LOCATIONS.find((l) => l.id === go.dataset.route));
+  else if (go) {
+    stopRoute();
+    renderNearbyList();
   }
+});
+els.route.addEventListener('click', (e) => {
+  if (e.target.closest('[data-stop-route]')) stopRoute();
 });
 els.bookToggle.addEventListener('click', () => toggleSheet(els.sheet.hidden));
 // Tapping a stop in the stamp book plays it: on site when you are there, otherwise from a distance.

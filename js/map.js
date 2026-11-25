@@ -65,25 +65,50 @@ export function createGameMap(container, locations, radiusM) {
   keepPlayerLow();
   map.on('resize', keepPlayerLow);
 
+  // One camera loop moves the map once per frame: it follows the player marker and eases the
+  // bearing towards where the swipe wants it. Moving the camera from several places at once
+  // (easeTo, setBearing, jumpTo) made it stutter.
+  let follow = null; // [lng, lat] the camera should be on
+  let followMoved = false;
+  let bearing = map.getBearing();
+  let targetBearing = bearing;
+  function cameraLoop() {
+    const diff = targetBearing - bearing;
+    const turning = Math.abs(diff) > 0.05;
+    if (turning) bearing += diff * 0.25;
+    else bearing = targetBearing;
+    if (turning || followMoved) {
+      map.jumpTo(follow ? { center: follow, bearing } : { bearing });
+      followMoved = false;
+    }
+    requestAnimationFrame(cameraLoop);
+  }
+  requestAnimationFrame(cameraLoop);
+
   // One finger swiping sideways turns the view around the player. Two fingers are a pinch zoom.
+  // Letting go mid-swipe glides on a little, like flicking a globe.
   const fingers = new Map();
   let swipeX = null;
+  let speed = 0; // degrees per move event, for the glide
   // A swipe that turned the view is not a tap, so it must not walk the player there.
   let swipedAt = 0;
   const canvas = map.getCanvasContainer();
   canvas.addEventListener('pointerdown', (e) => {
     fingers.set(e.pointerId, e.clientX);
     swipeX = fingers.size === 1 ? e.clientX : null;
+    speed = 0;
   });
   canvas.addEventListener('pointermove', (e) => {
     if (swipeX === null || !fingers.has(e.pointerId)) return;
     if (Math.abs(e.clientX - swipeX) < 2) return;
-    map.setBearing(map.getBearing() - (e.clientX - swipeX) * ROTATE_PER_PX);
+    speed = -(e.clientX - swipeX) * ROTATE_PER_PX;
+    targetBearing += speed;
     swipeX = e.clientX;
     swipedAt = performance.now();
   });
   const lift = (e) => {
     fingers.delete(e.pointerId);
+    if (swipeX !== null && performance.now() - swipedAt < 80) targetBearing += speed * 6;
     swipeX = null;
   };
   canvas.addEventListener('pointerup', lift);
@@ -102,6 +127,9 @@ export function createGameMap(container, locations, radiusM) {
 
   let loaded = false;
   let pendingPlayer = null;
+  let pendingRoute = null;
+  let routeTarget = null; // stop id of the route, always shown however far away
+  let lastPos = null;
   let playerMarker = null;
   const playerEl = playerElement();
 
@@ -110,6 +138,12 @@ export function createGameMap(container, locations, radiusM) {
     map.addSource('reach', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
     map.addLayer({ id: 'reach-fill', type: 'fill', source: 'reach', paint: { 'fill-color': '#ffffff', 'fill-opacity': 0.25 } }, 'buildings');
     map.addLayer({ id: 'reach-line', type: 'line', source: 'reach', paint: { 'line-color': '#ffffff', 'line-width': 3, 'line-opacity': 0.9 } }, 'buildings');
+    map.addSource('route', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+    const lineLayout = { 'line-cap': 'round', 'line-join': 'round' };
+    // On top of the buildings, so the way stays visible behind a block.
+    map.addLayer({ id: 'route-casing', type: 'line', source: 'route', layout: lineLayout, paint: { 'line-color': '#ffffff', 'line-width': 14 } });
+    map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: lineLayout, paint: { 'line-color': '#e2457f', 'line-width': 8 } });
+    if (pendingRoute) map.getSource('route').setData(pendingRoute);
     if (pendingPlayer) updateReach(pendingPlayer);
     // Without the index only the coarse overview shows; the game itself still works.
     loadIndex().then((index) => keepDetailLoaded(map, DETAIL_SOURCE, index)).catch(console.warn);
@@ -127,15 +161,21 @@ export function createGameMap(container, locations, radiusM) {
     }),
   );
 
+  function followTo(lngLat) {
+    follow = lngLat;
+    followMoved = true;
+  }
+
   function showNearbyStops(pos) {
-    for (const loc of locations) stops.get(loc.id).hidden = distanceM(pos, loc) > VIEW_M;
+    lastPos = pos;
+    for (const loc of locations) stops.get(loc.id).hidden = loc.id !== routeTarget && distanceM(pos, loc) > VIEW_M;
   }
 
   let walk = 0; // id of the running walk, so a newer position cancels the old one
 
   // Moves the player marker to `pos` over time while the Twinny plays its walk cycle, turned
   // towards where it is going on screen. Far jumps (teleport in test mode) skip the walk.
-  function walkTo(pos, follow) {
+  function walkTo(pos, keepOnPlayer) {
     const from = playerMarker.getLngLat();
     const start = { lat: from.lat, lng: from.lng };
     const dist = distanceM(start, pos);
@@ -143,7 +183,7 @@ export function createGameMap(container, locations, radiusM) {
     if (dist < 1 || dist > MAX_WALK_M) {
       playerMarker.setLngLat([pos.lng, pos.lat]);
       setPlayerWalking(playerEl, false);
-      if (follow) map.jumpTo({ center: [pos.lng, pos.lat] });
+      if (keepOnPlayer) followTo([pos.lng, pos.lat]);
       if (loaded) updateReach(pos);
       showNearbyStops(pos);
       return;
@@ -159,8 +199,8 @@ export function createGameMap(container, locations, radiusM) {
       const t = Math.min((now - t0) / duration, 1);
       const here = { lat: start.lat + (pos.lat - start.lat) * t, lng: start.lng + (pos.lng - start.lng) * t };
       playerMarker.setLngLat([here.lng, here.lat]);
-      // The camera moves with the player frame by frame, so turning the view keeps working.
-      if (follow) map.jumpTo({ center: [here.lng, here.lat] });
+      // The camera loop picks this up in the same frame.
+      if (keepOnPlayer) followTo([here.lng, here.lat]);
       if (loaded) updateReach(here);
       if (t < 1) requestAnimationFrame(step);
       else setPlayerWalking(playerEl, false);
@@ -169,18 +209,27 @@ export function createGameMap(container, locations, radiusM) {
   }
 
   return {
-    setPlayer(pos, { follow = true } = {}) {
+    setPlayer(pos, { follow: keepOnPlayer = true } = {}) {
       const lngLat = [pos.lng, pos.lat];
       if (!playerMarker) {
         playerMarker = new maplibregl.Marker({ element: playerEl, anchor: 'bottom' }).setLngLat(lngLat).addTo(map);
-        map.jumpTo({ center: lngLat });
+        followTo(lngLat);
         showNearbyStops(pos);
       } else {
-        walkTo(pos, follow);
+        walkTo(pos, keepOnPlayer);
         return;
       }
       if (loaded) updateReach(pos);
       else pendingPlayer = pos;
+    },
+
+    // The walking route as [lng, lat] points, or null to remove it.
+    showRoute(line, targetId = null) {
+      routeTarget = line ? targetId : null;
+      const data = { type: 'FeatureCollection', features: line ? [{ type: 'Feature', geometry: { type: 'LineString', coordinates: line } }] : [] };
+      if (loaded) map.getSource('route').setData(data);
+      else pendingRoute = data;
+      if (lastPos) showNearbyStops(lastPos);
     },
 
     // Themes of the collected stamps, so the Twinny wears their colours.

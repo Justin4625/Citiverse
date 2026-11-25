@@ -1556,3 +1556,40 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
 .near__go:active { translate: 0 2px; box-shadow: 0 1px 0 #0d1a3d; }
 .near__go--here { max-width: 120px; background: linear-gradient(90deg, var(--pink), #9b3186); box-shadow: 0 3px 0 var(--pink-deep); }
 .near__go:focus-visible, .nearby-btn:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
+
+/* Walking route banner, under the top bar while a route is on. */
+.route {
+  position: fixed;
+  top: calc(122px + env(safe-area-inset-top));
+  left: 16px;
+  right: 16px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 10px;
+  border-radius: var(--radius);
+  color: #fff;
+  background: var(--navy-grad);
+  box-shadow: 0 4px 0 #0d1a3d, 0 10px 24px rgba(22, 41, 92, 0.35);
+}
+.route[hidden] { display: none; }
+.route > img { flex: none; width: 36px; height: 44px; object-fit: contain; }
+.route__text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.route__text small { font-size: 0.72rem; font-weight: 600; opacity: 0.85; }
+.route__text strong { font-family: var(--display); font-size: 1.05rem; line-height: 1.15; overflow-wrap: break-word; }
+.route__text span { font-size: 0.78rem; font-weight: 600; opacity: 0.85; }
+.route__close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+}
+.route__close svg { width: 18px; height: 18px; stroke-width: 2.5; }
+.route__close:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
+.near__go--on { background: var(--muted); box-shadow: 0 3px 0 var(--ink); }

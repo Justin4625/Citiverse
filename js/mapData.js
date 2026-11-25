@@ -70,6 +70,13 @@ export function keepDetailLoaded(map, sourceId, index) {
     }
   }
 
-  map.on('moveend', update);
+  // The camera moves every frame while you walk or turn: check at most a few times a second.
+  let timer = 0;
+  map.on('moveend', () => {
+    timer ||= setTimeout(() => {
+      timer = 0;
+      update();
+    }, 400);
+  });
   update();
 }
