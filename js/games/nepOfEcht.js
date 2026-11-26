@@ -1,20 +1,28 @@
 // "Nep of echt?" (Safe, Politiebureau, Safy).
-// Messages come into Safy's control room; the player swipes or taps Nep / Echt.
+// Messages come into Safy's control room; the player taps Nep / Echt (no swiping: Justin's choice).
 // No timer (Justin's choice): players get as long as they need per message.
 // A streak of right answers raises the multiplier. The local AI writes extra fake messages inside
 // fixed templates; without AI the game plays with the built-in messages only.
 
 import { MESSAGES, TEMPLATES } from './nepOfEchtContent.js';
 import { chat, isAvailable } from '../ai.js';
+import { guide } from './guide.js';
 
 const ROUNDS = 8;
+
+// The practice round has its own message, never used in the real game.
+const PRACTICE_MESSAGE = {
+  id: 'oefen-oma', kind: 'whatsapp', from: '+44 7700 900112', level: 1, fake: true,
+  text: 'Hoi lieverd, dit is oma! Mijn telefoon is kapot. Kun je me snel €50 sturen? Niet aan mama vertellen hoor 😘',
+  tells: ['Een onbekend nummer dat zegt dat het oma is, en meteen om geld vraagt.'],
+};
 // Message difficulty per round, by player level (0 = Nieuwkomer).
 const MIXES = [
-  [1, 1, 2, 2, 2, 3, 3, 3],
+  [1, 1, 1, 2, 2, 2, 2, 3],
+  [1, 1, 2, 2, 2, 2, 3, 3],
+  [1, 2, 2, 2, 2, 3, 3, 3],
   [1, 2, 2, 2, 3, 3, 3, 3],
-  [1, 2, 2, 3, 3, 3, 3, 3],
   [2, 2, 2, 3, 3, 3, 3, 3],
-  [2, 2, 3, 3, 3, 3, 3, 3],
 ];
 const MAX_AI = 2; // AI-made fakes per game, swapped into fake rounds from round 3 on
 const STATS_KEY = 'nepofecht.stats.v1';
@@ -48,7 +56,7 @@ async function generateFake(template) {
       {
         role: 'system',
         content:
-          'Je schrijft oefenberichten voor een educatief spel waarin jongeren van 13 tot 18 jaar leren nepberichten te herkennen. ' +
+          'Je schrijft oefenberichten voor een educatief spel waarin kinderen van 11 tot 15 jaar leren nepberichten te herkennen. Maak de nep goed herkenbaar. ' +
           'Schrijf in het Nederlands, informeel zoals echte berichten. Geen scheldwoorden, geen enge of seksuele inhoud. ' +
           'Gebruik geen andere bedrijfsnamen of webadressen dan die je krijgt. Maximaal 220 tekens. ' +
           'Antwoord alleen met JSON in deze vorm: {"tekst": "..."}',
@@ -87,8 +95,8 @@ function recordStat(id, wrong) {
   } catch {}
 }
 
-export function mount(el, { onFinish, character = { name: 'Safy' }, difficulty = 0 }) {
-  const rounds = pickRounds(MIXES[difficulty] ?? MIXES[0]);
+export function mount(el, { practice = false, onPracticeDone = () => {}, onFinish, character = { name: 'Safy' }, difficulty = 0 }) {
+  const rounds = practice ? [PRACTICE_MESSAGE] : pickRounds(MIXES[difficulty] ?? MIXES[0]);
   const aiReady = [];
   let index = 0;
   let score = 0;
@@ -100,7 +108,7 @@ export function mount(el, { onFinish, character = { name: 'Safy' }, difficulty =
 
   // Generate AI messages in the background while the player reads the first rounds.
   isAvailable().then((ok) => {
-    if (!ok || destroyed) return;
+    if (!ok || destroyed || practice) return;
     for (const template of shuffle(TEMPLATES).slice(0, MAX_AI)) {
       generateFake(template).then((msg) => msg && !destroyed && aiReady.push(msg));
     }
@@ -129,7 +137,7 @@ export function mount(el, { onFinish, character = { name: 'Safy' }, difficulty =
   const multiplier = () => Math.min(3, 1 + Math.floor(streak / 2));
 
   function updateBar() {
-    q('.noe__round').textContent = `Bericht ${index + 1}/${ROUNDS}`;
+    q('.noe__round').textContent = practice ? 'Oefenbericht' : `Bericht ${index + 1}/${ROUNDS}`;
     q('.noe__streak').textContent = streak >= 2 ? `Reeks x${multiplier()}` : '';
     q('.noe__score').textContent = `${score} pt`;
   }
@@ -149,8 +157,7 @@ export function mount(el, { onFinish, character = { name: 'Safy' }, difficulty =
         <header class="msg__head"><span class="msg__kind">${KIND_LABEL[msg.kind]}</span><strong class="msg__from">${escapeHtml(msg.from)}</strong></header>
         <p class="msg__text">${escapeHtml(msg.text)}</p>
       </article>
-      <p class="noe__hint">Swipe naar links voor nep, naar rechts voor echt</p>`;
-    enableSwipe(stage.querySelector('.msg'));
+`;
     updateBar();
   }
 
@@ -169,22 +176,21 @@ export function mount(el, { onFinish, character = { name: 'Safy' }, difficulty =
     } else {
       streak = 0;
     }
-    recordStat(msg.id, !right);
+    if (!practice) recordStat(msg.id, !right);
     navigator.vibrate?.(right ? 40 : [60, 40, 60]);
 
     const verdict = right ? `Goed! +${gained}` : msg.fake ? 'Opgelicht!' : 'Toch echt';
     const explanation = msg.fake
-      ? `<p>Dit bericht is <strong>nep</strong>. Hier herken je het aan:</p><ul>${msg.tells.map((t) => `<li>${escapeHtml(t)}</li>`).join('')}</ul>`
+      ? `<p>Dit is <strong>nep</strong>. ${escapeHtml(msg.tells[0])}</p>`
       : `<p>Dit bericht is <strong>echt</strong>. ${escapeHtml(msg.why)}</p>`;
 
     actions.hidden = true;
     stage.querySelector('.msg')?.classList.add(right ? 'is-right' : 'is-wrong');
-    stage.querySelector('.noe__hint')?.remove();
     feedback.innerHTML = `
       <p class="noe__verdict ${right ? 'is-right' : 'is-wrong'}">${verdict}</p>
       <div class="noe__karin"><span class="noe__avatar" aria-hidden="true">${character.name[0]}</span><div>${explanation}</div></div>
       ${msg.aiMade ? '<p class="noe__ai">Een AI heeft dit bericht gemaakt. Oplichters maken ze net zo makkelijk.</p>' : ''}
-      <button class="btn btn--action noe__next">${index + 1 < ROUNDS ? 'Volgende bericht' : 'Uitslag bekijken'}</button>`;
+      <button class="btn btn--action noe__next">${practice ? 'Verder' : index + 1 < ROUNDS ? 'Volgende bericht' : 'Uitslag bekijken'}</button>`;
     feedback.hidden = false;
     feedback.querySelector('.noe__next').addEventListener('click', next);
     updateBar();
@@ -192,18 +198,19 @@ export function mount(el, { onFinish, character = { name: 'Safy' }, difficulty =
 
   function next() {
     index += 1;
-    if (index < ROUNDS) showRound();
+    if (index < rounds.length) showRound();
     else finish();
   }
 
   function finish() {
+    if (practice) return onPracticeDone();
     const line = correct === ROUNDS
       ? 'Alles goed! Jou lichten ze niet zomaar op.'
       : correct >= 6
         ? 'Goed gedaan! Onthoud: oplichters willen altijd dat je je haast.'
         : correct >= 4
-          ? 'Bijna! Maar een paar oplichters kwamen erdoor. Kijk altijd wie het stuurt, en lees een webadres helemaal tot het eind.'
-          : 'Oplichters zijn slim, hè? Let de volgende keer goed op haast, vragen om geld en rare webadressen.';
+          ? 'Bijna! Kijk altijd wie het stuurt.'
+          : 'Oplichters zijn slim, hè? Let op haast en vragen om geld.';
     el.innerHTML = `
       <div class="noe noe--end">
         <p class="noe__big">${correct}/${ROUNDS}</p>
@@ -212,32 +219,6 @@ export function mount(el, { onFinish, character = { name: 'Safy' }, difficulty =
         <button class="btn btn--action noe__done">Verder</button>
       </div>`;
     el.querySelector('.noe__done').addEventListener('click', () => onFinish({ score, correct, total: ROUNDS }));
-  }
-
-  function enableSwipe(card) {
-    let startX = null;
-    card.addEventListener('pointerdown', (e) => {
-      startX = e.clientX;
-      card.setPointerCapture(e.pointerId);
-      card.style.transition = 'none';
-    });
-    card.addEventListener('pointermove', (e) => {
-      if (startX === null) return;
-      const dx = e.clientX - startX;
-      card.style.transform = `translateX(${dx}px) rotate(${dx / 20}deg)`;
-      card.dataset.lean = dx < -40 ? 'nep' : dx > 40 ? 'echt' : '';
-    });
-    const end = (e) => {
-      if (startX === null) return;
-      const dx = e.clientX - startX;
-      startX = null;
-      card.style.transition = '';
-      card.style.transform = '';
-      card.dataset.lean = '';
-      if (Math.abs(dx) > 90) answer(dx < 0 ? 'nep' : 'echt');
-    };
-    card.addEventListener('pointerup', end);
-    card.addEventListener('pointercancel', end);
   }
 
   actions.addEventListener('click', (e) => {
@@ -252,8 +233,15 @@ export function mount(el, { onFinish, character = { name: 'Safy' }, difficulty =
   document.addEventListener('keydown', onKey);
 
   showRound();
+  // Practice round: the first message is played with the buttons lit up.
+  const stopGuide = practice && guide(el, [
+    { target: '.msg', text: 'Lees het bericht. Is het nep of echt?', wait: 'ok', pad: 6 },
+    { target: '.noe__actions', text: 'Tik op Nep of op Echt.', hand: false, wait: () => !feedback.hidden, pad: 6 },
+    { target: '.noe__feedback', text: 'Hier legt Safy uit hoe je het herkent.', wait: 'ok', pad: 6 },
+  ], { onDone: onPracticeDone });
 
   return () => {
+    if (stopGuide) stopGuide();
     destroyed = true;
     document.removeEventListener('keydown', onKey);
   };

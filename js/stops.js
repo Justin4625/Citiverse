@@ -1,5 +1,6 @@
 // What happens at each stop: the character, their facts, their digital problem and the reward.
 // The AI character only answers from `facts`, so everything it may say lives here.
+// `hook` is the one short line the stop screen shows (11-15 year olds); intro/problem feed the AI.
 // All facts still need checking (e.g. via data.rotterdam.nl) before a playtest.
 //
 // `game` is the id of a minigame in js/games/index.js. `card` describes it; a stop whose game
@@ -11,6 +12,8 @@ export const STOPS = {
     character: { name: 'Privy', role: 'stationsmedewerker' },
     intro: 'Hoi, ik ben Privy! Ik werk hier op Rotterdam Centraal. Elke dag lopen hier duizenden mensen langs. En bijna iedereen laat sporen achter zonder het te merken.',
     problem: 'Vandaag vroeg een reiziger: "Wie weet eigenlijk waar ik allemaal ben geweest?" Ik wist het zelf niet precies. Zoek jij het met me uit?',
+    hook: 'Wie weet eigenlijk waar jij allemaal bent geweest? Zoek het met me uit!',
+    fact: 'Onder het Stationsplein staat een fietsenstalling met plek voor duizenden fietsen.',
     facts: [
       'Het huidige stationsgebouw van Rotterdam Centraal is in 2014 geopend.',
       'Het grote dak boven de sporen ligt vol zonnepanelen.',
@@ -19,7 +22,7 @@ export const STOPS = {
       'Op het station hangen camera\'s voor de veiligheid.',
       'Als je inlogt op openbare wifi, kan de aanbieder zien welk apparaat je gebruikt.',
     ],
-    secret: 'Het dak boven de sporen ligt vol zonnepanelen. Die maken een flink deel van de stroom die het station zelf gebruikt.',
+    secret: 'Het dak boven de sporen ligt vol zonnepanelen. Het station maakt dus zelf een deel van zijn stroom.',
     game: 'spoorloos',
     card: {
       title: 'Spoorloos',
@@ -32,6 +35,8 @@ export const STOPS = {
     character: { name: 'Fairy', role: 'kraamhouder' },
     intro: 'Hoi, ik ben Fairy! Ik heb een kraam hier in de Markthal. Ik verkoop ook online, en daar gaat het niet altijd eerlijk.',
     problem: 'Mijn klanten trappen in nepkortingen van andere webshops. Kun jij laten zien hoe je die trucs doorhebt?',
+    hook: 'Webshops foppen mijn klanten met nepkortingen. Help je mij?',
+    fact: 'In de boog van de Markthal wonen gewoon mensen. Hun ramen kijken uit over de markt.',
     facts: [
       'De Markthal is in 2014 geopend.',
       'Het grote kunstwerk aan het plafond heet de Hoorn des Overvloeds en is gemaakt door Arno Coenen.',
@@ -40,7 +45,7 @@ export const STOPS = {
       'Een dark pattern is een ontwerptruc die je iets laat doen wat je eigenlijk niet wilt, zoals een afteltimer die je haast.',
       'Bij een eerlijke webshop zie je alle kosten voordat je betaalt.',
     ],
-    secret: 'Kijk eens goed naar het plafond. Tussen het fruit en de groente zitten ook bloemen en insecten verstopt. Bijna niemand ziet ze.',
+    secret: 'Kijk eens goed naar het plafond. Tussen het fruit zitten ook bloemen en insecten verstopt. Bijna niemand ziet ze.',
     game: 'koopjesjacht',
     card: {
       title: 'Koopjesjacht',
@@ -53,6 +58,8 @@ export const STOPS = {
     character: { name: 'Freely', role: 'bewoner en kunstenaar' },
     intro: 'Hé, ik ben Freely. Ik woon in zo\'n scheve kubus en ik maak hier kunst. Piet Blom durfde anders te bouwen. Zo wil ik online ook gewoon mezelf kunnen zijn.',
     problem: 'Onder mijn kunst komen reacties. Bij sommige weet ik niet of dat wel mag. Wanneer is het gewoon je mening, en wanneer ga je te ver?',
+    hook: 'Onder mijn kunst komen gemene reacties. Wat mag wel en wat niet?',
+    fact: 'De architect zag elke kubus als een boom. Alle kubussen samen zijn een bos.',
     facts: [
       'De Kubuswoningen zijn ontworpen door architect Piet Blom.',
       'Ze zijn in 1984 opgeleverd.',
@@ -60,7 +67,7 @@ export const STOPS = {
       'Eén kubus is ingericht als museum, de Kijk-Kubus, zodat je kunt zien hoe je in een kubus woont.',
       'Vrijheid van meningsuiting betekent dat je je mening mag geven, maar niet dat alles mag: bedreigen en discrimineren mag niet.',
     ],
-    secret: 'De muren van een kubus staan zo scheef dat je een kast niet zomaar tegen de muur zet. Ook bij het inrichten moet je hier anders denken.',
+    secret: 'De muren staan zo scheef dat een gewone kast niet tegen de muur past. Hier moet je dus anders inrichten.',
     game: 'moderator',
     card: {
       title: 'Moderator',
@@ -73,6 +80,8 @@ export const STOPS = {
     character: { name: 'Every', role: 'brugwachter' },
     intro: 'Hoi, ik ben Every. Ik let op de Erasmusbrug. Deze brug verbindt Noord en Zuid. Online moet ook iedereen mee kunnen doen, vind ik.',
     problem: 'De brug gaat even dicht en we moeten iedereen een bericht sturen. Maar niet iedereen kan dat goed lezen. Help jij om het voor iedereen duidelijk te maken?',
+    hook: 'De brug gaat dicht. Maak jij het bericht duidelijk voor iedereen?',
+    fact: 'Rotterdammers noemen de Erasmusbrug ook wel De Zwaan.',
     facts: [
       'De Erasmusbrug is in 1996 geopend.',
       'Rotterdammers noemen de brug ook wel De Zwaan.',
@@ -93,6 +102,8 @@ export const STOPS = {
     character: { name: 'Ruly', role: 'griffier' },
     intro: 'Hoi, ik ben Ruly. Ik ben griffier bij de rechtbank: ik schrijf op wat er in een rechtszaak gebeurt. Hier wordt beslist wat wel en niet mag.',
     problem: 'Er ligt een zaak op mijn bureau. Iemand heeft een foto van een jongere online gezet zonder het te vragen. Wie heeft er gelijk?',
+    hook: 'Iemand deelde een foto zonder het te vragen. Wie heeft er gelijk?',
+    fact: 'Een griffier schrijft op wat er in een rechtszaak gebeurt. Dat is het werk van Ruly.',
     facts: [
       'De rechtbank Rotterdam staat aan het Wilhelminaplein op de Kop van Zuid.',
       'Een griffier helpt de rechter en schrijft op wat er tijdens een zitting gebeurt.',
@@ -100,7 +111,7 @@ export const STOPS = {
       'Je hebt portretrecht: iemand mag een herkenbare foto van jou niet zomaar publiceren als je daar een redelijk belang tegen hebt.',
       'Je kunt een website of platform vragen een foto van jou te verwijderen.',
     ],
-    secret: 'Veel rechtszaken zijn openbaar. Je mag dus gewoon gaan kijken. Zo kan iedereen zien dat het eerlijk gaat.',
+    secret: 'Je mag bij veel rechtszaken gewoon gaan kijken. Zo ziet iedereen dat het eerlijk gaat.',
     game: 'kruisverhoor',
     card: {
       title: 'Kruisverhoor',
@@ -113,6 +124,8 @@ export const STOPS = {
     character: { name: 'Opiny', role: 'gids' },
     intro: 'Hoi, ik ben Opiny, gids bij de Euromast. Van hierboven zie je de hele stad. Ik wil dat jongeren ook zo\'n overzicht krijgen, en dat er naar hun mening geluisterd wordt.',
     problem: 'De stad moet een keuze maken, en er zijn twee kanten. Wat vind jij? En waarom?',
+    hook: 'De stad moet een keuze maken. Wat vind jij, en waarom?',
+    fact: 'De Euromast is ongeveer 185 meter hoog. Dat is hoger dan de Erasmusbrug.',
     facts: [
       'De Euromast is gebouwd voor de Floriade van 1960.',
       'Later is er een Space Tower bovenop gezet, waardoor de toren hoger werd.',
@@ -133,6 +146,8 @@ export const STOPS = {
     character: { name: 'Healy', role: 'hardloopcoach' },
     intro: 'Hoi, ik ben Healy, hardloopcoach. Ik train hier in Het Park. Buiten bewegen is goed voor je. Maar veel apps doen er alles aan om je binnen op je scherm te houden.',
     problem: 'Een app op mijn telefoon blijft me maar meldingen sturen. Zie jij met welke trucs hij me vasthoudt?',
+    hook: 'Een app laat me maar niet los. Zie jij zijn trucs?',
+    fact: 'Het Park ligt naast de Euromast en is al meer dan 150 jaar oud.',
     facts: [
       'Het Park ligt naast de Euromast.',
       'Het Park is in de negentiende eeuw aangelegd.',
@@ -152,6 +167,8 @@ export const STOPS = {
     character: { name: 'Safy', role: 'wijkagent' },
     intro: 'Hoi, ik ben Safy, wijkagent in het centrum. We krijgen steeds meer meldingen van jongeren die online zijn opgelicht.',
     problem: 'Er komen berichten binnen bij de meldkamer. Ik moet snel weten welke nep zijn. Help jij me?',
+    hook: 'Er komen nepberichten binnen. Help je me ze te vinden?',
+    fact: 'Bij gevaar bel je 112. Voor andere dingen bel je de politie op 0900-8844.',
     facts: [
       'Bij gevaar bel je 112. Voor andere zaken kun je de politie bellen op 0900-8844.',
       'Je kunt online oplichting melden bij de politie.',
@@ -160,7 +177,7 @@ export const STOPS = {
       'Een verificatiecode deel je nooit met iemand anders, ook niet met een vriend.',
       'Twijfel je over een bericht? Bel de afzender via een nummer dat je zelf opzoekt.',
     ],
-    secret: 'Het beste wapen tegen oplichters is niet de politie. Het is even wachten voordat je iets doet. Oplichters willen dat je je haast, want als je nadenkt, trap je er niet in.',
+    secret: 'Mijn beste tip tegen oplichters? Wacht even voordat je iets doet. Oplichters willen dat je je haast.',
     game: 'nep-of-echt',
     card: {
       title: 'Nep of echt?',
@@ -173,13 +190,15 @@ export const STOPS = {
     character: { name: 'Acty', role: 'raadslid' },
     intro: 'Hoi, ik ben Acty! Ik zit in de gemeenteraad. Hier in het Stadhuis beslissen we hoe Rotterdam eruitziet.',
     problem: 'Alleen komen er bijna nooit jongeren met ideeën. Wat zou jij anders doen in je buurt?',
+    hook: 'Jongeren komen bijna nooit met ideeën. Heb jij er een?',
+    fact: 'De gemeenteraad van Rotterdam heeft 45 leden. Jij mag gewoon gaan kijken bij een vergadering.',
     facts: [
       'Het Stadhuis aan de Coolsingel is gebouwd tussen 1914 en 1920.',
       'Het Stadhuis heeft het bombardement van 14 mei 1940 overleefd.',
       'De gemeenteraad van Rotterdam heeft 45 leden.',
       'Iedereen mag een gemeenteraadsvergadering bijwonen.',
     ],
-    secret: 'In 1940 werd bijna het hele centrum platgebombardeerd. Het Stadhuis bleef gewoon staan. Daarom is het een van de weinige oude gebouwen die je hier nog ziet.',
+    secret: 'In 1940 werd bijna het hele centrum gebombardeerd. Het Stadhuis bleef staan. Daarom is het een van de weinige oude gebouwen hier.',
     game: 'pitch-in-de-raad',
     card: {
       title: 'Pitch in de raad',
@@ -192,13 +211,15 @@ export const STOPS = {
     character: { name: 'Chancy', role: 'bibliothecaris' },
     intro: 'Hoi, ik ben Chancy. Ik werk hier in de bieb. Iedereen mag hier gratis internetten, op een computer werken en hulp vragen. Zo krijgt iedereen een kans.',
     problem: 'Steeds meer bedrijven laten een computer kiezen wie ze uitnodigen voor een sollicitatie. Maar is dat wel eerlijk?',
+    hook: 'Een computer kiest wie een bijbaan krijgt. Is dat wel eerlijk?',
+    fact: 'In de bieb mag je gratis internetten en op een computer werken.',
     facts: [
       'De Centrale Bibliotheek is in 1983 geopend.',
       'Je herkent het gebouw aan de gele buizen aan de buitenkant.',
       'In de bibliotheek kun je gratis internet en computers gebruiken.',
       'Een selectie-algoritme leert van oude keuzes. Als die oude keuzes oneerlijk waren, neemt het algoritme dat over.',
     ],
-    secret: 'Die gele buizen aan de buitenkant zijn niet alleen voor de sier. Er gaat lucht doorheen. Het gebouw heeft zijn techniek gewoon aan de buitenkant hangen.',
+    secret: 'Door die gele buizen aan de buitenkant gaat lucht. Het gebouw heeft zijn techniek gewoon buiten hangen.',
     game: 'algoritme',
     card: {
       title: 'Jij bent het algoritme',

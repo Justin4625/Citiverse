@@ -8,7 +8,7 @@ import { chat, isAvailable, stripPersonal } from './ai.js';
 import { recordQuestion } from './progress.js';
 import { GAMES } from './games/index.js';
 import { escapeHtml } from './games/kit.js';
-import { buddyUrl, iconUrl, themeVars } from './brand.js';
+import { buddyUrl, iconUrl, stampUrl, themeVars } from './brand.js';
 import { show, hide } from './ui.js';
 
 const MAX_HISTORY = 8;
@@ -24,9 +24,9 @@ export function characterOf(id) {
 function systemPrompt(loc, stop) {
   const { name, role } = stop.character;
   return [
-    `Je bent ${name}, een Citiverse Buddy van Digital Child Rights en ${role} bij ${loc.name} in Rotterdam. Je speelt een personage in een stempeltocht voor jongeren van 13 tot 18 jaar over digitale rechten. Jouw thema is ${stop.theme}.`,
+    `Je bent ${name}, een Citiverse Buddy van Digital Child Rights en ${role} bij ${loc.name} in Rotterdam. Je speelt een personage in een stempeltocht voor kinderen van 11 tot 15 jaar over digitale rechten. Jouw thema is ${stop.theme}.`,
     'Regels:',
-    '- Praat Nederlands zoals je tegen een tiener praat: kort, gewone woorden, taalniveau B1. Geen moeilijke woorden, geen "Goede vraag!" of "Gefeliciteerd!". Antwoord in maximaal drie korte zinnen.',
+    '- Praat Nederlands zoals tegen een kind van 11 tot 15 jaar: kort, makkelijke woorden, taalniveau A2. Geen moeilijke woorden, geen "Goede vraag!" of "Gefeliciteerd!". Antwoord in maximaal twee korte zinnen.',
     '- Gebruik alleen de feiten hieronder. Weet je iets niet, zeg dan eerlijk dat je het niet weet. Verzin nooit cijfers, namen of regels.',
     '- Vraag nooit naar persoonlijke gegevens zoals naam, adres, school, telefoonnummer of wachtwoord. Deelt de jongere die toch, zeg dan dat dat online niet slim is.',
     '- Blijf in je rol. Gaat een vraag niet over jouw plek of jouw thema, verwijs dan vriendelijk terug naar je plek.',
@@ -55,7 +55,7 @@ export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAc
 
   // locked: no close button and no closing by tapping beside the card, so a stamp that is
   // ready to collect after a game can't be lost by accident.
-  function shell(bodyHtml, { banner = false, game = false, locked = false } = {}) {
+  function shell(bodyHtml, { banner = false, hero = false, game = false, locked = false } = {}) {
     // The card slides up only when the panel opens; a new step inside it just fades its content in.
     const opening = root.hidden || root.classList.contains('is-leaving');
     if (locked) root.dataset.locked = '1';
@@ -66,7 +66,16 @@ export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAc
         <div class="sheet__grip" aria-hidden="true"></div>
         ${game ? `<img class="stop-panel__ghost" src="${buddyUrl(loc.id)}" alt="" aria-hidden="true">` : ''}
         ${banner ? `<div class="stop-panel__banner"><img src="${photoUrl(loc)}" alt="" style="object-position:${loc.focus}"><img class="stop-panel__icon" src="${iconUrl(loc.id)}" alt="Thema ${escapeHtml(stop.theme)}"></div>` : ''}
-        <header class="stop-panel__head">
+        ${hero ? `<header class="stop-hero">
+          <img class="stop-hero__photo" src="${photoUrl(loc)}" alt="" style="object-position:${loc.focus}">
+          <img class="stop-hero__icon" src="${iconUrl(loc.id)}" alt="Thema ${escapeHtml(stop.theme)}">
+          <button class="sheet__close stop-hero__close" data-close aria-label="Sluiten">${CLOSE_ICON}</button>
+          <img class="stop-hero__buddy" src="${buddyUrl(loc.id)}" alt="">
+          <div class="stop-hero__who">
+            <small>${escapeHtml(loc.name)}</small>
+            <strong>${name}</strong>
+          </div>
+        </header>` : `<header class="stop-panel__head">
           <span class="stop-panel__badge" aria-hidden="true"><img src="${buddyUrl(loc.id)}" alt=""></span>
           <div class="stop-panel__who">
             <small>${escapeHtml(loc.name)} · ${escapeHtml(stop.theme)}</small>
@@ -74,7 +83,7 @@ export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAc
             <span>${role}</span>
           </div>
           ${locked ? '' : `<button class="sheet__close" data-close aria-label="Sluiten">${CLOSE_ICON}</button>`}
-        </header>
+        </header>`}
         <div class="stop-panel__body">${bodyHtml}</div>
       </div>`;
     show(root);
@@ -86,19 +95,32 @@ export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAc
     const game = GAMES[stop.game];
     const body = shell(
       `
-      <p class="speech speech--in">${escapeHtml(stop.intro)}</p>
-      <p class="speech speech--in speech--later">${escapeHtml(stop.problem)}</p>
+      <p class="speech speech--in speech--hero"><span class="speech__hi">Hoi, ik ben ${escapeHtml(stop.character.name)}! Ik werk hier als ${escapeHtml(stop.character.role)}.</span>${escapeHtml(stop.hook ?? stop.problem)}</p>
+      <div class="stop-tiles">
+        <div class="stop-tile">
+          <small>Minigame</small>
+          <strong>${escapeHtml(stop.card.title)}</strong>
+          <span>±3 minuten</span>
+        </div>
+        <div class="stop-tile stop-tile--prize${collected ? ' is-done' : ''}">
+          <img src="${stampUrl(loc.id)}" alt="">
+          <small>${collected ? 'Al verdiend' : 'Beloning'}</small>
+          <strong>${collected ? 'Stempel ✓' : 'Stempel'}</strong>
+          <span>+ tot 200 XP</span>
+        </div>
+      </div>
+      <div class="stop-fact"><small>Wist je dat?</small><p>${escapeHtml(stop.fact ?? stop.facts[0])}</p></div>
       <div class="stop-panel__actions">
         ${onSite
           ? `<button class="btn btn--action btn--play" data-go="help">
-              ${game ? `Help ${stop.character.name}<small>Minigame: ${escapeHtml(stop.card.title)}</small>` : 'Bekijk de minigame'}
+              ${game ? `Help ${stop.character.name}` : 'Bekijk de minigame'}
             </button>`
           : `<button class="btn btn--action btn--play" data-go="route">
-              Route naar ${escapeHtml(loc.name)}<small>Helpen kan alleen op de plek zelf</small>
+              Route naar ${escapeHtml(loc.name)}<small>Spelen kan alleen op de plek zelf</small>
             </button>`}
-        <button class="btn btn--quiet" data-go="chat">Stel ${stop.character.name} een vraag</button>
+        <button class="btn-link" data-go="chat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>Stel ${stop.character.name} een vraag</button>
       </div>`,
-      { banner: true },
+      { hero: true },
     );
     // The minigame is only played at the place itself; from afar you get the way there.
     body.querySelector('[data-go="help"]')?.addEventListener('click', game ? showGame : showCard);
@@ -121,9 +143,50 @@ export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAc
     body.querySelector('[data-go="back"]').addEventListener('click', showIntro);
   }
 
+  // Every game starts with a practice round: the same game, with a hand showing each move
+  // (js/games/guide.js). It never counts. Then the real game starts fresh.
   function showGame() {
     const body = shell('<div class="game-host"></div>', { game: true });
-    cleanupGame = GAMES[stop.game](body.querySelector('.game-host'), {
+    const host = body.querySelector('.game-host');
+    // ?debug&nopractice jumps straight to the real game (for testing only).
+    const q = new URLSearchParams(location.search);
+    if (q.has('debug') && q.has('nopractice')) return realGame(host);
+    host.dataset.mode = 'practice';
+    let finished = false;
+    const done = () => {
+      if (finished) return;
+      finished = true;
+      cleanupGame?.();
+      cleanupGame = null;
+      ready(host);
+    };
+    cleanupGame = GAMES[stop.game](host, {
+      character: { ...stop.character, buddy: buddyUrl(loc.id) },
+      difficulty: 0,
+      onSite,
+      practice: true,
+      onPracticeDone: () => done(),
+      // A practice round that is played to the end also leads to the real game; it never counts.
+      onFinish: () => done(),
+    });
+  }
+
+  function ready(host) {
+    host.dataset.mode = 'ready';
+    host.innerHTML = `
+      <div class="g g--ready">
+        <p class="g__big">Je snapt het!</p>
+        <p class="ready__sub">Dat was oefenen. Nu de echte game.</p>
+        <img class="ready__buddy" src="${buddyUrl(loc.id)}" alt="">
+        <button class="btn btn--action btn--play g__wide" data-real>Start de echte game</button>
+      </div>`;
+    host.querySelector('[data-real]').addEventListener('click', () => realGame(host));
+  }
+
+  function realGame(host) {
+    host.dataset.mode = 'real';
+    host.innerHTML = '';
+    cleanupGame = GAMES[stop.game](host, {
       character: { ...stop.character, buddy: buddyUrl(loc.id) },
       difficulty: getDifficulty(),
       onSite,

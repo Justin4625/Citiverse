@@ -180,7 +180,7 @@ function collect(loc, { onSite = true } = {}) {
   stamps = saveStamp(loc.id);
   navigator.vibrate?.([80, 40, 160]);
   showToast(loc, recordStamps(stamps, LOCATIONS.length));
-  if (LOCATIONS.every((l) => stamps[l.id])) setTimeout(showFinale, 4700);
+  if (LOCATIONS.every((l) => stamps[l.id])) setTimeout(showFinale, 3200);
   render();
   renderLevel();
 }
@@ -243,7 +243,7 @@ function showToast(loc, achievements = []) {
   toastTimer = setTimeout(() => {
     flyStampToBook(els.toast.querySelector('.toast__stamp'));
     hide(els.toast);
-  }, achievements.length ? 3800 : 3000);
+  }, achievements.length ? 2600 : 1800);
 }
 
 // A copy of the stamp flies from the card into the GO button, which bounces when it lands.
@@ -263,7 +263,7 @@ function flyStampToBook(stamp) {
       { transform: `translate(${dx * 0.35}px, ${dy * 0.35 - 60}px) scale(0.9) rotate(8deg)`, offset: 0.4 },
       { transform: `translate(${dx}px, ${dy}px) scale(0.35) rotate(0deg)`, opacity: 0.9 },
     ],
-    { duration: 650, easing: 'cubic-bezier(0.5, 0, 0.75, 0)', fill: 'forwards' },
+    { duration: 450, easing: 'cubic-bezier(0.5, 0, 0.75, 0)', fill: 'forwards' },
   );
   flight.onfinish = () => {
     copy.remove();

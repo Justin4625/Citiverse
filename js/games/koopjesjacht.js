@@ -9,6 +9,7 @@
 
 import { chat, isAvailable } from '../ai.js';
 import { escapeHtml, say, endScreen, shuffle, parseJson } from './kit.js';
+import { guide } from './guide.js';
 
 const BUDGET = 30;
 const euro = (v) => `€${v.toFixed(2).replace('.', ',')}`;
@@ -24,10 +25,10 @@ const ROUNDS = [
       slogan: 'Laagste prijs van Nederland!',
       lines: ['Op voorraad'],
       real: 11.44,
-      reveal: ['Verzendkosten €4,95', 'Servicekosten €1,50'],
+      reveal: ['Er komt nog €6,45 aan kosten bij.'],
       fine: 'Exclusief verzendkosten (€4,95) en servicekosten (€1,50).',
       name: 'Verborgen kosten',
-      explain: 'De lage prijs lokt je. Pas als je gaat betalen, komen er kosten bij. Een eerlijke winkel laat meteen zien wat je in totaal betaalt.',
+      explain: 'Pas bij het betalen komen er kosten bij.',
     },
   },
   {
@@ -41,10 +42,10 @@ const ROUNDS = [
       slogan: 'Mega-korting, alleen vandaag!',
       lines: [],
       real: 8.99,
-      reveal: ['Dit hoesje kostte nooit €29,99. De "oude prijs" is verzonnen.'],
+      reveal: ['De "oude prijs" was verzonnen.'],
       fine: 'Van-prijs is een adviesprijs. Hier nooit voor verkocht.',
       name: 'Nepkorting',
-      explain: 'Die doorgestreepte prijs heeft nooit echt gegolden. Zo lijkt een gewone prijs ineens een koopje. Kijk altijd even wat andere winkels vragen.',
+      explain: 'De oude prijs was verzonnen. Het is geen koopje.',
     },
   },
   {
@@ -57,10 +58,10 @@ const ROUNDS = [
       slogan: 'Gratis bij aanmelding!',
       lines: ['Meld je aan in de app'],
       real: 4.99,
-      reveal: ['Na de gratis proef word je lid voor €4,99 per maand.', 'Dat gaat automatisch door tot je opzegt.'],
+      reveal: ['"Gratis" was een abonnement van €4,99 per maand.'],
       fine: 'Proefabonnement. Daarna €4,99 per maand, verlengt automatisch.',
       name: 'Abonnementsval',
-      explain: '"Gratis" was een proefabonnement dat vanzelf doorloopt. Kijk altijd wat er gebeurt als de gratis periode voorbij is.',
+      explain: '"Gratis" was een abonnement. Daarna betaal je elke maand.',
     },
   },
   {
@@ -73,13 +74,31 @@ const ROUNDS = [
       slogan: 'Nog maar 2 op voorraad!',
       lines: ['☑ Bezorgverzekering'],
       real: 8.5,
-      reveal: ['De bezorgverzekering van €2,50 stond al aangevinkt.', '"Nog maar 2" stond er gisteren ook al.'],
+      reveal: ['Er stond al een extra van €2,50 aangevinkt.'],
       fine: 'Bezorgverzekering €2,50 standaard aangevinkt.',
-      name: 'Al aangevinkt en nep "bijna op"',
-      explain: 'Let je niet op, dan betaal je voor een extra dat al aangevinkt stond. En "nog maar 2" staat er vaak alleen zodat je je gaat haasten.',
+      name: 'Al aangevinkt',
+      explain: 'Er stond al een extra aangevinkt. Dat betaal je ook.',
     },
   },
 ];
+
+// The practice round has its own stall, never used in the real game.
+const PRACTICE = {
+  item: 'Een pen voor school',
+  honest: { shop: 'Kraam van Fairy', title: 'Blauwe pen', price: 2, lines: [], real: 2, fine: 'Gewoon €2. Klaar.' },
+  trick: {
+    shop: 'PenDeal Online',
+    title: 'Blauwe pen',
+    price: 0.5,
+    slogan: 'Bijna gratis!',
+    lines: [],
+    real: 5.45,
+    reveal: ['Er komt nog €4,95 verzendkosten bij.'],
+    fine: 'Exclusief €4,95 verzendkosten.',
+    name: 'Verborgen kosten',
+    explain: 'Pas bij het betalen komen er kosten bij.',
+  },
+};
 
 async function aiSlogans() {
   const reply = await chat(
@@ -99,7 +118,8 @@ async function aiSlogans() {
   return list.slice(0, ROUNDS.length).map((s) => (typeof s === 'string' && s.length < 50 && !/\d/.test(s) ? s : null));
 }
 
-export function mount(el, { onFinish, character }) {
+export function mount(el, { practice = false, onPracticeDone = () => {}, onFinish, character }) {
+  const rounds = practice ? [PRACTICE] : ROUNDS;
   let round = 0;
   let budget = BUDGET;
   let correct = 0;
@@ -109,7 +129,7 @@ export function mount(el, { onFinish, character }) {
   const receipt = [];
 
   isAvailable().then(async (ok) => {
-    if (!ok) return;
+    if (!ok || practice) return;
     slogans = await aiSlogans();
   });
 
@@ -126,7 +146,7 @@ export function mount(el, { onFinish, character }) {
   }
 
   function render() {
-    const r = ROUNDS[round];
+    const r = rounds[round];
     const trick = { ...r.trick };
     if (slogans?.[round]) {
       trick.slogan = slogans[round];
@@ -138,8 +158,7 @@ export function mount(el, { onFinish, character }) {
     ]);
     el.innerHTML = `
       <div class="g">
-        <div class="g__bar"><span>Kraam ${round + 1}/${ROUNDS.length}</span><span class="wallet"><i class="coin"></i>${euro(budget)}</span></div>
-        ${round === 0 ? say(character, `<p>Je hebt ${euro(BUDGET)} voor vier dingen. Wat iets echt kost, staat in de kleine lettertjes. Tik erop om ze te lezen, of sleep het vergrootglas erheen.</p>`) : ''}
+        <div class="g__bar"><span>${practice ? "Oefenkraam" : `Kraam ${round + 1}/${rounds.length}`}</span><span class="wallet"><i class="coin"></i>${euro(budget)}</span></div>
         <p class="g__title">${escapeHtml(r.item)}</p>
         <div class="offers">
           ${pair.map(([k, o]) => offerHtml(o, k)).join('')}
@@ -186,7 +205,7 @@ export function mount(el, { onFinish, character }) {
   }
 
   function reveal(key) {
-    const r = ROUNDS[round];
+    const r = rounds[round];
     const honest = key === 'honest';
     const paid = honest ? r.honest.real : r.trick.real;
     budget = Math.round((budget - paid) * 100) / 100;
@@ -204,32 +223,35 @@ export function mount(el, { onFinish, character }) {
     w.classList.add('is-paying');
     el.querySelector('.g').insertAdjacentHTML(
       'beforeend',
-      `      <p class="g__verdict ${honest ? 'is-right' : 'is-wrong'}">${honest ? 'Eerlijke deal' : `Truc: ${escapeHtml(r.trick.name)}`}</p>
+      `<div class="g__pop">
+      <p class="g__verdict ${honest ? 'is-right' : 'is-wrong'}">${honest ? 'Eerlijke deal' : `Truc: ${escapeHtml(r.trick.name)}`}</p>
       ${say(
         character,
         honest
-          ? `<p>Je betaalt ${euro(paid)}, precies wat erop stond. De andere aanbieding was een truc: ${escapeHtml(r.trick.name.toLowerCase())}.</p><ul>${r.trick.reveal.map((x) => `<li>${escapeHtml(x)}</li>`).join('')}</ul>`
-          : `<p>Je betaalt eigenlijk ${euro(paid)}.</p><ul>${r.trick.reveal.map((x) => `<li>${escapeHtml(x)}</li>`).join('')}</ul><p>${escapeHtml(r.trick.explain)}</p>`,
+          ? `<p>Goed! De andere was een truc. ${escapeHtml(r.trick.reveal[0])}</p>`
+          : `<p>Je betaalt eigenlijk ${euro(paid)}. ${escapeHtml(r.trick.explain)}</p>`,
       )}
-      <button class="btn btn--action g__wide" data-next>${round < ROUNDS.length - 1 ? 'Volgende kraam' : 'Afrekenen'}</button>`,
+      <button class="btn btn--action g__wide" data-next>${round < rounds.length - 1 ? 'Volgende kraam' : 'Afrekenen'}</button>
+      </div>`,
     );
     el.querySelector('[data-next]').addEventListener('click', () => {
       round += 1;
-      if (round < ROUNDS.length) render();
+      if (round < rounds.length) render();
       else finish();
     });
-    el.querySelector('[data-next]').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
   function finish() {
+    // A practice round never shows a score: it goes straight on to the real game.
+    if (practice) return onPracticeDone();
     const line =
       budget < 0
-        ? `Je staat ${euro(-budget)} rood. En misschien loopt er nog een abonnement. Door trucs wordt alles duurder dan het lijkt.`
-        : correct === ROUNDS.length
+        ? `Je staat ${euro(-budget)} rood. Trucs maken alles duurder.`
+        : correct === rounds.length
           ? `Je hebt nog ${euro(budget)} over en je trapte nergens in. Jou houden ze niet voor de gek!`
-          : `Je hebt nog ${euro(budget)} over. Met de eerlijke aanbiedingen had je ${euro(BUDGET - ROUNDS.reduce((s, r) => s + r.honest.real, 0))} over gehad.`;
+          : `Je hebt nog ${euro(budget)} over. Eerlijk kopen had je meer opgeleverd.`;
     endScreen(el, {
-      big: `${correct}/${ROUNDS.length}`,
+      big: `${correct}/${rounds.length}`,
       sub: 'eerlijke keuzes',
       character,
       line: escapeHtml(line),
@@ -237,13 +259,21 @@ export function mount(el, { onFinish, character }) {
           ${receipt.map((x) => `<p class="receipt__row"><span>${escapeHtml(x.item)}${x.trick ? `<small>${escapeHtml(x.trick)}</small>` : ''}</span><b>${euro(x.paid)}</b></p>`).join('')}
           <p class="receipt__row receipt__total"><span>Totaal</span><b>${euro(receipt.reduce((s, x) => s + x.paid, 0))}</b></p>
           <p class="receipt__row"><span>Over</span><b>${euro(budget)}</b></p></div>
-        <p class="g__hint">Je hebt er recht op om te weten wat je koopt. Dus: meteen de hele prijs, geen nepkortingen en geen verstopte abonnementen.</p>${aiMade ? '<p class="g__ai">Een AI heeft de reclameteksten bij de trucs geschreven. Webshops maken ze net zo snel.</p>' : ''}`,
-      onDone: () => onFinish({ correct, total: ROUNDS.length, summary: 'eerlijke keuzes' }),
+        <p class="g__hint">Je hebt het recht om te weten wat iets echt kost.</p>${aiMade ? '<p class="g__ai">Een AI heeft de reclameteksten bij de trucs geschreven. Webshops maken ze net zo snel.</p>' : ''}`,
+      onDone: () => onFinish({ correct, total: rounds.length, summary: 'eerlijke keuzes' }),
     });
   }
 
   render();
+  // Practice round: read both small prints, then buy.
+  const stopGuide = practice && guide(el, [
+    { target: () => el.querySelectorAll('[data-fine]')[0], text: 'Wat kost het echt? Tik op de kleine letters.' },
+    { target: () => el.querySelectorAll('[data-fine]')[1], text: 'En hier ook.' },
+    { target: '.offers', text: 'Welke is eerlijk? Tik op Kopen.', hand: false, wait: () => !!el.querySelector('.g__verdict') },
+    { target: '.g__pop', text: 'Hier zie je of het een truc was.', wait: 'ok', after: 0 },
+  ], { onDone: onPracticeDone });
   return () => {
+    if (stopGuide) stopGuide();
     destroyed = true;
   };
 }

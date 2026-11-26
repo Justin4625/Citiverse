@@ -11,10 +11,11 @@
 
 import { chat, isAvailable } from '../ai.js';
 import { escapeHtml, say, endScreen } from './kit.js';
+import { guide } from './guide.js';
 
 const W = 360;
 const H = 520;
-const STEPS = 220;
+const STEPS = 300;
 const STEPS_PER_SECOND = 10; // spent while walking or waiting in line, never while standing still
 const SPEED = 72; // map units per second
 const PLAYER_R = 9;
@@ -32,12 +33,12 @@ const COLORS = {
 };
 
 const TRACES = {
-  ov: { weight: 3, label: 'Ingecheckt op naam', text: 'Je reis staat op je naam. Het OV-bedrijf weet dus dat je hier vandaag was.' },
-  gezicht: { weight: 3, label: 'Gezicht gescand', text: 'Een systeem heeft je gezicht gescand. Een wachtwoord kun je veranderen, je gezicht niet.' },
-  wifi: { weight: 2, label: 'Wifi zag je telefoon', text: 'Je telefoon maakte contact met de gratis wifi. Zo kunnen ze je telefoon herkennen, ook als je niet inlogt.' },
-  beacon: { weight: 2, label: 'Winkel-beacon', text: 'Een kastje in de winkel (een beacon) zag je telefoon langskomen. Zo houden winkels bij wie er langsloopt, en hoe lang.' },
-  cam1: { weight: 1, label: 'Camera ziet je', text: 'Een camera in de gang heeft je gefilmd.' },
-  cam2: { weight: 1, label: 'Camera ziet je', text: 'Een camera in de hal heeft je gefilmd.' },
+  ov: { weight: 3, label: 'Ingecheckt op naam', text: 'Je reis staat op je naam. Ze weten dat je hier was.' },
+  gezicht: { weight: 3, label: 'Gezicht gescand', text: 'Je gezicht is gescand. Dat kun je nooit veranderen.' },
+  wifi: { weight: 2, label: 'Wifi zag je telefoon', text: 'De wifi zag je telefoon. Ook zonder inloggen.' },
+  beacon: { weight: 2, label: 'Winkel-beacon', text: 'Een kastje in de winkel zag je telefoon langskomen.' },
+  cam1: { weight: 1, label: 'Camera ziet je', text: 'Een camera heeft je gefilmd.' },
+  cam2: { weight: 1, label: 'Camera ziet je', text: 'Een camera heeft je gefilmd.' },
 };
 
 const BASE_WALLS = [
@@ -62,6 +63,23 @@ const CAMERAS = [
   { id: 'cam2', x: 360, y: 372, dir: Math.PI, sweep: 0.55, range: 150, period: 4.2 },
 ];
 
+const STATION = { BASE_WALLS, LEFT_GATE, FACE_GATE, POLE, MACHINE, QUEUE, SCAN, WIFI, BEACON, CAMERAS, shop: true };
+// The practice round has its own small hall, never used in the real game: the machine on the
+// other side, one camera, one gate with a queue, no shop and no wifi.
+const PRACTICE_HALL = {
+  BASE_WALLS: [[0, 150, 20, 10], [60, 150, 300, 10]],
+  LEFT_GATE,
+  FACE_GATE: null,
+  POLE: { x: 130, y: 420, r: 16 },
+  MACHINE: { x: 300, y: 430, r: 20, hold: 2 },
+  QUEUE: { x: 40, y: 180, r: 20, hold: 1.2 },
+  SCAN: null,
+  WIFI: null,
+  BEACON: null,
+  CAMERAS: [{ id: 'cam2', x: 360, y: 290, dir: Math.PI, sweep: 0.5, range: 140, period: 4 }],
+  shop: false,
+};
+
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
 function circleHitsRect(cx, cy, r, [x, y, w, h]) {
@@ -85,8 +103,8 @@ async function profile(traces) {
         role: 'system',
         content:
           'Je bent Privy, stationsmedewerker op Rotterdam Centraal, in een spel voor jongeren over privacy. Je krijgt een lijst datasporen die een reiziger achterliet. ' +
-          'Vertel in maximaal drie korte zinnen, in de jij-vorm, wat bedrijven samen uit deze sporen over de reiziger te weten kunnen komen. Een beetje griezelig, maar niet eng. ' +
-          'Verzin geen namen, adressen of andere echte gegevens. Praat zoals tegen een tiener: kort en in gewone woorden.',
+          'Vertel in maximaal twee korte zinnen, in de jij-vorm, wat bedrijven samen uit deze sporen over de reiziger te weten kunnen komen. Een beetje griezelig, maar niet eng. ' +
+          'Verzin geen namen, adressen of andere echte gegevens. Praat zoals tegen een kind van 11 tot 15 jaar: kort en in makkelijke woorden.',
       },
       { role: 'user', content: traces.map((t) => `- ${t}`).join('\n') },
     ],
@@ -95,7 +113,7 @@ async function profile(traces) {
   return reply && reply.length > 20 && reply.length < 600 ? reply : null;
 }
 
-export function mount(el, { onFinish, character }) {
+export function mount(el, { practice = false, onPracticeDone = () => {}, onFinish, character }) {
   let canvas = null;
   let ctx = null;
   let scale = 1;
@@ -124,21 +142,8 @@ export function mount(el, { onFinish, character }) {
     messageTime: 0,
   };
 
-  function intro() {
-    el.innerHTML = `
-      <div class="g">
-        ${say(character, `<p>Loop naar het perron: tik waar je heen wilt. Je hebt ${STEPS} stappen, daarna is je trein weg. Stilstaan kost niks, lopen en in de rij staan wel. Maar overal in het station verzamelen systemen gegevens over je. Lukt het jou zonder sporen?</p>`)}
-        <ul class="legend">
-          <li><i class="lg lg--cam"></i><span><strong>Camera</strong> draait heen en weer. Wacht tot hij de andere kant op kijkt.</span></li>
-          <li><i class="lg lg--wifi"></i><span><strong>Gratis wifi</strong> ziet je telefoon als je erlangs loopt.</span></li>
-          <li><i class="lg lg--beacon"></i><span><strong>Winkel-beacon</strong> houdt bij wie er langsloopt.</span></li>
-          <li><i class="lg lg--pole"></i><span><strong>Incheckpaal</strong> is snel, maar dan staat je reis op je naam. Bij de <strong>automaat</strong> koop je een kaartje zonder naam, maar dat duurt even.</span></li>
-          <li><i class="lg lg--gate"></i><span><strong>Poort met gezichtsscan</strong> is snel. Bij het gewone poortje staat een rij.</span></li>
-        </ul>
-        <button class="btn btn--action g__wide" data-go>Start</button>
-      </div>`;
-    el.querySelector('[data-go]').addEventListener('click', start);
-  }
+  let stopGuide = () => {};
+  const L = practice ? PRACTICE_HALL : STATION;
 
   function start() {
     el.innerHTML = `
@@ -146,13 +151,14 @@ export function mount(el, { onFinish, character }) {
         <div class="g__bar"><span class="sp__time">${STEPS} stappen over</span><span class="sp__traces">0 sporen</span></div>
         <div class="g__meter"><i class="sp__meter" style="width:100%"></i></div>
         <div class="sp__stage"><canvas aria-label="Plattegrond van het station. Tik waar je heen wilt lopen."></canvas></div>
-        <p class="g__hint">Tik op de kaart om te lopen, of gebruik de pijltjestoetsen.</p>
       </div>`;
     canvas = el.querySelector('canvas');
     ctx = canvas.getContext('2d');
+    // The map fills the free space: as wide as it may be, but never taller than the screen allows.
     resize = () => {
-      const w = canvas.parentElement.clientWidth;
-      scale = w / W;
+      const stage = canvas.parentElement;
+      scale = Math.min(stage.clientWidth / W, stage.clientHeight / H);
+      const w = W * scale;
       const dpr = window.devicePixelRatio || 1;
       canvas.style.width = `${w}px`;
       canvas.style.height = `${H * scale}px`;
@@ -190,12 +196,22 @@ export function mount(el, { onFinish, character }) {
 
     last = performance.now();
     raf = requestAnimationFrame(loop);
+
+    // Practice round on the map itself.
+    const spot = (x, y, w, h) => [x / W, y / H, w / W, h / H];
+    stopGuide = practice && guide(el, [
+      { target: 'canvas', area: spot(256, 392, 100, 76), text: 'Tik op de automaat. Daar koop je een kaartje zonder je naam.', wait: () => state.machineHold > 0.2 || state.checkedIn },
+      { target: 'canvas', area: spot(256, 392, 100, 76), text: 'Blijf even staan tot je kaartje klaar is.', hand: false, wait: () => state.checkedIn },
+      { target: 'canvas', area: spot(200, 200, 160, 180), text: 'Die camera filmt je. Loop er niet doorheen!', wait: 'ok' },
+      { target: 'canvas', area: spot(4, 155, 76, 50), text: 'Ga door het poortje bij de rij.', wait: () => state.leftOpen },
+      { target: 'canvas', area: spot(0, 0, 360, 44), text: 'Zo werkt het! In het echte station zijn er nog meer dingen die je zien.', wait: 'ok' },
+    ], { onDone: onPracticeDone });
   }
 
   function walls() {
-    const list = [...BASE_WALLS];
-    if (!state.leftOpen) list.push(LEFT_GATE);
-    if (!state.faceOpen) list.push(FACE_GATE);
+    const list = [...L.BASE_WALLS];
+    if (!state.leftOpen) list.push(L.LEFT_GATE);
+    if (!state.faceOpen && L.FACE_GATE) list.push(L.FACE_GATE);
     return list;
   }
 
@@ -242,45 +258,45 @@ export function mount(el, { onFinish, character }) {
     let busy = moving;
 
     // Check-in: the pole is instant but personal; the machine is anonymous but takes time.
-    if (!state.checkedIn && dist(p, POLE) < POLE.r + PLAYER_R) {
+    if (!state.checkedIn && dist(p, L.POLE) < L.POLE.r + PLAYER_R) {
       state.checkedIn = true;
       addTrace('ov');
       say_('Ingecheckt met je OV-chipkaart op naam.');
     }
-    if (!state.checkedIn && dist(p, MACHINE) < MACHINE.r + 4) {
+    if (!state.checkedIn && dist(p, L.MACHINE) < L.MACHINE.r + 4) {
       state.machineHold += dt;
       busy = true;
-      say_('Kaartje zonder naam kopen… blijf staan.');
-      if (state.machineHold >= MACHINE.hold) {
+      say_('Kaartje kopen… blijf staan.');
+      if (state.machineHold >= L.MACHINE.hold) {
         state.checkedIn = true;
         say_('Kaartje gekocht. Niemand weet wie je bent.');
       }
     } else if (!state.checkedIn) state.machineHold = 0;
 
     // Gates: only open once you have a ticket.
-    if (dist(p, SCAN) < SCAN.r + 4) {
-      if (!state.checkedIn) say_('Eerst inchecken of een kaartje kopen!');
+    if (L.SCAN && dist(p, L.SCAN) < L.SCAN.r + 4) {
+      if (!state.checkedIn) say_('Eerst een kaartje!');
       else if (!state.faceOpen) {
         state.faceOpen = true;
         addTrace('gezicht');
       }
     }
-    if (!state.leftOpen && dist(p, QUEUE) < QUEUE.r + 4) {
-      if (!state.checkedIn) say_('Eerst inchecken of een kaartje kopen!');
+    if (!state.leftOpen && dist(p, L.QUEUE) < L.QUEUE.r + 4) {
+      if (!state.checkedIn) say_('Eerst een kaartje!');
       else {
         state.queueHold += dt;
         busy = true;
-        say_('In de rij voor het poortje… blijf staan.');
-        if (state.queueHold >= QUEUE.hold) {
+        say_('In de rij… blijf staan.');
+        if (state.queueHold >= L.QUEUE.hold) {
           state.leftOpen = true;
           say_('Het poortje gaat open.');
         }
       }
     } else if (!state.leftOpen) state.queueHold = 0;
 
-    if (dist(p, WIFI) < WIFI.r) addTrace('wifi');
-    if (dist(p, BEACON) < BEACON.r) addTrace('beacon');
-    for (const cam of CAMERAS) {
+    if (L.WIFI && dist(p, L.WIFI) < L.WIFI.r) addTrace('wifi');
+    if (L.BEACON && dist(p, L.BEACON) < L.BEACON.r) addTrace('beacon');
+    for (const cam of L.CAMERAS) {
       if (inCone(cam, camAngle(cam), p)) addTrace(cam.id);
     }
 
@@ -332,11 +348,11 @@ export function mount(el, { onFinish, character }) {
     c.fillText('PERRONHAL', W / 2, 100);
 
     // Zones.
-    zone(WIFI, COLORS.wifi, 'GRATIS WIFI');
-    zone(BEACON, COLORS.beacon, 'BEACON');
+    if (L.WIFI) zone(L.WIFI, COLORS.wifi, 'GRATIS WIFI');
+    if (L.BEACON) zone(L.BEACON, COLORS.beacon, 'BEACON');
 
     // Cameras and their cones.
-    for (const cam of CAMERAS) {
+    for (const cam of L.CAMERAS) {
       const a = camAngle(cam);
       const seen = state.traces.has(cam.id);
       c.fillStyle = seen ? 'rgba(201,76,0,0.28)' : 'rgba(255,106,19,0.2)';
@@ -355,19 +371,21 @@ export function mount(el, { onFinish, character }) {
     c.fillStyle = COLORS.ink;
     for (const [x, y, w, h] of walls()) c.fillRect(x, y, w, h);
     c.fillStyle = '#fff';
-    c.font = '800 11px Archivo, system-ui, sans-serif';
-    c.fillText('WINKEL', 315, 234);
-    c.fillStyle = COLORS.muted;
-    c.font = '700 9px Archivo, system-ui, sans-serif';
-    c.fillText('BANKJES', 178, 324);
+    if (L.shop) {
+      c.font = '800 11px Archivo, system-ui, sans-serif';
+      c.fillText('WINKEL', 315, 234);
+      c.fillStyle = COLORS.muted;
+      c.font = '700 9px Archivo, system-ui, sans-serif';
+      c.fillText('BANKJES', 178, 324);
+    }
 
     // Gates.
-    gateLabel(SCAN, state.faceOpen ? COLORS.orangeDeep : COLORS.orange, 'SCAN', state.faceOpen);
-    gateLabel(QUEUE, COLORS.muted, 'RIJ', state.leftOpen, state.queueHold / QUEUE.hold);
+    if (L.SCAN) gateLabel(L.SCAN, state.faceOpen ? COLORS.orangeDeep : COLORS.orange, 'SCAN', state.faceOpen);
+    gateLabel(L.QUEUE, COLORS.muted, 'RIJ', state.leftOpen, state.queueHold / L.QUEUE.hold);
 
     // Check-in pole and machine.
-    point(POLE, COLORS.orange, 'PAAL');
-    point(MACHINE, COLORS.green, 'AUTOMAAT', state.checkedIn ? 0 : state.machineHold / MACHINE.hold);
+    point(L.POLE, COLORS.orange, 'PAAL');
+    point(L.MACHINE, COLORS.green, 'AUTOMAAT', state.checkedIn ? 0 : state.machineHold / L.MACHINE.hold);
 
     // Entrance.
     c.fillStyle = COLORS.muted;
@@ -504,6 +522,8 @@ export function mount(el, { onFinish, character }) {
   }
 
   async function finish(made) {
+    // A practice round never shows a score: it goes straight on to the real game.
+    if (practice) return onPracticeDone();
     if (ended) return;
     ended = true;
     cleanup();
@@ -514,12 +534,12 @@ export function mount(el, { onFinish, character }) {
     const text = made && traces.length && (await isAvailable()) ? await profile(traces.map((t) => t.text)) : null;
     if (destroyed) return;
     const line = !made
-      ? 'Je stappen zijn op en je trein is weg! Privé blijven kost moeite. Probeer het nog een keer. Welke sporen vind je het ergst? En welke vind je niet zo erg?'
+      ? 'Je stappen zijn op en je trein is weg! Probeer het nog een keer.'
       : !traces.length
         ? 'Spoorloos! Niemand weet iets over je. En je hebt je trein ook nog gehaald.'
         : text
           ? escapeHtml(text)
-          : 'Dit weten ze nu over je. Eén spoor lijkt niet erg. Maar alles bij elkaar zegt het veel over jou.';
+          : 'Eén spoor lijkt niet erg. Maar samen zeggen ze veel over jou.';
     endScreen(el, {
       big: made ? `${points}/10` : 'Gemist',
       sub: made ? 'privacypunten' : 'De trein is vertrokken',
@@ -527,13 +547,14 @@ export function mount(el, { onFinish, character }) {
       line,
       extra: `${traces.length ? `<ul class="traces">${traces.map((t) => `<li class="w${t.weight}">${escapeHtml(t.text)}</li>`).join('')}</ul>` : ''}
         ${text ? '<p class="g__ai">Een AI heeft dit verhaal gemaakt uit jouw sporen. Bedrijven doen dat in het echt ook.</p>' : ''}
-        <p class="g__hint">Je laat overal sporen achter. Alles ontwijken lukt niet, maar je kunt wel kiezen. Je gezicht en reizen op je naam zijn het gevoeligst. Zet ook je wifi uit als je die niet gebruikt.</p>`,
+        <p class="g__hint">Tip: zet je wifi uit als je hem niet gebruikt.</p>`,
       onDone: () => onFinish({ correct: points, total: 10, summary: 'privacypunten' }),
     });
   }
 
-  intro();
+  start();
   return () => {
+    if (stopGuide) stopGuide();
     destroyed = true;
     cleanup();
   };

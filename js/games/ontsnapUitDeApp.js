@@ -6,17 +6,20 @@
 // AI: writes the lure pop-ups. Without AI the game uses fixed ones.
 
 import { chat, isAvailable } from '../ai.js';
-import { escapeHtml, say, endScreen, parseJson, shuffle } from './kit.js';
+import { escapeHtml, endScreen, parseJson, shuffle } from './kit.js';
+import { guide } from './guide.js';
 
-const LURE_EVERY = 7000;
+const LURE_EVERY = 10000;
 
 const TRICKS = {
-  autoplay: { label: 'Volgende video automatisch afspelen', screen: 'weergave', explain: 'Autoplay start de volgende video al, voordat je kunt kiezen om te stoppen.' },
-  oneindig: { label: 'Oneindig scrollen', screen: 'weergave', explain: 'Er komt nooit een einde aan de feed. Dus er is ook geen moment waarop je vanzelf stopt.' },
-  meldingen: { label: 'Pushmeldingen', screen: 'meldingen', explain: 'Meldingen halen je terug de app in, ook als je net met iets anders bezig was.' },
-  streak: { label: 'Streak-herinneringen', screen: 'meldingen', explain: 'Door een streak kom je elke dag terug, omdat je hem niet kwijt wilt.' },
-  bolletjes: { label: 'Rode bolletjes op iconen', screen: 'meldingen', explain: 'Door rode bolletjes denk je dat je iets mist. Dus klik je erop.' },
+  autoplay: { label: 'Volgende video automatisch afspelen', screen: 'weergave', explain: 'De volgende video start vanzelf.' },
+  oneindig: { label: 'Oneindig scrollen', screen: 'weergave', explain: 'Er komt nooit een einde.' },
+  meldingen: { label: 'Pushmeldingen', screen: 'meldingen', explain: 'Meldingen trekken je terug de app in.' },
+  streak: { label: 'Streak-herinneringen', screen: 'meldingen', explain: 'Je komt elke dag terug voor je streak.' },
+  bolletjes: { label: 'Rode bolletjes op iconen', screen: 'meldingen', explain: 'Je denkt dat je iets mist.' },
 };
+// The practice round has its own trick, never used in the real game.
+const PRACTICE_TRICK = { trillen: { label: 'Trillen bij elke like', screen: 'meldingen', explain: 'Elke tril trekt je terug naar je telefoon.' } };
 const DECOYS = {
   donker: { label: 'Donkere modus', screen: 'weergave' },
   groot: { label: 'Grote letters', screen: 'weergave' },
@@ -54,8 +57,9 @@ async function aiLures() {
   return ok.length >= 3 ? ok : null;
 }
 
-export function mount(el, { onFinish, character }) {
-  const on = { autoplay: true, oneindig: true, meldingen: true, streak: true, bolletjes: true, donker: false, groot: false, taal: false };
+export function mount(el, { practice = false, onPracticeDone = () => {}, onFinish, character }) {
+  const tricks = practice ? PRACTICE_TRICK : TRICKS;
+  const on = { trillen: true, autoplay: true, oneindig: true, meldingen: true, streak: true, bolletjes: true, donker: false, groot: false, taal: false };
   let screen = 'feed';
   let lureTimer = null;
   let feedTimer = null;
@@ -67,6 +71,7 @@ export function mount(el, { onFinish, character }) {
   let aiMade = false;
   let ended = false;
   let destroyed = false;
+  let stopGuide = () => {};
 
   isAvailable().then(async (ok) => {
     if (!ok) return;
@@ -79,23 +84,13 @@ export function mount(el, { onFinish, character }) {
 
   const offCount = () => Object.keys(TRICKS).filter((k) => !on[k]).length;
 
-  function intro() {
-    el.innerHTML = `
-      <div class="g">
-        ${say(character, '<p>Ik wilde even één filmpje kijken. Een uur later zat ik er nog. Deze app zit vol trucs om je vast te houden. Zet ze allemaal uit in de instellingen. En trap niet in de pop-ups!</p>')}
-        <button class="btn btn--action g__wide" data-go>Start</button>
-      </div>`;
-    el.querySelector('[data-go]').addEventListener('click', start);
-  }
-
   function start() {
     el.innerHTML = `
       <div class="g">
         <div class="g__bar"><span class="oa__count">0/5 trucs uit</span><span class="oa__bitten">0 keer erin getrapt</span></div>
         <div class="phone"><div class="phone__screen"></div></div>
-        <p class="g__hint">Tik op het tandwiel om naar de instellingen te gaan.</p>
+        <p class="g__hint">Zet de 5 trucs uit die je in de app houden.</p>
       </div>`;
-    lureTimer = setInterval(showLure, LURE_EVERY);
     feedTimer = setInterval(() => {
       if (on.autoplay && screen === 'feed') {
         post = (post + 1) % POSTS.length;
@@ -103,6 +98,14 @@ export function mount(el, { onFinish, character }) {
       }
     }, 1800);
     draw();
+    // Practice round: find the first trick together. The pop-ups start after it.
+    stopGuide = practice && guide(el, [
+      { target: '[data-nav="settings"]', text: 'Deze app houdt je vast. Tik op het tandwiel.', pad: 4 },
+      { target: '[data-nav="meldingen"]', text: 'Tik op Meldingen.', pad: 4 },
+      { target: () => el.querySelector('[data-t="trillen"]')?.closest('.toggle'), text: 'Je telefoon trilt bij elke like. Zet dat uit!', at: [0.88, 0.5], pad: 4 },
+      { target: '.phone', text: 'Zo zet je een truc uit. In het echte spel zoek je er 5. En trap niet in pop-ups!', wait: 'ok', pad: 4 },
+    ], { onDone: onPracticeDone });
+    if (!practice) lureTimer = setInterval(showLure, LURE_EVERY);
   }
 
   function header(title, back) {
@@ -138,7 +141,7 @@ export function mount(el, { onFinish, character }) {
           <button data-nav="privacy">Privacy</button>
         </nav>`;
     } else if (screen === 'weergave' || screen === 'meldingen') {
-      const rows = [...Object.entries(TRICKS), ...Object.entries(DECOYS)].filter(([, d]) => d.screen === screen);
+      const rows = [...Object.entries(tricks), ...Object.entries(DECOYS)].filter(([, d]) => d.screen === screen);
       s.innerHTML = `${header(screen === 'weergave' ? 'Weergave en video' : 'Meldingen', 'settings')}
         <div class="phone__toggles">${rows.map(([k, d]) => toggleRow(k, d)).join('')}</div>`;
     } else {
@@ -195,6 +198,8 @@ export function mount(el, { onFinish, character }) {
   }
 
   function finish() {
+    // A practice round never shows a score: it goes straight on to the real game.
+    if (practice) return onPracticeDone();
     if (ended) return;
     ended = true;
     stopAll();
@@ -208,19 +213,20 @@ export function mount(el, { onFinish, character }) {
       character,
       line: escapeHtml(
         off === 5
-          ? `Ontsnapt! ${bitten ? `Je trapte ${bitten} keer in een pop-up, maar` : 'Je trapte nergens in, en'} jij bepaalt weer wat de app doet. Tijd om naar buiten te gaan!`
-          : 'De app had je nog vast. Die trucs zitten er expres in. Maar de meeste kun je zelf uitzetten.',
+          ? 'Ontsnapt! Jij bepaalt weer wat de app doet. Tijd om naar buiten te gaan!'
+          : 'De app had je nog vast. Maar de meeste trucs kun je zelf uitzetten.',
       ),
       extra: `${stillOn.length ? `<ul class="traces">${stillOn.map(([, t]) => `<li class="w2"><strong>${escapeHtml(t.label)}</strong>: ${escapeHtml(t.explain)}</li>`).join('')}</ul>` : ''}
-        <p class="g__hint">Pop-ups weggetikt: ${resisted}. Erin getrapt: ${bitten}. Elke keer dat je erin trapt, kost een punt.</p>
+        <p class="g__hint">Erin getrapt: ${bitten} keer. Dat kost elke keer een punt.</p>
         ${aiMade ? '<p class="g__ai">Een AI heeft de pop-ups geschreven. Apps testen zulke teksten echt, om te zien welke het best werken.</p>' : ''}`,
       onDone: () => onFinish({ correct: score, total: 5, summary: 'punten' }),
     });
   }
 
-  intro();
+  start();
   return () => {
     destroyed = true;
+    if (stopGuide) stopGuide();
     stopAll();
   };
 }

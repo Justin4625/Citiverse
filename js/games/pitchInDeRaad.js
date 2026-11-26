@@ -1,12 +1,12 @@
 // "Pitch in de raad" (Active, Stadhuis, Acty).
 // Think of an idea for your neighbourhood and pitch it to three council members, who each care
 // about something else: money, the neighbours, and safety. You need 2 of the 3 votes.
-// AI: the council members ask questions about your own idea and judge your typed answer.
-// Without AI they ask fixed questions and you choose an answer.
+// No AI chat: the council members ask fixed questions and you choose an answer.
 // Ideas are counted anonymously on this device, so a demo laptop shows what young people want.
 
-import { chat, isAvailable, stripPersonal } from '../ai.js';
-import { escapeHtml, say, endScreen, parseJson, shuffle, tally, typingForm } from './kit.js';
+import { stripPersonal } from '../ai.js';
+import { escapeHtml, say, endScreen, shuffle, tally, typingForm } from './kit.js';
+import { guide } from './guide.js';
 
 const TOPICS = [
   {
@@ -38,9 +38,9 @@ const MEMBERS = [
     cares: 'geld',
     question: 'Wat kost het? En wie betaalt dat?',
     answers: [
-      { text: 'We gebruiken een plek die er al is. De gemeente heeft geld voor jongeren, daar betalen we een deel van. En we helpen zelf mee.', vote: true },
-      { text: 'Het kost vast niet zoveel.', vote: false, why: 'Bram wil weten waar het geld vandaan komt. Met "vast" kom je er niet.' },
-      { text: 'Geld is niet belangrijk, het gaat om jongeren.', vote: false, why: 'Voor Bram draait alles om geld. Je geeft geen antwoord op zijn vraag.' },
+      { text: 'We gebruiken een plek die er al is. En we helpen zelf mee.', vote: true },
+      { text: 'Het kost vast niet zoveel.', vote: false, why: 'Bram wil weten hoeveel. "Vast" is geen antwoord.' },
+      { text: 'Geld is niet belangrijk, het gaat om jongeren.', vote: false, why: 'Bram let op geld. Je geeft geen antwoord.' },
     ],
   },
   {
@@ -49,9 +49,9 @@ const MEMBERS = [
     cares: 'de buren',
     question: 'Hebben de buren er last van? Van herrie of rommel?',
     answers: [
-      { text: 'We praten eerst met de buren. Er komen afvalbakken. En na tien uur \'s avonds is het stil.', vote: true },
+      { text: 'We praten eerst met de buren. En na tien uur is het stil.', vote: true },
       { text: 'De buren moeten maar wennen.', vote: false, why: 'Esther komt op voor de buren. Zo krijg je haar niet mee.' },
-      { text: 'Daar heb ik nog niet over nagedacht.', vote: false, why: 'Dan heb je dus nog geen plan. En dat wil Esther wel zien.' },
+      { text: 'Daar heb ik nog niet over nagedacht.', vote: false, why: 'Esther wil een plan zien.' },
     ],
   },
   {
@@ -61,59 +61,40 @@ const MEMBERS = [
     question: 'Hoe zorg je dat het veilig blijft, ook als het donker is?',
     answers: [
       { text: 'Er komen goede lampen. En jongerenwerkers komen vaak langs.', vote: true },
-      { text: 'Jongeren zorgen zelf wel voor elkaar.', vote: false, why: 'Youssef wil weten wat je doet als het tóch misgaat.' },
-      { text: 'Er gebeurt toch nooit iets.', vote: false, why: 'Dat weet je niet zeker. Youssef wil horen wat je regelt.' },
+      { text: 'Jongeren zorgen zelf wel voor elkaar.', vote: false, why: 'Youssef wil weten wat je doet als het misgaat.' },
+      { text: 'Er gebeurt toch nooit iets.', vote: false, why: 'Dat weet je niet. Youssef wil een plan.' },
     ],
   },
 ];
 
-async function aiQuestion(member, idea) {
-  const reply = await chat(
-    [
-      {
-        role: 'system',
-        content: `Je bent ${member.name}, gemeenteraadslid in Rotterdam. Je let vooral op ${member.cares}. Een jongere pitcht een idee. Stel één korte vraag over waar jij op let. Praat zoals tegen een tiener: gewone woorden, geen moeilijke termen. Alleen de vraag, maximaal 15 woorden.`,
-      },
-      { role: 'user', content: `Het idee: ${idea}` },
+// The practice round has its own small plan and one council member, never used in the real game.
+const PRACTICE_IDEA = 'Een bankje bij de bushalte';
+const PRACTICE_MEMBERS = [
+  {
+    id: 'lia',
+    name: 'Lia',
+    cares: 'de stoep',
+    question: 'Kunnen mensen er dan nog wel langs?',
+    answers: [
+      { text: 'Ja, het bankje komt tegen de muur. Er blijft genoeg ruimte over.', vote: true },
+      { text: 'Ze lopen er maar omheen.', vote: false, why: 'Lia wil dat iedereen erlangs kan.' },
     ],
-    { temperature: 0.5, maxTokens: 60 },
-  );
-  const q = reply?.replace(/^["']|["']$/g, '').trim();
-  return q && q.length > 8 && q.length < 200 ? q : null;
-}
+  },
+];
 
-async function aiVote(member, idea, question, answer) {
-  const reply = await chat(
-    [
-      {
-        role: 'system',
-        content:
-          `Je bent ${member.name}, gemeenteraadslid. Je let vooral op ${member.cares}. Je beoordeelt het antwoord van een jongere (13 tot 18 jaar) eerlijk maar vriendelijk. ` +
-          'Stem "voor" als het antwoord concreet ingaat op je vraag, ook als het niet perfect is. Stem "tegen" als het vaag is, niet ingaat op je vraag, of onbeleefd is. ' +
-          'Antwoord alleen met JSON: {"stem": "voor" of "tegen", "reden": "één korte zin in gewone woorden, zoals tegen een tiener"}',
-      },
-      { role: 'user', content: `Idee: ${idea}\nJouw vraag: ${question}\nAntwoord van de jongere: ${answer}` },
-    ],
-    { json: true, temperature: 0.2, maxTokens: 100 },
-  );
-  const data = parseJson(reply);
-  if (!['voor', 'tegen'].includes(data?.stem) || typeof data?.reden !== 'string') return null;
-  return { vote: data.stem === 'voor', why: data.reden.slice(0, 240) };
-}
-
-export function mount(el, { onFinish, character }) {
+export function mount(el, { practice = false, onPracticeDone = () => {}, onFinish, character }) {
+  const members = practice ? PRACTICE_MEMBERS : MEMBERS;
   let topic = null;
   let idea = '';
   let index = 0;
   const votes = [];
-  let aiOn = false;
   let destroyed = false;
-  isAvailable().then((ok) => (aiOn = ok));
+  let stopGuide = () => {};
 
   function chooseTopic() {
     el.innerHTML = `
       <div class="g">
-        ${say(character, '<p>Wat moet er anders in jouw buurt? Kies een onderwerp. Daarna leg je je plan voor aan drie raadsleden. Twee van hen moeten voor stemmen.</p>')}
+        ${say(character, '<p>Wat moet er beter in jouw buurt?</p>')}
         <div class="g__choices">${TOPICS.map((t) => `<button class="g__choice" data-t="${t.id}"><strong>${t.label}</strong></button>`).join('')}</div>
       </div>`;
     el.querySelectorAll('[data-t]').forEach((b) =>
@@ -134,7 +115,7 @@ export function mount(el, { onFinish, character }) {
           <textarea id="ownIdea" maxlength="200" placeholder="Mijn plan…"></textarea>
           <button class="btn" type="submit">Dit is mijn plan</button>
         </form>
-        <p class="g__hint">Zet er geen namen of adressen in. We bewaren je plan zonder naam, alleen op dit apparaat.</p>
+        <p class="g__hint">Zet er geen namen of adressen in.</p>
       </div>`;
     el.querySelectorAll('[data-i]').forEach((b) =>
       b.addEventListener('click', () => {
@@ -153,14 +134,14 @@ export function mount(el, { onFinish, character }) {
   }
 
   function start() {
-    tally('ideeen', topic.id);
+    if (!practice) tally('ideeen', topic.id);
     member();
   }
 
   // The council chamber: three seats with vote lamps, and you at the lectern.
   function bar() {
     return `<div class="council">
-      <div class="council__seats">${MEMBERS.map((m, i) => {
+      <div class="council__seats">${members.map((m, i) => {
         const v = votes[i];
         return `<span class="council__seat${v === true ? ' is-yes' : v === false ? ' is-no' : i === index ? ' is-now' : ''}" style="--i:${i}">
           <i class="council__lamp"></i><b>${m.name[0]}</b><small>${m.name}</small><em>${escapeHtml(m.cares)}</em></span>`;
@@ -171,7 +152,7 @@ export function mount(el, { onFinish, character }) {
   }
 
   async function member() {
-    const m = MEMBERS[index];
+    const m = members[index];
     el.innerHTML = `
       <div class="g">
         ${bar()}
@@ -180,49 +161,13 @@ export function mount(el, { onFinish, character }) {
       </div>`;
     const box = el.querySelector('.m-answer');
     cards(m, box);
-    // With AI the player may also answer in their own words; tapping a card always works.
-    if (aiOn) addOwnAnswer(m, box);
-  }
-
-  // Typing your own answer: the member first asks a question about your idea (AI), then votes.
-  function addOwnAnswer(m, box) {
-    box.insertAdjacentHTML('beforeend', '<button class="btn g__wide" data-own>Of antwoord in je eigen woorden</button>');
-    box.querySelector('[data-own]').addEventListener('click', async () => {
-      const q = el.querySelector('.m-q');
-      q.innerHTML = '<span class="g__thinking">denkt na over je idee…</span>';
-      box.innerHTML = '';
-      const question = (await aiQuestion(m, idea)) ?? m.question;
-      if (destroyed) return;
-      q.textContent = question;
-      box.innerHTML = `<form class="g__own">
-          <textarea id="pitchAnswer" maxlength="280" placeholder="Jouw antwoord aan ${m.name}…"></textarea>
-          <button class="btn btn--action" type="submit">Antwoord</button>
-          <button class="btn" type="button" data-cards>Toch een antwoord kiezen</button>
-        </form>`;
-      const form = box.querySelector('form');
-      typingForm(form, { min: 5 });
-      form.querySelector('textarea').focus();
-      form.querySelector('[data-cards]').addEventListener('click', () => {
-        q.textContent = m.question;
-        cards(m, box);
-        addOwnAnswer(m, box);
-      });
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const { text } = stripPersonal(box.querySelector('textarea').value.trim());
-        if (text.length < 5) return;
-        box.querySelectorAll('button, textarea').forEach((x) => (x.disabled = true));
-        box.insertAdjacentHTML('beforeend', `<p class="g__thinking">${m.name} overlegt…</p>`);
-        const res = await aiVote(m, idea, question, text);
-        if (destroyed) return;
-        if (!res) {
-          q.textContent = m.question;
-          cards(m, box, 'Dat lukte even niet. Kies een antwoord.');
-          return;
-        }
-        decided(m, res.vote, res.why, true);
-      });
-    });
+    if (index === 0) {
+      stopGuide = practice && guide(el, [
+        { target: '.council__lectern', text: 'Dit is je plan. Een raadslid gaat er een vraag over stellen.', wait: 'ok' },
+        { target: '.m-answer .g__choices', text: 'Kies het antwoord dat echt iets regelt.', hand: false, wait: () => votes.length > 0 },
+        { target: '.g__pop', text: 'Zo zie je hoe het raadslid stemt.', wait: 'ok' },
+      ], { onDone: onPracticeDone });
+    }
   }
 
   function cards(m, box, note) {
@@ -232,19 +177,18 @@ export function mount(el, { onFinish, character }) {
     box.querySelectorAll('[data-vote]').forEach((b) =>
       b.addEventListener('click', () => {
         const a = m.answers.find((x) => x.text === b.textContent);
-        decided(m, a.vote, a.vote ? `Concreet antwoord. Daar kan ik mee verder.` : a.why, false);
+        decided(m, a.vote, a.vote ? 'Duidelijk antwoord. Daar kan ik wat mee.' : a.why);
       }),
     );
   }
 
-  function decided(m, vote, why, ai) {
+  function decided(m, vote, why) {
     votes[index] = vote;
-    const last = index === MEMBERS.length - 1;
-    el.querySelector('.m-answer').innerHTML = `
+    const last = index === members.length - 1;
+    el.querySelector('.m-answer').innerHTML = `<div class="g__pop">
       <p class="g__verdict ${vote ? 'is-right' : 'is-wrong'}">${m.name} stemt ${vote ? 'voor' : 'tegen'}</p>
       <div class="say"><span class="say__avatar" aria-hidden="true">${m.name[0]}</span><div class="say__text"><p>${escapeHtml(why)}</p></div></div>
-      ${ai ? '<p class="g__ai">Deze stem is bepaald door de AI.</p>' : ''}
-      <button class="btn btn--action g__wide" data-next>${last ? 'Naar de uitslag' : 'Volgende raadslid'}</button>`;
+      <button class="btn btn--action g__wide" data-next>${last ? 'Naar de uitslag' : 'Volgende raadslid'}</button></div>`;
     el.querySelector('.council').outerHTML = bar();
     el.querySelector('[data-next]').addEventListener('click', () => {
       index += 1;
@@ -254,6 +198,8 @@ export function mount(el, { onFinish, character }) {
   }
 
   function finish() {
+    // A practice round never shows a score: it goes straight on to the real game.
+    if (practice) return onPracticeDone();
     const yes = votes.filter(Boolean).length;
     const count = tally('ideeen')[topic.id] ?? 1;
     endScreen(el, {
@@ -262,16 +208,20 @@ export function mount(el, { onFinish, character }) {
       character,
       line: escapeHtml(
         yes >= 2
-          ? 'Je plan gaat door! Dit kan ook echt: iedereen mag naar de gemeenteraad om iets te zeggen. Dat heet inspreken.'
-          : 'Deze keer niet. Raadsleden willen precies weten hoe je het regelt. Wat kost het? Hebben de buren last? Is het veilig? Probeer het nog een keer.',
+          ? 'Je plan gaat door! In het echt mag jij ook naar de gemeenteraad om iets te zeggen.'
+          : 'Deze keer niet. Raadsleden willen weten hoe je het regelt. Probeer het nog een keer.',
       ),
       extra: `<p class="g__hint">Op dit apparaat kwamen ${count} ${count === 1 ? 'plan' : 'plannen'} binnen over "${escapeHtml(topic.label.toLowerCase())}".</p>`,
       onDone: () => onFinish({ correct: yes, total: 3, summary: 'stemmen voor' }),
     });
   }
 
-  chooseTopic();
+  if (practice) {
+    idea = PRACTICE_IDEA;
+    member();
+  } else chooseTopic();
   return () => {
+    if (stopGuide) stopGuide();
     destroyed = true;
   };
 }

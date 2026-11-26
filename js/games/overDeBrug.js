@@ -6,9 +6,10 @@
 // AI: puts each person's reaction into their own words. Without AI they use fixed lines.
 
 import { chat, isAvailable } from '../ai.js';
-import { escapeHtml, say, endScreen } from './kit.js';
+import { escapeHtml, endScreen } from './kit.js';
+import { guide } from './guide.js';
 
-const ATTEMPTS = 3;
+const ATTEMPTS = 4;
 
 // The message is built from four blocks; tapping a block swaps it for the next version. The first
 // version of each block is the original from the city. Typing the message yourself also works.
@@ -18,8 +19,14 @@ export const PARTS = [
   ['Raadpleeg rotterdam.nl/stremming voor alternatieve routes', 'Kijk op rotterdam.nl voor een andere route.', 'Neem de Willemsbrug, de Maastunnel of de metro.', 'Neem een alternatieve route.'],
   ['🚧🌉', '', 'Pas op! ⚠️'],
 ];
-export const buildMessage = (picks) => PARTS.map((opts, i) => opts[picks[i]]).filter(Boolean).join(' ');
-const ORIGINAL = buildMessage([0, 0, 0, 0]);
+export const buildMessage = (picks, parts = PARTS) => parts.map((opts, i) => opts[picks[i]]).filter(Boolean).join(' ');
+
+// The practice round has its own, shorter message about another bridge, never used in the real game.
+const PRACTICE_PARTS = [
+  ['Wegens onderhoud is de Willemsbrug gestremd', 'De Willemsbrug is dicht'],
+  ['morgen van 9.00 tot 12.00 uur.'],
+  ['Neem de Erasmusbrug of de metro.'],
+];
 
 const HARD_WORDS = ['wegens', 'werkzaamheden', 'gestremd', 'stremming', 'raadpleeg', 'raadplegen', 'alternatief', 'alternatieve', 'i.v.m.', 'desbetreffende', 'middels', 'derhalve'];
 
@@ -45,31 +52,31 @@ export function checks(text) {
     noor: !about
       ? 'Ik hoor niet dat de brug dicht is.'
       : EMOJI.test(text)
-        ? 'Mijn telefoon leest de plaatjes voor als losse woorden, zoals "bouwbord" en "brug". Dat is verwarrend.'
+        ? 'Mijn telefoon leest de plaatjes voor. Dat is raar.'
         : LINK.test(text) && !routeInText
-          ? 'Mijn telefoon leest een webadres voor, maar ik hoor niet hoe ik moet reizen.'
+          ? 'Ik hoor een webadres, maar niet hoe ik moet reizen.'
           : null,
     ahmad: !about
       ? 'Wat is er met de brug?'
       : hard.length
         ? `Ik ken het woord "${hard[0]}" niet.`
         : long
-          ? 'Eén zin is heel lang. Dan raak ik de draad kwijt.'
+          ? 'Eén zin is te lang voor mij.'
           : null,
     mirjam: !about
       ? 'Wat is er aan de hand met de brug?'
       : !TIME.test(text)
         ? 'Ik weet niet wanneer de brug dicht is.'
         : !routeInText
-          ? 'Ik heb geen internet op mijn telefoon. Hoe kom ik dan naar de overkant?'
+          ? 'Ik heb geen internet. Hoe kom ik aan de overkant?'
           : null,
   };
 }
 
 const PEOPLE = [
-  { id: 'noor', name: 'Noor', about: 'is slechtziend, haar telefoon leest berichten voor', you: 'Je bent slechtziend en je telefoon leest berichten voor.', ok: 'Mijn telefoon las het duidelijk voor. Ik weet wat ik moet doen!' },
-  { id: 'ahmad', name: 'Ahmad', about: 'leert sinds een half jaar Nederlands', you: 'Je leert sinds een half jaar Nederlands.', ok: 'Ik begrijp het. Korte zinnen en gewone woorden, dank je!' },
-  { id: 'mirjam', name: 'Mirjam', about: 'heeft geen mobiel internet, links werken niet', you: 'Je hebt geen mobiel internet, dus links werken niet.', ok: 'Duidelijk! Ik weet wanneer, en hoe ik er dan kom. Ik hoef niks op te zoeken.' },
+  { id: 'noor', name: 'Noor', about: 'ziet slecht, haar telefoon leest voor', you: 'Je bent slechtziend en je telefoon leest berichten voor.', ok: 'Duidelijk voorgelezen!' },
+  { id: 'ahmad', name: 'Ahmad', about: 'leert nog Nederlands', you: 'Je leert sinds een half jaar Nederlands.', ok: 'Ik snap het, dank je!' },
+  { id: 'mirjam', name: 'Mirjam', about: 'heeft geen internet op haar telefoon', you: 'Je hebt geen mobiel internet, dus links werken niet.', ok: 'Ik weet wanneer en hoe ik moet gaan!' },
 ];
 
 async function voice(person, problem) {
@@ -87,11 +94,12 @@ async function voice(person, problem) {
   return line && line.length > 5 && line.length < 220 ? line : null;
 }
 
-export function mount(el, { onFinish, character }) {
+export function mount(el, { practice = false, onPracticeDone = () => {}, onFinish, character }) {
   let attempt = 0;
   let best = 0;
-  let text = ORIGINAL;
-  const picks = PARTS.map(() => 0);
+  const parts = practice ? PRACTICE_PARTS : PARTS;
+  let text = buildMessage(parts.map(() => 0), parts);
+  const picks = parts.map(() => 0);
   let aiOn = false;
   let destroyed = false;
   let across = {}; // who stood on the far side after the last test
@@ -118,85 +126,48 @@ export function mount(el, { onFinish, character }) {
   }
 
   function blocksHtml() {
-    return PARTS.map((opts, i) => {
+    return parts.map((opts, i) => {
       const t = opts[picks[i]];
       return `<button class="block" data-part="${i}" aria-label="Verander dit stukje">
         <span${t ? '' : ' class="block__empty"'}>${t ? escapeHtml(t) : '(niks)'}</span><i aria-hidden="true">↻</i></button>`;
     }).join('');
   }
 
-  // Marks what trips people up, shown live after the first test.
-  function marks(t) {
-    // Links first, so the other marks never end up inside a web address.
-    let html = escapeHtml(t).replace(/\b[\w-]+\.(nl|com|org|net)\b(\/[^\s<]*)?/gi, (m) => `<mark class="mk mk--link" title="Werkt niet zonder internet">${m}</mark>`);
-    html = html.replace(new RegExp(`\\b(${HARD_WORDS.map((w) => w.replace(/\./g, '\\.')).join('|')})\\b`, 'gi'), '<mark class="mk mk--hard">$1</mark>');
-    html = html.replace(/\p{Extended_Pictographic}/gu, (m) => `<mark class="mk mk--emoji">${m}</mark>`);
-    return html;
-  }
-
-  function editor(results) {
+  function editor() {
     const left = ATTEMPTS - attempt;
     el.innerHTML = `
-      <div class="g">
-        <div class="g__bar"><span>Poging ${Math.min(attempt + 1, ATTEMPTS)}/${ATTEMPTS}</span><span>${best}/3 over de brug</span></div>
+      <div class="g brug">
+        <div class="g__bar"><span>${practice ? 'Oefenbericht' : `Poging ${Math.min(attempt + 1, ATTEMPTS)}/${ATTEMPTS}`}</span><span>${best}/3 over de brug</span></div>
         ${scene()}
-        ${attempt === 0 ? say(character, '<p>Vannacht gaat de brug dicht. Dit bericht heeft de gemeente gemaakt. Maar niet iedereen snapt het. Pas het aan, zodat Noor, Ahmad en Mirjam alle drie weten wat ze moeten doen. Wie het snapt, komt veilig aan de overkant.</p>') : ''}
         <div class="people">${PEOPLE.map((p) => {
-          const r = results?.[p.id];
-          return `<div class="person${r ? (r.ok ? ' is-ok' : ' is-no') : ''}">
-            <strong>${p.name}</strong><small>${p.about}</small>
-            ${r ? `<p>${escapeHtml(r.line)}</p>` : ''}
-          </div>`;
+          const r = last?.[p.id];
+          return `<div class="person${r ? (r.ok ? ' is-ok' : ' is-no') : ''}"><strong>${p.name}</strong><small>${p.about}</small></div>`;
         }).join('')}</div>
-        <p class="g__hint">Tik op een stukje van het bericht om het te veranderen.</p>
         <div class="blocks">${blocksHtml()}</div>
-        <details class="g__type"><summary>Of typ het bericht zelf</summary>
-          <textarea id="bridgeText" maxlength="400" autocapitalize="sentences">${escapeHtml(text)}</textarea>
-        </details>
-        ${attempt > 0 ? `<div class="marks"><small>Hier gaat het mis: <mark class="mk mk--hard">moeilijk woord</mark> <mark class="mk mk--emoji">voorgelezen plaatje</mark> <mark class="mk mk--link">link</mark></small><p class="marks__text">${marks(text)}</p></div>` : ''}
-        <p class="g__hint">Tip: tijdens de sluiting kun je de Willemsbrug, de Maastunnel of de metro nemen.</p>
-        <button class="btn btn--action g__wide" data-test>Test bij Noor, Ahmad en Mirjam (${left} over)</button>
+        <button class="btn btn--action g__wide" data-test>Stuur het bericht (${left} over)</button>
       </div>`;
     el.querySelector('[data-test]').addEventListener('click', test);
-    const area = el.querySelector('#bridgeText');
-    const showMarks = () => {
-      const m = el.querySelector('.marks__text');
-      if (m) m.innerHTML = marks(area.value);
-    };
-    area.addEventListener('input', () => {
-      el.querySelector('.blocks').classList.add('is-typed');
-      showMarks();
-    });
     el.querySelector('.blocks').addEventListener('click', (e) => {
       const b = e.target.closest('[data-part]');
       if (!b) return;
       const i = Number(b.dataset.part);
-      picks[i] = (picks[i] + 1) % PARTS[i].length;
-      area.value = buildMessage(picks);
-      el.querySelector('.blocks').classList.remove('is-typed');
+      picks[i] = (picks[i] + 1) % parts[i].length;
+      text = buildMessage(picks, parts);
       el.querySelector('.blocks').innerHTML = blocksHtml();
-      showMarks();
     });
-    // Walk people to their new side after the scene has painted.
-    if (results) {
-      requestAnimationFrame(() =>
-        requestAnimationFrame(() => {
-          for (const p of PEOPLE) el.querySelector(`.walker--${p.id}`)?.classList.toggle('is-across', results[p.id].ok);
-          across = Object.fromEntries(PEOPLE.map((p) => [p.id, results[p.id].ok]));
-        }),
-      );
-    }
   }
 
+  let last = null; // results of the last test
+
   async function test() {
-    text = el.querySelector('#bridgeText').value.trim();
     if (!text) return;
-    el.querySelector('[data-test]').disabled = true;
+    const button = el.querySelector('[data-test]');
+    button.disabled = true;
     const c = checks(text);
     const results = {};
     for (const p of PEOPLE) results[p.id] = { ok: !c[p.id], line: c[p.id] ?? p.ok };
     if (aiOn) {
-      el.querySelector('[data-test]').textContent = 'Ze lezen het bericht…';
+      button.textContent = 'Ze lezen het bericht…';
       const lines = await Promise.all(PEOPLE.map((p) => voice(p, c[p.id])));
       if (destroyed) return;
       PEOPLE.forEach((p, i) => {
@@ -204,33 +175,55 @@ export function mount(el, { onFinish, character }) {
       });
     }
     attempt += 1;
+    last = results;
     const passed = Object.values(results).filter((r) => r.ok).length;
     best = Math.max(best, passed);
-    if (passed === 3 || attempt >= ATTEMPTS) {
-      editor(results);
-      el.querySelector('[data-test]').outerHTML = `<button class="btn btn--action g__wide" data-done>${passed === 3 ? 'Iedereen is over de brug!' : 'Naar de uitslag'}</button>`;
-      el.querySelector('[data-done]').addEventListener('click', finish);
-    } else {
-      editor(results);
-    }
+    const over = passed === 3 || attempt >= ATTEMPTS;
+    editor();
+    el.querySelector('[data-test]').disabled = true;
+    // Walk people to their side once the scene has painted, then show what they said.
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        for (const p of PEOPLE) el.querySelector(`.walker--${p.id}`)?.classList.toggle('is-across', results[p.id].ok);
+        across = Object.fromEntries(PEOPLE.map((p) => [p.id, results[p.id].ok]));
+      }),
+    );
+    el.querySelector('.g').insertAdjacentHTML(
+      'beforeend',
+      `<div class="g__pop">
+        <ul class="brug__said">${PEOPLE.map((p) => `<li class="${results[p.id].ok ? 'is-ok' : 'is-no'}"><b>${p.name}</b>${escapeHtml(results[p.id].line)}</li>`).join('')}</ul>
+        ${aiOn ? '<p class="g__ai">Een AI zegt wat ze ervan vinden.</p>' : ''}
+        <button class="btn btn--action g__wide" data-go>${passed === 3 ? 'Iedereen is over de brug!' : over ? 'Naar de uitslag' : 'Pas het bericht aan'}</button>
+      </div>`,
+    );
+    el.querySelector('[data-go]').addEventListener('click', () => (over ? finish() : editor()));
   }
 
   function finish() {
+    // A practice round never shows a score: it goes straight on to the real game.
+    if (practice) return onPracticeDone();
     endScreen(el, {
       big: `${best}/3`,
       sub: 'over de brug',
       character,
       line: escapeHtml(
         best === 3
-          ? 'Top! Zo maak je een bericht voor iedereen: korte zinnen en gewone woorden. Zet alles wat belangrijk is in de tekst zelf. En laat plaatjes weg, want die worden voorgelezen.'
-          : 'Iedereen moet online mee kunnen doen. Gebruik dus korte zinnen en gewone woorden. Zet alles wat belangrijk is in de tekst zelf. En reken niet alleen op een link of plaatjes.',
+          ? 'Top! Korte zinnen, gewone woorden en alles in de tekst zelf. Zo snapt iedereen het.'
+          : 'Gebruik korte zinnen en gewone woorden. En zet alles in de tekst zelf, niet in een link.',
       ),
       onDone: () => onFinish({ correct: best, total: 3, summary: 'mensen over de brug' }),
     });
   }
 
-  editor(null);
+  editor();
+  const stopGuide = practice && guide(el, [
+    { target: '.people', text: 'Morgen gaat de Willemsbrug dicht. Deze drie moeten het bericht snappen.', wait: 'ok' },
+    { target: '.block', text: '"Gestremd" is een moeilijk woord. Tik op het stukje om het te veranderen.' },
+    { target: '[data-test]', text: 'Klaar? Stuur het bericht en kijk wie het snapt.', wait: () => attempt > 0 },
+    { target: '.g__pop', text: 'Wie het snapt, loopt over de brug.', wait: 'ok' },
+  ], { onDone: onPracticeDone });
   return () => {
+    if (stopGuide) stopGuide();
     destroyed = true;
   };
 }

@@ -2197,3 +2197,344 @@ body:has(.route:not([hidden])) .status { top: calc(var(--top) + 150px); }
 .route__close svg { width: 18px; height: 18px; stroke-width: 2.5; }
 .route__close:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
 
+
+/* ---------- Stop screen (intro): hero ----------
+   One look tells you who needs help: the photo with the Buddy standing on it, one short line and
+   one big button. How the game works is shown inside the game itself (js/games/guide.js). */
+.stop-hero {
+  position: relative;
+  margin: 0 calc(-1 * var(--pad));
+  height: clamp(210px, 34dvh, 300px);
+  overflow: visible;
+}
+.stop-hero__photo { width: 100%; height: 100%; display: block; object-fit: cover; }
+.stop-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(22, 41, 92, 0.35) 0%, transparent 30%, transparent 45%, rgba(22, 41, 92, 0.85) 100%);
+}
+.stop-hero::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; height: 6px; background: var(--theme-grad); }
+.stop-hero__close { position: absolute; top: calc(12px + env(safe-area-inset-top)); right: var(--pad); z-index: 3; }
+.stop-hero__icon {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top));
+  left: var(--pad);
+  z-index: 3;
+  width: 48px;
+  height: 48px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 4px 10px rgba(22, 41, 92, 0.3);
+}
+.stop-hero__buddy {
+  position: absolute;
+  right: calc(var(--pad) + 4px);
+  bottom: -26px;
+  z-index: 3;
+  height: 132px;
+  filter: drop-shadow(0 6px 8px rgba(22, 41, 92, 0.4));
+  transform-origin: 50% 100%;
+}
+.stop-hero__who {
+  position: absolute;
+  left: var(--pad);
+  right: 130px;
+  bottom: 18px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+}
+.stop-hero__who small {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+.stop-hero__who strong { font-family: var(--display); font-size: 2.3rem; line-height: 1; text-shadow: 0 2px 10px rgba(22, 41, 92, 0.5); }
+.stop-hero + .stop-panel__body { padding-top: 18px; gap: 14px; }
+
+/* The one line, as a bubble whose tail points up at the Buddy. */
+.speech--hero {
+  position: relative;
+  margin-right: 70px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.4;
+  border-radius: var(--radius) 4px var(--radius) var(--radius);
+}
+.speech--hero::after {
+  content: '';
+  position: absolute;
+  top: -9px;
+  right: 18px;
+  border: 10px solid transparent;
+  border-top: 0;
+  border-bottom-color: var(--card);
+}
+
+/* Buttons: one big play button, the chat as a quiet link under it. */
+.stop-hero ~ .stop-panel__body .btn--play { min-height: 60px; font-size: 1.3rem; }
+.btn-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  font: 700 1rem var(--body);
+  color: var(--ink-soft);
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--line);
+}
+.btn-link svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.btn-link:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; border-radius: 8px; }
+
+/* Entrance: photo settles, the Buddy jumps onto it, then line, steps and button follow. */
+.stop-panel__card:not(.is-step) .stop-hero__photo { animation: photo-settle 1s var(--snap) both; }
+.stop-panel__card:not(.is-step) .stop-hero__icon { animation: icon-spin 0.6s 0.3s var(--spring) both; }
+.stop-panel__card:not(.is-step) .stop-hero__buddy { animation: buddy-in 0.6s 0.25s var(--spring) both; }
+.stop-panel__card:not(.is-step) .stop-hero__who { animation: rise-in 0.45s 0.3s var(--snap) both; }
+.stop-panel__card .speech--hero { animation-delay: 0.4s; transform-origin: 100% 0; }
+.stop-panel__card .stop-hero ~ .stop-panel__body .stop-panel__actions { animation-delay: 0.85s; }
+
+/* ---------- Game screen fits the phone ----------
+   The card is exactly one screen: the header stays put and only the game area may scroll, and
+   every game is laid out so it does not need to on a normal phone. */
+.stop-panel__card--game { height: 100dvh; overflow: hidden; padding-bottom: 0; }
+.stop-panel__card--game .stop-panel__body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px 0 calc(14px + env(safe-area-inset-bottom));
+}
+.stop-panel__card--game .stop-panel__head { flex: none; }
+
+/* ---------- Practice round (js/games/guide.js) ----------
+   Spotlight on a real game element, a hand that does the move, a short bubble. The four blocks
+   around the spotlight catch stray taps, so only the lit element can be used. */
+.guide { position: fixed; inset: 0; z-index: 60; pointer-events: none; }
+.guide__block { position: fixed; pointer-events: auto; }
+.guide__spot {
+  position: fixed;
+  border-radius: 18px;
+  box-shadow: 0 0 0 4px #fff, 0 0 0 9999px rgba(22, 41, 92, 0.62);
+  opacity: 0;
+  transition: left 0.35s var(--snap), top 0.35s var(--snap), width 0.35s var(--snap), height 0.35s var(--snap), opacity 0.25s;
+}
+.guide.is-on .guide__spot { opacity: 1; animation: guide-glow 1.6s ease-in-out infinite; }
+@keyframes guide-glow { 50% { box-shadow: 0 0 0 7px #fff, 0 0 0 9999px rgba(22, 41, 92, 0.62); } }
+.guide__hand {
+  position: fixed;
+  width: 46px;
+  height: 56px;
+  margin: -4px 0 0 -20px;
+  opacity: 0;
+  transition: left 0.45s var(--snap), top 0.45s var(--snap), opacity 0.2s;
+}
+.guide.is-on .guide__hand:not([data-move='none']) { opacity: 1; }
+.guide__hand svg { width: 100%; height: 100%; overflow: visible; fill: #fff; stroke: var(--ink); stroke-width: 2.2; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.35)); }
+.guide__hand[data-move='tap'] svg { animation: guide-tap 1.3s ease-in-out infinite; transform-origin: 30% 0; }
+.guide__hand[data-move='swipe'] svg { animation: guide-swipe 2s ease-in-out infinite; }
+.guide__ripple {
+  position: absolute;
+  left: 20px;
+  top: 4px;
+  width: 36px;
+  height: 36px;
+  margin: -18px 0 0 -18px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  opacity: 0;
+}
+.guide__hand[data-move='tap'] .guide__ripple { animation: guide-ripple 1.3s ease-out infinite; }
+@keyframes guide-tap { 0%, 100% { transform: translate(6px, 10px); } 45% { transform: translate(0, 0) scale(0.9); } }
+@keyframes guide-ripple { 0%, 40% { opacity: 0; transform: scale(0.4); } 45% { opacity: 1; } 100% { opacity: 0; transform: scale(1.6); } }
+@keyframes guide-swipe { 0%, 100% { transform: translateX(0); } 30% { transform: translateX(-70px) rotate(-10deg); } 70% { transform: translateX(70px) rotate(10deg); } }
+.guide__bubble {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 14px 16px 12px;
+  color: var(--ink);
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.2s, transform 0.25s var(--snap);
+}
+.guide.is-on .guide__bubble { opacity: 1; transform: none; }
+.guide__text { margin: 0 0 10px; font-size: 1.15rem; font-weight: 700; line-height: 1.35; }
+.guide__row { display: flex; align-items: center; gap: 10px; }
+.guide__count { margin-right: auto; font-size: 0.75rem; font-weight: 800; color: var(--muted); letter-spacing: 0.08em; }
+.guide__skip { margin-right: auto; min-height: 40px; padding: 0 8px; font: 700 0.9rem var(--body); color: var(--muted); background: none; border: 0; text-decoration: underline; }
+.guide__ok { min-height: 44px; padding: 0 22px; font-size: 1rem; }
+.guide__ok[hidden] { display: none; }
+.guide.is-leaving { opacity: 0; transition: opacity 0.25s; }
+
+/* Feedback after a move slides up over the bottom of the game, so the screen never scrolls. */
+.g__pop {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  max-width: 520px;
+  margin: 0 auto;
+  display: grid;
+  gap: 10px;
+  padding: 16px var(--pad) calc(16px + env(safe-area-inset-bottom));
+  background: var(--paper);
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -10px 30px rgba(22, 41, 92, 0.25);
+  animation: pop-up 0.35s var(--snap) both;
+}
+.g__pop .g__verdict { margin: 0; }
+.g__pop .say { margin: 0; }
+@keyframes pop-up { from { transform: translateY(100%); } }
+.stream.is-paused .chat-bubble { animation-play-state: paused; }
+/* The game area is a fixed box: a game can fill it (flex) instead of growing past it. */
+.stop-panel__card--game .game-host { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.stop-panel__card--game .game-host > .g { flex: 1 1 auto; min-height: 0; }
+.g.sp { display: flex; flex-direction: column; }
+.g.sp .sp__stage { flex: 1 1 0; min-height: 0; display: grid; place-items: center; border: 0; background: none; }
+.g.sp .sp__stage canvas { border: 3px solid var(--ink); border-radius: var(--radius); background: #f5f3ef; }
+.kv__case { margin: 0; padding: 10px 12px; font-size: 0.92rem; font-weight: 600; line-height: 1.35; background: var(--card); border-left: 4px solid var(--t1); border-radius: 10px; }
+.kv__last { min-height: 76px; }
+.kv__last--empty p { color: var(--muted); }
+.kv__new { display: block; margin-top: 4px; font-size: 0.82rem; color: var(--green-deep); }
+
+/* Over de brug in one screen: bridge, three people side by side, four blocks, one button. */
+.brug .bridge svg { max-height: 17dvh; }
+.brug .people { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.brug .person { padding: 8px; text-align: center; align-items: center; }
+.brug .person strong { font-size: 0.95rem; }
+.brug .person small { font-size: 0.7rem; line-height: 1.25; }
+.brug .person.is-ok strong::after { content: ' ✓'; }
+.brug .person.is-no strong::after { content: ' ✗'; }
+.brug .block { min-height: 44px; }
+.brug__said { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.brug__said li { padding: 8px 10px 8px 12px; font-size: 0.95rem; line-height: 1.35; background: var(--card); border-left: 4px solid var(--pink); border-radius: 10px; }
+.brug__said li.is-ok { border-left-color: var(--green); }
+.brug__said b { display: block; font-family: var(--display); font-size: 0.85rem; text-transform: uppercase; }
+
+/* Stop screen filling: hello + hook, two tiles (game, reward) and a fact about the place. */
+.speech__hi { display: block; margin-bottom: 4px; font-size: 0.95rem; font-weight: 500; color: var(--ink-soft); }
+.stop-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stop-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 86px;
+  padding: 12px 14px;
+  overflow: hidden;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 0 var(--line);
+}
+.stop-tile small { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.stop-tile strong { font-family: var(--display); font-size: 1.2rem; line-height: 1.1; color: var(--ink); }
+.stop-tile span { font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+.stop-tile:first-child { border-top: 4px solid var(--t1); }
+.stop-tile--prize { padding-right: 62px; border-top: 4px solid var(--t2); }
+.stop-tile--prize img { position: absolute; right: 8px; top: 50%; width: 52px; height: 52px; margin-top: -24px; rotate: -12deg; filter: grayscale(1) opacity(0.55); }
+.stop-tile--prize.is-done img { filter: none; }
+.stop-fact { padding: 12px 14px; background: color-mix(in srgb, var(--t1) 12%, var(--card)); border-radius: var(--radius); }
+.stop-fact small { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.stop-fact p { margin: 2px 0 0; font-weight: 600; line-height: 1.35; }
+.stop-panel__card .stop-tiles { animation: rise-in 0.45s 0.55s var(--snap) both; }
+.stop-panel__card .stop-fact { animation: rise-in 0.45s 0.65s var(--snap) both; }
+.stop-panel__card.is-step .stop-tiles, .stop-panel__card.is-step .stop-fact { animation-delay: 0.15s; }
+
+/* Between the practice round and the real game. */
+.g--ready { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; }
+.ready__sub { margin: 0; font-size: 1.15rem; font-weight: 600; color: var(--ink-soft); }
+.ready__buddy { height: min(30dvh, 220px); filter: drop-shadow(0 8px 10px rgba(22, 41, 92, 0.3)); animation: buddy-in 0.6s var(--spring) both, hop 0.9s 0.6s ease-in-out 2; }
+.game-host[data-mode='practice']::before {
+  content: 'Oefenronde';
+  align-self: center;
+  margin-bottom: 8px;
+  padding: 4px 12px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--ink);
+  border-radius: 99px;
+}
+
+/* Jij bent het algoritme in one screen: applicants as a 4 x 3 grid of tiles, compact level rows. */
+.ranking--tiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.ranking--tiles li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 8px 2px 6px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 12px;
+}
+.ranking--tiles li.is-picked { border-color: var(--green); background: color-mix(in srgb, var(--green) 10%, var(--card)); }
+.ranking--tiles strong { font-size: 0.92rem; }
+.ranking--tiles .wijk { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; color: var(--blue-deep); }
+.ranking--tiles .is-zuid .wijk { color: var(--pink-deep); }
+.tile__rank { position: absolute; top: -6px; left: -4px; width: 20px; height: 20px; display: grid; place-items: center; font-size: 0.7rem; color: #fff; background: var(--ink); border-radius: 50%; }
+.ranking--tiles li.is-picked .tile__rank { background: var(--green); }
+.levels__row { gap: 4px; }
+.levels__opts button { min-height: 38px; font-size: 0.82rem; }
+.chips--fit { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips--fit .chip { min-height: 40px; font-size: 0.88rem; }
+.g__pop--q .g__q { display: grid; gap: 8px; }
+.g__pop--q .g__q p { margin: 0; }
+.g__pop--q .g__q > div { display: grid; gap: 8px; }
+.levels { gap: 4px; padding: 8px 10px; }
+.levels__row { grid-template-columns: 74px 1fr; align-items: center; }
+/* Kruisverhoor in one screen. */
+.stop-panel__card--game .kv .g__choice { min-height: 46px; font-size: 1rem; padding-block: 6px; }
+.kv .g__choices { gap: 6px; }
+.kv__tab small { display: none; }
+.kv__tab { padding-block: 6px; }
+.kv__case { font-size: 0.86rem; padding: 8px 10px; }
+.kv .evidence { padding: 6px; min-height: 0; }
+.kv .evidence__empty { padding: 4px; }
+.kv__last { min-height: 64px; padding: 8px 10px; }
+.kv.g { gap: 8px; }
+/* End screens stay on one screen too. */
+.g--end { gap: 10px; }
+.stop-panel__card--game .g--end .g__big { font-size: clamp(2.4rem, 9dvh, 4rem); }
+.g--end .traces { display: grid; gap: 4px; margin: 0; }
+.g--end .traces li { padding: 6px 10px; font-size: 0.85rem; line-height: 1.3; }
+.g--end .kv__entry { padding: 8px 10px; }
+.g--end .receipt { padding: 10px 12px; }
+.g--end .receipt__row { margin: 2px 0; }
+/* Stop screen fits short phones too. */
+.stop-hero { height: clamp(170px, 30dvh, 300px); }
+@media (max-height: 740px) {
+  .stop-hero__buddy { height: 110px; bottom: -20px; }
+  .stop-hero__who strong { font-size: 2rem; }
+  .stop-hero + .stop-panel__body { padding-top: 14px; gap: 10px; }
+  .speech--hero { font-size: 1rem; padding: 10px 12px; }
+  .stop-tile { min-height: 0; padding: 8px 12px; }
+  .stop-fact { padding: 8px 12px; }
+  .stop-fact p { font-size: 0.9rem; }
+  .stop-hero ~ .stop-panel__body .btn--play { min-height: 56px; }
+}
+/* Collecting a stamp: quicker (the user found it slow). */
+.toast { animation-duration: 0.35s; }
+.toast__photo .toast__stamp { animation: stamp-slam 0.4s 0.05s cubic-bezier(0.3, 1.5, 0.5, 1) both; }
+.toast__photo { animation: photo-thud 0.3s 0.28s ease-out both; }

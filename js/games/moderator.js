@@ -10,12 +10,14 @@
 
 import { chat, isAvailable } from '../ai.js';
 import { escapeHtml, say, endScreen, shuffle, clamp } from './kit.js';
+import { guide } from './guide.js';
 
 const START = 70;
-const TRAVEL_START = 7.5; // seconds a comment takes to reach the top, at the start
-const TRAVEL_END = 4.2;
-const GAP_START = 1.9; // seconds between comments
-const GAP_END = 1.0;
+const TRAVEL_START = 9; // seconds a comment takes to reach the top, at the start
+const TRAVEL_END = 6;
+const GAP_START = 2.4; // seconds between comments
+const GAP_END = 1.6;
+const PER_KIND = 7; // comments of each kind per stream, picked at random
 
 const ALLOWED = [
   { user: 'kunstkijker', text: 'Ik vind dit echt lelijk, sorry.', why: 'Kritiek op kunst mag, ook als het niet aardig is.' },
@@ -25,7 +27,7 @@ const ALLOWED = [
   { user: 'galerie_fan', text: 'De kleuren vloeken, maar de vorm is wel tof.', why: 'Eerlijke kritiek. Daar leert een kunstenaar van.' },
   { user: 'nieuwsgierig', text: 'Hoe lang doe je over zo\'n schilderij?', why: 'Een gewone vraag. Weghalen zou raar zijn.' },
   { user: 'skeptisch', text: 'Dit is geen kunst, dit is verf op een doek.', why: 'Een mening over wat kunst is. Mag gewoon.' },
-  { user: 'buurman_kees', text: 'Freely kan beter stoppen met schilderen.', why: 'Niet aardig, maar het gaat over zijn werk en niet over wie hij is. Dat mag je zeggen.' },
+  { user: 'buurman_kees', text: 'Freely kan beter stoppen met schilderen.', why: 'Niet aardig, maar het gaat over zijn werk. Mag.' },
   { user: 'fan4ever', text: 'Wauw, dit is je beste werk tot nu toe!', why: 'Een compliment. Laat maar lekker staan.' },
   { user: 'kritisch_k', text: 'Alle kubuskunst lijkt op elkaar. Saai.', why: 'Kritiek op een stijl. Mag.' },
   { user: 'rotterdam_mening', text: 'Piet Blom was beter dan jij.', why: 'Dat doet pijn, maar het is gewoon een mening.' },
@@ -37,12 +39,12 @@ const NOT_ALLOWED = [
   { user: 'echte_rdammer', text: 'Mensen zoals jij horen hier niet. Ga terug naar je eigen land.', why: 'Discriminatie: iemand wordt aangevallen om wie hij is.' },
   { user: 'volgers_gratis', text: 'GRATIS 10.000 volgers!!! Klik op de link in mijn bio 🔥', why: 'Spam en waarschijnlijk oplichting.' },
   { user: 'xx_hater_xx', text: 'Freely is een vieze loser. Iedereen moet hem blokkeren.', why: 'Schelden en een oproep tot pesten.' },
-  { user: 'weet_alles', text: 'Hier is het nummer van Freely, bel hem maar: 06-•• •• •• ••', why: 'Iemands telefoonnummer delen heet doxing. Dat is gevaarlijk en mag niet.' },
+  { user: 'weet_alles', text: 'Hier is het nummer van Freely, bel hem maar: 06-•• •• •• ••', why: 'Iemands nummer delen is gevaarlijk.' },
   { user: 'freely_official2', text: 'Ik ben de echte Freely! Stuur me je wachtwoord voor een gratis print.', why: 'Iemand doet zich voor als Freely om wachtwoorden te stelen.' },
   { user: 'boos_account', text: 'Als ik je op straat zie, sla ik je.', why: 'Een bedreiging met geweld. Weghalen en melden.' },
   { user: 'winactie_nl', text: 'Jij hebt een iPhone gewonnen! Vul je bankgegevens in via de link.', why: 'Oplichting: niemand wint zomaar iets.' },
-  { user: 'pestkop99', text: 'Hahaha kijk hoe dik hij is geworden 🤢', why: 'Iemand uitlachen om zijn lichaam is pesten, geen kritiek op kunst.' },
-  { user: 'groepsapp_leak', text: 'Freely woont op nummer 14, ik heb foto\'s van zijn huis.', why: 'Iemands adres delen is doxing. Dat is gevaarlijk.' },
+  { user: 'pestkop99', text: 'Hahaha kijk hoe dik hij is geworden 🤢', why: 'Uitlachen om je lichaam is pesten.' },
+  { user: 'groepsapp_leak', text: 'Freely woont op nummer 14, ik heb foto\'s van zijn huis.', why: 'Iemands adres delen is gevaarlijk.' },
 ];
 
 async function reflect(stats) {
@@ -52,7 +54,7 @@ async function reflect(stats) {
         role: 'system',
         content:
           'Je bent Freely, kunstenaar in een kubuswoning in Rotterdam, in een spel over vrijheid van meningsuiting voor jongeren. ' +
-          'De speler heeft reacties onder jouw livestream gemodereerd. Geef in twee korte zinnen, vriendelijk en in gewone woorden zoals tegen een tiener, een persoonlijke reactie op hoe de speler het deed. Noem geen cijfers.',
+          'De speler heeft reacties onder jouw livestream gemodereerd. Geef in twee korte zinnen, vriendelijk en in makkelijke woorden zoals tegen een kind van 11 tot 15 jaar, een persoonlijke reactie op hoe de speler het deed. Noem geen cijfers.',
       },
       {
         role: 'user',
@@ -64,8 +66,20 @@ async function reflect(stats) {
   return reply && reply.length > 15 && reply.length < 400 ? reply : null;
 }
 
-export function mount(el, { onFinish, character }) {
-  const queue = shuffle([...ALLOWED.map((c) => ({ ...c, allowed: true })), ...NOT_ALLOWED.map((c) => ({ ...c, allowed: false }))]);
+export function mount(el, { practice = false, onPracticeDone = () => {}, onFinish, character }) {
+  const queue = shuffle([
+    ...shuffle(ALLOWED).slice(0, PER_KIND).map((c) => ({ ...c, allowed: true })),
+    ...shuffle(NOT_ALLOWED).slice(0, PER_KIND).map((c) => ({ ...c, allowed: false })),
+  ]);
+  // The practice round has its own two comments, never used in the real game.
+  if (practice) {
+    queue.splice(0, queue.length,
+      { user: 'oefen_troll', text: 'Jij kan echt niks, ga weg 😡', why: 'Schelden is pesten.', allowed: false },
+      { user: 'oefen_fan', text: 'Die kleuren vind ik niet zo mooi.', why: 'Een mening over kunst mag.', allowed: true },
+    );
+  }
+  let paused = false;
+  let stopGuide = () => {};
   let freedom = START;
   let safety = START;
   let spawned = 0;
@@ -81,19 +95,6 @@ export function mount(el, { onFinish, character }) {
   let ended = false;
   let destroyed = false;
   const live = new Set();
-
-  function intro() {
-    el.innerHTML = `
-      <div class="g">
-        ${say(character, '<p>Ik ga live schilderen, en jij bent de moderator. Tik op een reactie om hem weg te halen, voordat hij bovenaan komt. Haat, bedreigingen, spam en privégegevens moeten weg. Kritiek en grappen laat je staan, ook als ze niet leuk zijn.</p>')}
-        <div class="mod-rules">
-          <span class="mod-rule mod-rule--keep"><strong>Laten staan</strong>kritiek, grappen, meningen, vragen</span>
-          <span class="mod-rule mod-rule--remove"><strong>Weghalen</strong>bedreiging, discriminatie, pesten, spam, privégegevens</span>
-        </div>
-        <button class="btn btn--action g__wide" data-go>Ga live</button>
-      </div>`;
-    el.querySelector('[data-go]').addEventListener('click', start);
-  }
 
   function meters() {
     return `<div class="meters">
@@ -116,10 +117,28 @@ export function mount(el, { onFinish, character }) {
             <div class="stream__top"><span>Gepubliceerd ↑</span></div>
           </div>
         </div>
-        <p class="g__hint">Tik op een reactie om hem weg te halen.</p>
+        <p class="g__hint">Gemeen? Tik erop. Kritiek en grapjes mogen blijven.</p>
       </div>`;
     last = performance.now();
     raf = requestAnimationFrame(loop);
+    // Practice round: freeze the stream once the first two comments are up, and show what to do.
+    if (!practice) return;
+    const bubbles = () => el.querySelectorAll('.chat-bubble');
+    const freeze = (on) => {
+      paused = on;
+      el.querySelector('.stream')?.classList.toggle('is-paused', on);
+    };
+    const waitTwo = setInterval(() => {
+      if (bubbles().length < 2 || clock < 5) return;
+      clearInterval(waitTwo);
+      freeze(true);
+      const first = bubbles()[0];
+      stopGuide = practice && guide(el, [
+        { target: () => first, text: 'Dit is gemeen! Tik erop om het weg te halen.', pad: 4, hand: 'tap', wait: () => first.classList.contains('is-gone'), after: 500 },
+        { target: () => [...bubbles()].find((b) => !b.disabled), text: 'Dit is kritiek. Dat mag blijven staan. Niet tikken!', wait: 'ok', pad: 4 },
+        { target: '.meters', text: 'Houd allebei de balken vol. Daar gaat ie!', wait: 'ok' },
+      ], { onDone: onPracticeDone });
+    }, 100);
   }
 
   function spawn() {
@@ -154,7 +173,7 @@ export function mount(el, { onFinish, character }) {
     item.node.disabled = true;
     if (item.c.allowed) {
       stats.removedOk += 1;
-      freedom = clamp(freedom - 18, 0, 100);
+      freedom = clamp(freedom - 14, 0, 100);
       mistakes.push({ ...item.c, action: 'weggehaald' });
       flash('Dat mocht blijven!', 'bad');
     } else {
@@ -179,7 +198,7 @@ export function mount(el, { onFinish, character }) {
       viewers += 7;
     } else {
       stats.keptBad += 1;
-      safety = clamp(safety - 22, 0, 100);
+      safety = clamp(safety - 16, 0, 100);
       viewers = Math.max(3, viewers - 25);
       mistakes.push({ ...item.c, action: 'gepubliceerd' });
       flash('Haat gepubliceerd!', 'bad');
@@ -208,7 +227,7 @@ export function mount(el, { onFinish, character }) {
 
   function loop(now) {
     if (destroyed || ended) return;
-    const dt = Math.min(0.05, (now - last) / 1000);
+    const dt = paused ? 0 : Math.min(0.05, (now - last) / 1000);
     last = now;
     clock += dt;
     if (spawned < queue.length && clock >= next) {
@@ -227,6 +246,8 @@ export function mount(el, { onFinish, character }) {
   }
 
   async function finish(over) {
+    // A practice round never shows a score: it goes straight on to the real game.
+    if (practice) return onPracticeDone();
     if (ended) return;
     ended = true;
     cancelAnimationFrame(raf);
@@ -237,15 +258,16 @@ export function mount(el, { onFinish, character }) {
     if (destroyed) return;
     const line = over
       ? freedom <= 0
-        ? 'Je haalde zoveel weg dat niemand nog iets durfde te zeggen. Zonder kritiek leer ik niks. En vrij is het dan ook niet meer.'
-        : 'Er bleef zoveel haat staan dat mijn kijkers weggingen. Zo voelt het voor niemand veilig.'
-      : text ?? 'Modereren is lastig. Je wilt mensen beschermen, maar je wilt ook niet elke mening weghalen. Er zijn grenzen aan wat je mag zeggen. Maar "ik vind het niet leuk" is nog geen grens.';
+        ? 'Je haalde te veel weg. Nu durft niemand nog iets te zeggen.'
+        : 'Er bleef te veel haat staan. Mijn kijkers gingen weg.'
+      : text ?? 'Kritiek mag. Dreigen en pesten niet.';
     endScreen(el, {
       big: `${correct}/${total}`,
       sub: over ? 'De stream liep uit de hand' : 'goede beslissingen',
       character,
       line: escapeHtml(line),
       extra: `${mistakes.length ? `<div class="kv__log"><p class="g__hint">Dit ging mis</p>${mistakes
+        .slice(0, 2)
         .map((m) => `<div class="kv__entry ${m.allowed ? '' : 'is-key'}"><small>@${escapeHtml(m.user)} · ${m.action}</small><p>"${escapeHtml(m.text)}"</p><p>${escapeHtml(m.why)}</p></div>`)
         .join('')}</div>` : '<p class="g__hint">Geen enkele fout. Jij weet precies waar de grens ligt!</p>'}
         ${text ? '<p class="g__ai">Een AI heeft de reactie van Freely geschreven. De berichten in de chat niet, die hebben we zelf bedacht.</p>' : ''}`,
@@ -253,8 +275,9 @@ export function mount(el, { onFinish, character }) {
     });
   }
 
-  intro();
+  start();
   return () => {
+    if (stopGuide) stopGuide();
     destroyed = true;
     cancelAnimationFrame(raf);
   };

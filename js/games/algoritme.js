@@ -9,20 +9,21 @@
 // No language model needed: here the AI is the subject.
 
 import { escapeHtml, say, endScreen, seeded, shuffle } from './kit.js';
+import { guide } from './guide.js';
 
 const SLIDERS = [
-  { key: 'ervaring', label: 'Werkervaring', start: 1 },
+  { key: 'ervaring', label: 'Ervaring', start: 1 },
   { key: 'motivatie', label: 'Motivatie', start: 1 },
-  { key: 'cijfer', label: 'Cijfer Nederlands', start: 1 },
+  { key: 'cijfer', label: 'Cijfer', start: 1 },
   { key: 'dichtbij', label: 'Woont dichtbij', start: 0 },
 ];
 
 const FEATURES = [
-  { key: 'ervaring', label: 'Werkervaring' },
+  { key: 'ervaring', label: 'Ervaring' },
   { key: 'motivatie', label: 'Motivatie' },
-  { key: 'cijfer', label: 'Cijfer Nederlands' },
+  { key: 'cijfer', label: 'Cijfer' },
   { key: 'zuid', label: 'Woont op Zuid' },
-  { key: 'reistijd', label: 'Reistijd naar de bieb' },
+  { key: 'reistijd', label: 'Reistijd' },
 ];
 
 // 300 old applications. The old manager hired on experience, motivation and grade, but also
@@ -60,6 +61,18 @@ const APPLICANTS = [
   { naam: 'Liam', ervaring: 9, motivatie: 3, cijfer: 7.1, zuid: 0, reistijd: 11 },
   { naam: 'Lina', ervaring: 11, motivatie: 4, cijfer: 6.9, zuid: 1, reistijd: 24 },
   { naam: 'Sem', ervaring: 13, motivatie: 3, cijfer: 7.5, zuid: 0, reistijd: 18 },
+];
+
+// The practice round has its own group (helpers for the book market), never used in the real game.
+const PRACTICE_APPLICANTS = [
+  { naam: 'Bram', ervaring: 3, motivatie: 5, cijfer: 7.2, zuid: 0, reistijd: 10 },
+  { naam: 'Zoë', ervaring: 12, motivatie: 2, cijfer: 6.4, zuid: 1, reistijd: 28 },
+  { naam: 'Omar', ervaring: 8, motivatie: 4, cijfer: 8.0, zuid: 1, reistijd: 33 },
+  { naam: 'Tess', ervaring: 15, motivatie: 3, cijfer: 6.9, zuid: 0, reistijd: 14 },
+  { naam: 'Jens', ervaring: 2, motivatie: 3, cijfer: 7.7, zuid: 0, reistijd: 8 },
+  { naam: 'Mila', ervaring: 10, motivatie: 5, cijfer: 7.4, zuid: 1, reistijd: 25 },
+  { naam: 'Kai', ervaring: 6, motivatie: 4, cijfer: 6.6, zuid: 0, reistijd: 17 },
+  { naam: 'Lotte', ervaring: 18, motivatie: 4, cijfer: 8.3, zuid: 1, reistijd: 29 },
 ];
 
 // "Jij": as strong as the best applicant, but living on Zuid.
@@ -101,27 +114,28 @@ const QUESTIONS = {
   why: {
     q: 'Waarom kiest de computer niemand van Zuid?',
     options: [
-      { text: 'Hij heeft het vooroordeel van de oude manager overgenomen.', right: true },
+      { text: 'Hij doet de oude baas na.', right: true },
       { text: 'Mensen van Zuid zijn minder geschikt voor deze baan.', right: false },
       { text: 'De computer kiest maar wat. Het is toeval.', right: false },
     ],
-    explain: 'De computer leert van voorbeelden. De oude manager nam bijna nooit iemand van Zuid aan. Dus denkt de computer dat "woont op Zuid" slecht is. Kijk maar naar de balken: daar zit het grootste minpunt.',
+    explain: 'De oude baas nam bijna nooit iemand van Zuid aan. Dat heeft de computer van hem geleerd.',
   },
   proxy: {
     q: 'Waarom moest "reistijd" ook weg?',
     options: [
-      { text: 'Aan je reistijd zie je waar je woont. De computer gebruikte dat in plaats van "woont op Zuid".', right: true },
+      { text: 'Aan je reistijd zie je waar je woont.', right: true },
       { text: 'Reistijd is niet belangrijk voor een bijbaan.', right: false },
       { text: 'Er zat een fout in de computer.', right: false },
     ],
-    explain: 'Wie op Zuid woont, reist langer naar de bieb in het centrum. Zo kwam de computer via een omweg toch bij hetzelfde vooroordeel. Eén ding weghalen is dus niet genoeg. Een mens moet blijven checken wie er wordt afgewezen.',
+    explain: 'Wie op Zuid woont, reist langer. Zo wist de computer het toch. Daarom moet een mens het blijven checken.',
   },
 };
 
 const ZUID_TOTAL = APPLICANTS.filter((a) => a.zuid).length;
 
-export function mount(el, { onFinish, character }) {
+export function mount(el, { practice = false, onPracticeDone = () => {}, onFinish, character }) {
   const data = history();
+  const pool = practice ? PRACTICE_APPLICANTS : APPLICANTS;
   let correct = 0;
   let model = null;
   const weights = Object.fromEntries(SLIDERS.map((s) => [s.key, s.start]));
@@ -129,11 +143,12 @@ export function mount(el, { onFinish, character }) {
   const enabled = new Set(FEATURES.map((f) => f.key));
   let toggles = 0;
   let fixed = false;
+  let stopGuide = false;
 
   // Standardised applicant values for the player's own formula.
   const stats = Object.fromEntries(
     ['ervaring', 'motivatie', 'cijfer', 'reistijd'].map((k) => {
-      const v = APPLICANTS.map((a) => a[k]);
+      const v = pool.map((a) => a[k]);
       const mean = v.reduce((x, y) => x + y, 0) / v.length;
       const sd = Math.sqrt(v.reduce((x, y) => x + (y - mean) ** 2, 0) / v.length) || 1;
       return [k, { mean, sd }];
@@ -145,23 +160,23 @@ export function mount(el, { onFinish, character }) {
 
   // Renders the ranking and animates rows from their old to their new place (FLIP).
   function renderRanking(box, scored, picked) {
-    const before = new Map([...box.querySelectorAll('[data-name]')].map((n) => [n.dataset.name, n.getBoundingClientRect().top]));
-    const max = Math.max(...scored.map((a) => a.s));
-    const min = Math.min(...scored.map((a) => a.s));
+    const before = new Map([...box.querySelectorAll('[data-name]')].map((n) => [n.dataset.name, n.getBoundingClientRect()]));
+    // A grid of 12 tiles: rank, name and where they live. The best 3 get the job.
     box.innerHTML = scored
       .map(
-        (a) => `<li data-name="${a.naam}" class="${picked.has(a.naam) ? 'is-picked' : ''} ${a.zuid ? 'is-zuid' : ''}">
-          <span class="ranking__name"><strong>${a.naam}</strong><small><b class="wijk">${a.zuid ? 'Zuid' : 'Noord'}</b> · ${a.ervaring} mnd · motivatie ${a.motivatie}/5 · ${String(a.cijfer).replace('.', ',')}</small></span>
-          <span class="ranking__score"><i style="width:${Math.round(((a.s - min) / (max - min || 1)) * 90 + 10)}%"></i></span>
+        (a, i) => `<li data-name="${a.naam}" class="${picked.has(a.naam) ? 'is-picked' : ''} ${a.zuid ? 'is-zuid' : ''}">
+          <b class="tile__rank">${i + 1}</b><strong>${a.naam}</strong><small class="wijk">${a.zuid ? 'Zuid' : 'Noord'}</small>
         </li>`,
       )
       .join('');
     box.querySelectorAll('[data-name]').forEach((n) => {
       const old = before.get(n.dataset.name);
       if (old === undefined) return;
-      const dy = old - n.getBoundingClientRect().top;
-      if (!dy) return;
-      n.style.transform = `translateY(${dy}px)`;
+      const now = n.getBoundingClientRect();
+      const dx = old.left - now.left;
+      const dy = old.top - now.top;
+      if (!dx && !dy) return;
+      n.style.transform = `translate(${dx}px, ${dy}px)`;
       n.style.transition = 'none';
       requestAnimationFrame(() => {
         n.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1)';
@@ -171,7 +186,7 @@ export function mount(el, { onFinish, character }) {
   }
 
   function rank(scoreFn) {
-    const scored = APPLICANTS.map((a) => ({ ...a, s: scoreFn(a) })).sort((a, b) => b.s - a.s);
+    const scored = pool.map((a) => ({ ...a, s: scoreFn(a) })).sort((a, b) => b.s - a.s);
     return { scored, picked: new Set(scored.slice(0, 3).map((a) => a.naam)), zuid: scored.slice(0, 3).filter((a) => a.zuid).length };
   }
 
@@ -195,12 +210,12 @@ export function mount(el, { onFinish, character }) {
   function yourTurn() {
     el.innerHTML = `
       <div class="g">
-        ${say(character, '<p>De bieb zoekt 3 jongeren voor een bijbaan. Eerst ben jíj het algoritme: tik bij elk punt hoe belangrijk het is en kijk wie er bovenaan komt. Wat vind jij belangrijk?</p>')}
+        ${say(character, practice ? '<p>Oefenen: wie mag helpen bij de boekenmarkt? Wat vind jij belangrijk?</p>' : '<p>De bieb zoekt 3 jongeren voor een bijbaan. Wat vind jij belangrijk?</p>')}
         <div class="levels">${SLIDERS.map(
           (s) => `<div class="levels__row" role="radiogroup" aria-label="${s.label}"><span>${s.label}</span>
             <div class="levels__opts">${LEVELS.map((l, v) => `<button role="radio" aria-checked="${weights[s.key] === v}" data-k="${s.key}" data-v="${v}">${l}</button>`).join('')}</div></div>`,
         ).join('')}</div>
-        <ol class="ranking ranking--live"></ol>
+        <ol class="ranking ranking--tiles"></ol>
         <button class="btn btn--action g__wide" data-go>Dit zijn mijn 3</button>
       </div>`;
     const box = el.querySelector('.ranking');
@@ -218,14 +233,23 @@ export function mount(el, { onFinish, character }) {
     );
     update();
     el.querySelector('[data-go]').addEventListener('click', computerTurn);
+    if (practice) {
+      let tapped = false;
+      el.querySelector('.levels').addEventListener('click', () => (tapped = true));
+      stopGuide = guide(el, [
+        { target: '.levels', text: 'Tik hoe belangrijk iets is. Bijvoorbeeld motivatie: heel.', at: [0.88, 0.42], wait: () => tapped },
+        { target: '.ranking', text: 'De lijst schuift mee. De bovenste 3 krijgen de baan.', wait: 'ok' },
+        { target: '[data-go]', text: 'Tevreden? Dan kies je je 3.', wait: 'ok' },
+      ], { onDone: onPracticeDone });
+    }
   }
 
   // 2. The computer learns from 300 old applications.
   function computerTurn() {
     el.innerHTML = `
       <div class="g">
-        ${say(character, '<p>Nu laten we een computer kiezen. Hij krijgt 300 oude sollicitaties te zien: wie de vorige manager wel en niet aannam. Daar leert hij van.</p>')}
-        <div class="training"><span class="training__bar"><i></i></span><small class="training__txt">De computer leert van 300 oude sollicitaties…</small></div>
+        ${say(character, '<p>Nu kiest een computer. Hij leert van wie de oude baas vroeger aannam.</p>')}
+        <div class="training"><span class="training__bar"><i></i></span><small class="training__txt">De computer leert…</small></div>
       </div>`;
     setTimeout(() => {
       model = train(data, FEATURES.map((f) => f.key));
@@ -234,13 +258,13 @@ export function mount(el, { onFinish, character }) {
       el.innerHTML = `
         <div class="g">
           <div class="compare">
-            <div><p class="g__hint">Jouw 3</p>${APPLICANTS.filter((a) => mine.has(a.naam)).map((a) => `<span class="pick ${a.zuid ? 'is-zuid' : ''}">${a.naam}<small>${a.zuid ? 'Zuid' : 'Noord'}</small></span>`).join('')}</div>
+            <div><p class="g__hint">Jouw 3</p>${pool.filter((a) => mine.has(a.naam)).map((a) => `<span class="pick ${a.zuid ? 'is-zuid' : ''}">${a.naam}<small>${a.zuid ? 'Zuid' : 'Noord'}</small></span>`).join('')}</div>
             <div><p class="g__hint">De computer</p>${r.scored.slice(0, 3).map((a) => `<span class="pick ${a.zuid ? 'is-zuid' : ''}">${a.naam}<small>${a.zuid ? 'Zuid' : 'Noord'}</small></span>`).join('')}</div>
           </div>
           <p class="g__title">Wat de computer leerde</p>
           ${weightBars(model.weights)}
-          <p class="g__hint">Rechts van het midden is een pluspunt, links een minpunt. Hoe langer de balk, hoe meer het meetelt.</p>
-          ${question('why')}
+          <p class="g__hint">Rechts = pluspunt. Links = minpunt.</p>
+          <div class="g__pop g__pop--q">${question('why')}</div>
         </div>`;
       bindQuestion('why', youRejected);
     }, 900);
@@ -253,12 +277,12 @@ export function mount(el, { onFinish, character }) {
     el.innerHTML = `
       <div class="g">
         <p class="g__title">En nu jij</p>
-        ${say(character, '<p>Stel, jij solliciteert ook. Je hebt 20 maanden ervaring, motivatie 5 en een 8,4 voor Nederlands. Beter dan bijna iedereen. Alleen woon je op Zuid.</p>')}
+        ${say(character, '<p>Stel, jij solliciteert ook. Je bent beter dan bijna iedereen. Maar je woont op Zuid.</p>')}
         <div class="you-card ${you >= third ? 'is-picked' : 'is-rejected'}">
           <strong>${you >= third ? 'Uitgenodigd' : 'Afgewezen'}</strong>
-          <span>Score van de computer: ${Math.round(you * 100)} van 100. De nummer drie scoort ${Math.round(third * 100)}.</span>
+          <span>Jouw score: ${Math.round(you * 100)}. Nummer drie: ${Math.round(third * 100)}.</span>
         </div>
-        <p class="g__hint">Niemand bij de bieb heeft dit besloten. Toch gebeurt het. Kun jij de computer repareren?</p>
+        <p class="g__hint">Kun jij de computer repareren?</p>
         <button class="btn btn--action g__wide" data-go>Repareer de computer</button>
       </div>`;
     el.querySelector('[data-go]').addEventListener('click', repair);
@@ -268,11 +292,10 @@ export function mount(el, { onFinish, character }) {
   function repair() {
     el.innerHTML = `
       <div class="g">
-        ${say(character, `<p>Zet dingen uit, dan leert de computer meteen opnieuw. Lukt het om de goede kandidaten van Zuid een eerlijke kans te geven? Van de 12 wonen er ${ZUID_TOTAL} op Zuid.</p>`)}
-        <div class="chips">${FEATURES.map((f) => `<button class="chip ${enabled.has(f.key) ? 'is-on' : ''}" data-f="${f.key}" aria-pressed="${enabled.has(f.key)}">${f.label}</button>`).join('')}</div>
+        ${say(character, `<p>Tik dingen uit tot het eerlijk is. Wat mag de computer niet weten?</p>`)}
+        <div class="chips chips--fit">${FEATURES.map((f) => `<button class="chip ${enabled.has(f.key) ? 'is-on' : ''}" data-f="${f.key}" aria-pressed="${enabled.has(f.key)}">${f.label}</button>`).join('')}</div>
         <div class="repair-status"></div>
-        <div class="repair-weights"></div>
-        <ol class="ranking"></ol>
+        <ol class="ranking ranking--tiles"></ol>
       </div>`;
     const box = el.querySelector('.ranking');
     const retrain = () => {
@@ -284,18 +307,17 @@ export function mount(el, { onFinish, character }) {
       const m = train(data, keys, { steps: 400 });
       const r = rank(m.score);
       renderRanking(box, r.scored, r.picked);
-      el.querySelector('.repair-weights').innerHTML = weightBars(m.weights);
       const meritLeft = ['ervaring', 'motivatie', 'cijfer'].filter((k) => enabled.has(k)).length;
       const status = el.querySelector('.repair-status');
       if (!enabled.has('zuid') && !enabled.has('reistijd') && meritLeft >= 2) {
         fixed = true;
-        status.innerHTML = `<p class="g__verdict is-right">Eerlijk!</p><p class="g__hint">Nu kiest de computer alleen op ervaring, motivatie en cijfer: ${r.scored.slice(0, 3).map((a) => a.naam).join(', ')}. Waar je woont telt niet meer mee.</p>
-          ${question('proxy')}`;
+        status.innerHTML = `<p class="g__verdict is-right">Eerlijk!</p>`;
+        el.querySelector('.g').insertAdjacentHTML('beforeend', `<div class="g__pop g__pop--q">${question('proxy')}</div>`);
         bindQuestion('proxy', finish);
       } else if (!enabled.has('zuid') && enabled.has('reistijd')) {
-        status.innerHTML = `<p class="g__verdict is-wrong">${r.zuid} van de 3 van Zuid. Nog steeds niet eerlijk!</p><p class="g__hint">"Woont op Zuid" is weg. Maar waaraan zie je nog meer waar iemand woont? Kijk naar de balken.</p>`;
+        status.innerHTML = `<p class="g__verdict is-wrong">${r.zuid} van de 3 van Zuid. Nog steeds niet eerlijk!</p><p class="g__hint">Tip: aan je reistijd zie je ook waar je woont.</p>`;
       } else if (meritLeft < 2) {
-        status.innerHTML = `<p class="g__verdict is-wrong">Nu weet de computer bijna niks meer over wie goed is.</p><p class="g__hint">Laat werkervaring, motivatie en cijfer aan staan: die zeggen wél iets over de baan.</p>`;
+        status.innerHTML = `<p class="g__verdict is-wrong">Nu weet de computer te weinig.</p><p class="g__hint">Laat ervaring, motivatie en cijfer aan.</p>`;
       } else {
         status.innerHTML = `<p class="g__hint">Van Zuid gekozen: ${r.zuid} van de 3.</p>`;
       }
@@ -336,33 +358,34 @@ export function mount(el, { onFinish, character }) {
           if (x.dataset.right === 'true') x.classList.add('is-right');
         });
         if (!right) b.classList.add('is-wrong');
-        box.insertAdjacentHTML(
-          'beforeend',
-          `<p class="g__verdict ${right ? 'is-right' : 'is-wrong'}">${right ? 'Goed!' : 'Niet helemaal'}</p>
+        // The options make way for the answer, so the panel stays the same size.
+        box.innerHTML = `<p class="g__verdict ${right ? 'is-right' : 'is-wrong'}">${right ? 'Goed!' : 'Niet helemaal'}</p>
           ${say(character, `<p>${escapeHtml(QUESTIONS[id].explain)}</p>`)}
-          <button class="btn btn--action g__wide" data-next>Verder</button>`,
-        );
+          <button class="btn btn--action g__wide" data-next>Verder</button>`;
         box.querySelector('[data-next]').addEventListener('click', next);
-        box.querySelector('[data-next]').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       }),
     );
   }
 
   function finish() {
+    // A practice round never shows a score: it goes straight on to the real game.
+    if (practice) return onPracticeDone();
     // The fix counts as a point when you found it in a few tries (2 switches is the minimum).
-    if (fixed && toggles <= 5) correct += 1;
+    if (fixed && toggles <= 6) correct += 1;
     endScreen(el, {
       big: `${correct}/3`,
       sub: 'punten',
       character,
       line: escapeHtml(
-        'Een algoritme is niet vanzelf eerlijk. Het leert van oude keuzes, ook van de oneerlijke. En het vindt omwegen. Daarom mag je altijd vragen waarom je bent afgewezen. En je mag vragen of een mens er nog naar kijkt.',
+        'Een computer is niet vanzelf eerlijk. Hij leert ook oneerlijke keuzes. Je mag altijd vragen waarom je bent afgewezen.',
       ),
-      extra: `<p class="g__hint">${toggles <= 5 ? `Je had de computer in ${toggles} stappen gerepareerd.` : `Je had ${toggles} stappen nodig om de computer te repareren. Het kan ook in 2.`}</p>`,
+      extra: `<p class="g__hint">${toggles <= 6 ? `Gerepareerd in ${toggles} stappen.` : `Gerepareerd in ${toggles} stappen. Het kan ook in 2.`}</p>`,
       onDone: () => onFinish({ correct, total: 3, summary: 'punten' }),
     });
   }
 
   yourTurn();
-  return () => {};
+  return () => {
+    if (stopGuide) stopGuide();
+  };
 }

@@ -23,6 +23,7 @@ const POLE = 20;
 const PIN = 58;
 const PIN_Y = POLE + PIN / 2; // centre of the pin above the ground
 const BUDDY = 40;
+const BUDDY_RATIO = 228 / 320; // width / height of img/dcr/buddy-*.png
 const RES = 4; // canvas pixels per CSS pixel in the textures
 const NAVY = '#16295c';
 const IDLE_FRAME_MS = 33;
@@ -249,7 +250,7 @@ function buildStop(loc, shared) {
   p.beam.position.y = PIN_Y;
   p.pole = sprite(3, POLE, 0.5, 0);
   p.pole.material.color.set(NAVY);
-  p.buddy = sprite(BUDDY * 0.62, BUDDY, 0, 0);
+  p.buddy = sprite(BUDDY * BUDDY_RATIO, BUDDY, 0, 0);
   p.buddy.position.x = 6;
   // Everything that floats goes in `pin`, which bobs.
   p.pin = new THREE.Group();

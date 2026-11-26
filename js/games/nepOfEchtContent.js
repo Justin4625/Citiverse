@@ -72,17 +72,17 @@ export const MESSAGES = [
   {
     id: 'mama-eten', kind: 'whatsapp', from: 'Mama ❤️', level: 1, fake: false,
     text: 'Ben je om 6 uur thuis? We eten pasta 🍝',
-    why: 'Een bekend nummer dat al in je telefoon staat, en er wordt niets gevraagd behalve een gewone vraag.',
+    why: 'Een bekend nummer, en er wordt niks gevraagd.',
   },
   {
     id: 'pakket-tijdvak', kind: 'sms', from: 'PakketDirect', level: 2, fake: false,
     text: 'Je pakket wordt vandaag tussen 14:00 en 16:00 bezorgd. Volg je pakket in de PakketDirect-app.',
-    why: 'Er staat geen link in, er hoeft niets betaald te worden en je wordt naar de eigen app verwezen.',
+    why: 'Geen link en niks betalen. Je moet naar de eigen app.',
   },
   {
     id: 'bank-ontvangen', kind: 'app', from: 'MaasBank-app', level: 2, fake: false,
     text: 'Je hebt €12,50 ontvangen van Opa. Bekijk het in je overzicht.',
-    why: 'Een melding in de app van je bank zelf, en je hoeft niets in te vullen of te betalen.',
+    why: 'Een melding in je eigen bank-app. Je hoeft niks te doen.',
   },
   {
     id: 'bieb-boek', kind: 'mail', from: 'bibliotheek@biebrotterdam.nl', level: 2, fake: false,
@@ -92,12 +92,12 @@ export const MESSAGES = [
   {
     id: 'code-niet-delen', kind: 'sms', from: 'GameHub', level: 3, fake: false,
     text: 'Je verificatiecode is 482913. Deel deze code met niemand, ook niet met medewerkers van GameHub.',
-    why: 'Dit is de code die je zelf hebt aangevraagd. Er staat zelfs bij dat je hem niet mag delen. Een oplichter zou je juist om die code vragen.',
+    why: 'Je hebt deze code zelf aangevraagd. En er staat bij: niet delen.',
   },
   {
     id: 'tram-omleiding', kind: 'nieuws', from: 'Je nieuwsapp', level: 3, fake: false,
     text: 'Vanaf maandag rijden trams in het centrum een omleiding vanwege werkzaamheden. Kijk voor je reis in de reisplanner.',
-    why: 'Gewone informatie zonder paniek, zonder oproep om te delen en zonder link naar een vreemde site.',
+    why: 'Gewone info, zonder paniek en zonder rare link.',
   },
   {
     id: 'sport-training', kind: 'whatsapp', from: 'Trainer voetbal ⚽', level: 3, fake: false,
@@ -107,7 +107,7 @@ export const MESSAGES = [
   {
     id: 'bank-pas-verlopen', kind: 'mail', from: 'MaasBank', level: 3, fake: false,
     text: 'Je bankpas verloopt volgende maand. Je nieuwe pas wordt automatisch naar je huisadres gestuurd. Je hoeft niets te doen.',
-    why: 'Er staat geen link in, er hoeft niets ingevuld te worden en er is geen haast. Echte banken sturen zo\'n bericht vaak gewoon om je iets te laten weten.',
+    why: 'Geen link, niks invullen en geen haast.',
   },
 ];
 

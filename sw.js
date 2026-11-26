@@ -1,5 +1,5 @@
 // Network-first with cache fallback, so the app shell still opens offline.
-const CACHE = 'stamprally-v55';
+const CACHE = 'stamprally-v60';
 const SHELL = [
   './', './index.html', './styles.css', './manifest.webmanifest', './icon.svg', './data/index.json',
   './js/app.js', './js/geo.js', './js/storage.js', './js/locations.js',
@@ -7,7 +7,7 @@ const SHELL = [
   './img/centraal.jpg', './img/markthal.jpg', './img/kubuswoningen.jpg', './img/erasmusbrug.jpg', './img/rechtbank.jpg',
   './img/euromast.jpg', './img/hetpark.jpg', './img/politiebureau.jpg', './img/stadhuis.jpg', './img/bibliotheek.jpg',
   './js/stops.js', './js/stop.js', './js/ai.js', './js/progress.js', './js/progressView.js',
-  './js/games/index.js', './js/games/kit.js', './js/games/nepOfEcht.js', './js/games/nepOfEchtContent.js',
+  './js/games/index.js', './js/games/kit.js', './js/games/guide.js', './js/games/nepOfEcht.js', './js/games/nepOfEchtContent.js',
   './js/games/spoorloos.js', './js/games/koopjesjacht.js', './js/games/moderator.js', './js/games/overDeBrug.js',
   './js/games/kruisverhoor.js', './js/games/overtuigDeStad.js', './js/games/ontsnapUitDeApp.js',
   './js/games/pitchInDeRaad.js', './js/games/algoritme.js', './js/brand.js', './js/twinny.js', './js/twinny3d.js', './js/ui.js', './js/stops3d.js',
