@@ -36,7 +36,7 @@ export const STOPS = {
     intro: 'Hoi, ik ben Fairy! Ik heb een kraam hier in de Markthal. Ik verkoop ook online, en daar gaat het niet altijd eerlijk.',
     problem: 'Mijn klanten trappen in nepkortingen van andere webshops. Kun jij laten zien hoe je die trucs doorhebt?',
     hook: 'Webshops foppen mijn klanten met nepkortingen. Help je mij?',
-    fact: 'In de boog van de Markthal wonen gewoon mensen. Hun ramen kijken uit over de markt.',
+    fact: 'In de boog van de Markthal wonen gewoon mensen. Een deel van hen kijkt vanuit het raam zo op de markt.',
     facts: [
       'De Markthal is in 2014 geopend.',
       'Het grote kunstwerk aan het plafond heet de Hoorn des Overvloeds en is gemaakt door Arno Coenen.',
@@ -111,7 +111,7 @@ export const STOPS = {
       'Je hebt portretrecht: iemand mag een herkenbare foto van jou niet zomaar publiceren als je daar een redelijk belang tegen hebt.',
       'Je kunt een website of platform vragen een foto van jou te verwijderen.',
     ],
-    secret: 'Je mag bij veel rechtszaken gewoon gaan kijken. Zo ziet iedereen dat het eerlijk gaat.',
+    secret: 'Je mag bij veel rechtszaken gaan kijken. Vanaf 12 jaar kan dat bij een strafzaak, samen met een volwassene.',
     game: 'kruisverhoor',
     card: {
       title: 'Kruisverhoor',
@@ -150,11 +150,12 @@ export const STOPS = {
     fact: 'Het Park ligt naast de Euromast en is al meer dan 150 jaar oud.',
     facts: [
       'Het Park ligt naast de Euromast.',
-      'Het Park is in de negentiende eeuw aangelegd.',
+      'Het Park is in 1852 aangelegd als wandelpark.',
+      'Het Park is sinds 2010 een rijksmonument.',
       'Streaks, autoplay en meldingen zijn trucs om je zo lang mogelijk in een app te houden.',
       'Je kunt meldingen en autoplay bij de meeste apps zelf uitzetten.',
     ],
-    secret: 'Vroeger was Het Park vooral voor rijke Rotterdammers. Nu mag iedereen er komen.',
+    secret: 'Het Park is een rijksmonument. Het is dus net zo goed beschermd als een oud gebouw.',
     game: 'ontsnap-uit-de-app',
     card: {
       title: 'Ontsnap uit de app',
@@ -209,14 +210,14 @@ export const STOPS = {
   bibliotheek: {
     theme: 'Chances',
     character: { name: 'Chancy', role: 'bibliothecaris' },
-    intro: 'Hoi, ik ben Chancy. Ik werk hier in de bieb. Iedereen mag hier gratis internetten, op een computer werken en hulp vragen. Zo krijgt iedereen een kans.',
+    intro: 'Hoi, ik ben Chancy. Ik werk hier in de bieb. Hier kun je boeken lenen, op een computer werken en hulp vragen. Zo krijgt iedereen een kans.',
     problem: 'Steeds meer bedrijven laten een computer kiezen wie ze uitnodigen voor een sollicitatie. Maar is dat wel eerlijk?',
     hook: 'Een computer kiest wie een bijbaan krijgt. Is dat wel eerlijk?',
-    fact: 'In de bieb mag je gratis internetten en op een computer werken.',
+    fact: 'In de bieb kun je op een computer werken. Daar heb je wel een bibliotheekpas voor nodig.',
     facts: [
       'De Centrale Bibliotheek is in 1983 geopend.',
       'Je herkent het gebouw aan de gele buizen aan de buitenkant.',
-      'In de bibliotheek kun je gratis internet en computers gebruiken.',
+      'In de bibliotheek kun je op een computer werken. Daarvoor heb je een bibliotheekpas nodig.',
       'Een selectie-algoritme leert van oude keuzes. Als die oude keuzes oneerlijk waren, neemt het algoritme dat over.',
     ],
     secret: 'Door die gele buizen aan de buitenkant gaat lucht. Het gebouw heeft zijn techniek gewoon buiten hangen.',
