@@ -21,7 +21,7 @@ export const ACHIEVEMENTS = [
   { id: 'foutloos', name: 'Foutloos', text: 'Speel een minigame zonder fouten.' },
   { id: 'oplichtersjager', name: 'Oplichtersjager', text: 'Haal alles goed bij Nep of echt.' },
   { id: 'dagtocht', name: 'Dagtocht', text: 'Speel op één dag 3 stops op de plek zelf.' },
-  { id: 'nieuwsgierig', name: 'Nieuwsgierig', text: 'Stel de Buddies samen 5 vragen.' },
+  { id: 'nieuwsgierig', name: 'Nieuwsgierig', text: 'Stel de Buddies in totaal 5 vragen.' },
   { id: 'terugkomer', name: 'Terugkomer', text: 'Speel een minigame nog een keer om je score te verbeteren.' },
   { id: 'alle-thema', name: 'Alle rechten', text: 'Speel de minigame van alle 10 thema\'s.' },
   { id: 'havenbaas', name: 'Havenbaas', text: 'Bereik het hoogste level.' },

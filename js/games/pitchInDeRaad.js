@@ -4,65 +4,134 @@
 // No AI chat: the council members ask fixed questions and you choose an answer.
 // Ideas are counted anonymously on this device, so a demo laptop shows what young people want.
 
-import { stripPersonal } from '../ai.js';
-import { escapeHtml, say, endScreen, shuffle, tally, typingForm } from './kit.js';
+import { escapeHtml, say, endScreen, shuffle, tally } from './kit.js';
 import { guide } from './guide.js';
 
+// Each topic has its own three council members' questions, so the questions fit your plan.
+// Bram always looks at money and Esther at the neighbours; the third looks at what fits the topic.
 const TOPICS = [
   {
     id: 'chillen',
     label: 'Een plek om te chillen',
     ideas: ['Een overdekte hangplek met bankjes en wifi in het park', 'Een jongerencafé in een leeg winkelpand', 'Een basketbalveld dat \'s avonds verlicht is'],
+    members: [
+      {
+        name: 'Bram', cares: 'geld', question: 'Wie gaat dat betalen?',
+        answers: [
+          { text: 'We gebruiken een plek die er al is. Jongeren helpen zelf met opknappen.', vote: true },
+          { text: 'Het kost vast niet zoveel.', vote: false, why: 'Bram wil weten wie betaalt. "Vast" is geen antwoord.' },
+          { text: 'De gemeente heeft genoeg geld.', vote: false, why: 'Dat weet je niet. Bram wil een plan.' },
+        ],
+      },
+      {
+        name: 'Esther', cares: 'de buren', question: 'Hebben de buren \'s avonds last van herrie?',
+        answers: [
+          { text: 'Om tien uur gaat het dicht. Dan is het stil.', vote: true },
+          { text: 'De buren moeten maar wennen.', vote: false, why: 'Esther komt op voor de buren. Zo krijg je haar niet mee.' },
+          { text: 'Jongeren maken nooit herrie.', vote: false, why: 'Dat gelooft Esther niet. Ze wil weten wat je eraan doet.' },
+        ],
+      },
+      {
+        name: 'Youssef', cares: 'veiligheid', question: 'Hoe blijft het veilig als het donker is?',
+        answers: [
+          { text: 'Er komen goede lampen. En een jongerenwerker komt vaak langs.', vote: true },
+          { text: 'Er gebeurt toch nooit iets.', vote: false, why: 'Dat weet je niet. Youssef wil een plan.' },
+          { text: 'Jongeren letten zelf wel op elkaar.', vote: false, why: 'Mooi, maar wat doe je als het misgaat?' },
+        ],
+      },
+    ],
   },
   {
     id: 'fietsen',
     label: 'Veilig fietsen naar school',
     ideas: ['Een fietspad dat gescheiden is van de auto\'s', 'Een fietsenstalling met camera bij het station', 'Een oversteek met verkeerslicht bij school'],
+    members: [
+      {
+        name: 'Bram', cares: 'geld', question: 'Dat is duur. Waarom is het dat geld waard?',
+        answers: [
+          { text: 'Elke dag fietsen hier veel leerlingen langs. Minder ongelukken is dat geld waard.', vote: true },
+          { text: 'Andere steden hebben het ook.', vote: false, why: 'Dat zegt niet waarom het hier nodig is.' },
+          { text: 'Over geld moet je niet zeuren als het om kinderen gaat.', vote: false, why: 'Bram let op geld. Je geeft geen antwoord.' },
+        ],
+      },
+      {
+        name: 'Esther', cares: 'de buurt', question: 'Wat merken de mensen in de straat ervan?',
+        answers: [
+          { text: 'We vragen eerst wat zij ervan vinden. Zij fietsen er zelf ook.', vote: true },
+          { text: 'Daar heb ik nog niet over nagedacht.', vote: false, why: 'Esther wil zien dat je aan de buurt denkt.' },
+          { text: 'Fietsers zijn belangrijker.', vote: false, why: 'Zo krijg je de buurt niet mee.' },
+        ],
+      },
+      {
+        name: 'Youssef', cares: 'veiligheid', question: 'Hoe weet je dat het echt veiliger wordt?',
+        answers: [
+          { text: 'Leerlingen wijzen de gevaarlijkste plek aan. Daar beginnen we.', vote: true },
+          { text: 'Dat voel je gewoon.', vote: false, why: 'Youssef wil meer dan een gevoel.' },
+          { text: 'Slechter kan het toch niet worden.', vote: false, why: 'Dat is geen antwoord op zijn vraag.' },
+        ],
+      },
+    ],
   },
   {
     id: 'sporten',
     label: 'Gratis sporten',
-    ideas: ['Gratis sportlessen in de buurthuizen', 'Een calisthenics-park op het plein', 'Een skatebaan onder het viaduct'],
+    ideas: ['Gratis sportlessen in de buurthuizen', 'Een buitensportplek met rekstokken op het plein', 'Een skatebaan onder het viaduct'],
+    members: [
+      {
+        name: 'Bram', cares: 'geld', question: 'Wie betaalt de trainers en de spullen?',
+        answers: [
+          { text: 'Sportclubs uit de buurt helpen mee. Oudere jongeren geven les.', vote: true },
+          { text: 'Sport is gezond, dus het mag geld kosten.', vote: false, why: 'Klopt, maar Bram vroeg wie betaalt.' },
+          { text: 'Dat zien we later wel.', vote: false, why: 'Bram wil het nu weten.' },
+        ],
+      },
+      {
+        name: 'Esther', cares: 'de buren', question: 'Hebben de buren er last van?',
+        answers: [
+          { text: 'We spreken vaste tijden af. Om negen uur is het klaar.', vote: true },
+          { text: 'Sporten maakt geen lawaai.', vote: false, why: 'Dat klopt niet altijd. Esther wil een plan.' },
+          { text: 'Dan doen ze de ramen maar dicht.', vote: false, why: 'Esther komt op voor de buren. Zo krijg je haar niet mee.' },
+        ],
+      },
+      {
+        name: 'Youssef', cares: 'veiligheid', question: 'Wat als iemand zich bezeert?',
+        answers: [
+          { text: 'Er komt een EHBO-kist. En er hangt een bord met de regels.', vote: true },
+          { text: 'Sporten doe je op eigen risico.', vote: false, why: 'Youssef wil dat je er toch over nadenkt.' },
+          { text: 'Er valt nooit iemand.', vote: false, why: 'Dat weet je niet. Youssef wil een plan.' },
+        ],
+      },
+    ],
   },
   {
     id: 'schoon',
     label: 'Schonere straten',
     ideas: ['Meer afvalbakken met een app die laat zien wanneer ze vol zijn', 'Een opruimdag met muziek en eten', 'Statiegeld-automaten in de wijk'],
-  },
-];
-
-const MEMBERS = [
-  {
-    id: 'bram',
-    name: 'Bram',
-    cares: 'geld',
-    question: 'Wat kost het? En wie betaalt dat?',
-    answers: [
-      { text: 'We gebruiken een plek die er al is. En we helpen zelf mee.', vote: true },
-      { text: 'Het kost vast niet zoveel.', vote: false, why: 'Bram wil weten hoeveel. "Vast" is geen antwoord.' },
-      { text: 'Geld is niet belangrijk, het gaat om jongeren.', vote: false, why: 'Bram let op geld. Je geeft geen antwoord.' },
-    ],
-  },
-  {
-    id: 'esther',
-    name: 'Esther',
-    cares: 'de buren',
-    question: 'Hebben de buren er last van? Van herrie of rommel?',
-    answers: [
-      { text: 'We praten eerst met de buren. En na tien uur is het stil.', vote: true },
-      { text: 'De buren moeten maar wennen.', vote: false, why: 'Esther komt op voor de buren. Zo krijg je haar niet mee.' },
-      { text: 'Daar heb ik nog niet over nagedacht.', vote: false, why: 'Esther wil een plan zien.' },
-    ],
-  },
-  {
-    id: 'youssef',
-    name: 'Youssef',
-    cares: 'veiligheid',
-    question: 'Hoe zorg je dat het veilig blijft, ook als het donker is?',
-    answers: [
-      { text: 'Er komen goede lampen. En jongerenwerkers komen vaak langs.', vote: true },
-      { text: 'Jongeren zorgen zelf wel voor elkaar.', vote: false, why: 'Youssef wil weten wat je doet als het misgaat.' },
-      { text: 'Er gebeurt toch nooit iets.', vote: false, why: 'Dat weet je niet. Youssef wil een plan.' },
+    members: [
+      {
+        name: 'Bram', cares: 'geld', question: 'Wie betaalt dat?',
+        answers: [
+          { text: 'Winkels in de buurt sponsoren het. Vrijwilligers helpen mee.', vote: true },
+          { text: 'Afval opruimen kost toch niks.', vote: false, why: 'Het kost wel geld. Bram wil weten wie betaalt.' },
+          { text: 'Iemand anders betaalt wel.', vote: false, why: 'Dat is geen plan. Bram stemt tegen.' },
+        ],
+      },
+      {
+        name: 'Esther', cares: 'de buren', question: 'Doen de buren ook mee?',
+        answers: [
+          { text: 'We hangen flyers op en vragen de buren mee te doen.', vote: true },
+          { text: 'De buren maken de rommel, dus zij moeten het oplossen.', vote: false, why: 'Zo krijg je de buren niet mee.' },
+          { text: 'Dat maakt niet uit.', vote: false, why: 'Esther vindt de buren juist belangrijk.' },
+        ],
+      },
+      {
+        name: 'Youssef', cares: 'of het blijft werken', question: 'Hoe zorg je dat het over een maand niet weer vies is?',
+        answers: [
+          { text: 'Elke maand kijken we samen hoe het gaat.', vote: true },
+          { text: 'Mensen gooien vanzelf minder weg.', vote: false, why: 'Dat gebeurt niet vanzelf. Youssef wil een plan.' },
+          { text: 'Dan bedenken we wel een nieuw plan.', vote: false, why: 'Youssef wil weten hoe dit plan blijft werken.' },
+        ],
+      },
     ],
   },
 ];
@@ -83,7 +152,7 @@ const PRACTICE_MEMBERS = [
 ];
 
 export function mount(el, { practice = false, onPracticeDone = () => {}, onFinish, character }) {
-  const members = practice ? PRACTICE_MEMBERS : MEMBERS;
+  let members = PRACTICE_MEMBERS;
   let topic = null;
   let idea = '';
   let index = 0;
@@ -100,6 +169,7 @@ export function mount(el, { practice = false, onPracticeDone = () => {}, onFinis
     el.querySelectorAll('[data-t]').forEach((b) =>
       b.addEventListener('click', () => {
         topic = TOPICS.find((t) => t.id === b.dataset.t);
+        members = topic.members;
         chooseIdea();
       }),
     );
@@ -109,13 +179,8 @@ export function mount(el, { practice = false, onPracticeDone = () => {}, onFinis
     el.innerHTML = `
       <div class="g">
         <p class="g__title">${topic.label}</p>
-        <p class="g__hint">Kies een plan, of verzin er zelf een.</p>
+        <p class="g__hint">Kies een plan.</p>
         <div class="g__choices">${topic.ideas.map((i) => `<button class="g__choice" data-i>${escapeHtml(i)}</button>`).join('')}</div>
-        <form class="g__own">
-          <textarea id="ownIdea" maxlength="200" placeholder="Mijn plan…"></textarea>
-          <button class="btn" type="submit">Dit is mijn plan</button>
-        </form>
-        <p class="g__hint">Zet er geen namen of adressen in.</p>
       </div>`;
     el.querySelectorAll('[data-i]').forEach((b) =>
       b.addEventListener('click', () => {
@@ -123,14 +188,6 @@ export function mount(el, { practice = false, onPracticeDone = () => {}, onFinis
         start();
       }),
     );
-    typingForm(el.querySelector('.g__own'), { min: 8 });
-    el.querySelector('.g__own').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const { text } = stripPersonal(el.querySelector('#ownIdea').value.trim());
-      if (text.length < 8) return;
-      idea = text;
-      start();
-    });
   }
 
   function start() {
@@ -163,8 +220,9 @@ export function mount(el, { practice = false, onPracticeDone = () => {}, onFinis
     cards(m, box);
     if (index === 0) {
       stopGuide = practice && guide(el, [
-        { target: '.council__lectern', text: 'Dit is je plan. Een raadslid gaat er een vraag over stellen.', wait: 'ok' },
-        { target: '.m-answer .g__choices', text: 'Kies het antwoord dat echt iets regelt.', hand: false, wait: () => votes.length > 0 },
+        { target: '.council__lectern', text: 'Dit is je plan. De raadsleden stemmen erover.', wait: 'ok' },
+        { target: () => el.querySelector('.m-q')?.closest('.say'), text: `${m.name} let op ${m.cares}. Lees haar vraag.`, wait: 'ok' },
+        { target: '.m-answer .g__choices', text: `${m.name} vroeg: "${m.question}" Welk antwoord helpt haar echt?`, hand: false, wait: () => votes.length > 0 },
         { target: '.g__pop', text: 'Zo zie je hoe het raadslid stemt.', wait: 'ok' },
       ], { onDone: onPracticeDone });
     }
@@ -211,7 +269,7 @@ export function mount(el, { practice = false, onPracticeDone = () => {}, onFinis
           ? 'Je plan gaat door! In het echt mag jij ook naar de gemeenteraad om iets te zeggen.'
           : 'Deze keer niet. Raadsleden willen weten hoe je het regelt. Probeer het nog een keer.',
       ),
-      extra: `<p class="g__hint">Op dit apparaat kwamen ${count} ${count === 1 ? 'plan' : 'plannen'} binnen over "${escapeHtml(topic.label.toLowerCase())}".</p>`,
+      extra: `<p class="g__hint">Op dit apparaat ${count === 1 ? 'kwam 1 plan' : `kwamen ${count} plannen`} binnen over "${escapeHtml(topic.label.toLowerCase())}".</p>`,
       onDone: () => onFinish({ correct: yes, total: 3, summary: 'stemmen voor' }),
     });
   }

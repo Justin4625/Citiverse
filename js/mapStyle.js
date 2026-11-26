@@ -53,11 +53,15 @@ export function buildingPaint(grow) {
 // Drawn bottom to top, so roads lie over pavements and water over everything on the ground.
 const KINDS = ['plot', 'pavement', 'sand', 'green', 'rail', 'road', 'cycle', 'water'];
 const OVERVIEW_KINDS = ['green', 'road', 'water'];
-const colourByKind = ['match', ['get', 'kind'], ...KINDS.flatMap((kind) => [kind, C[kind]]), C.pavement];
+// A landmark shape on the ground (a bridge deck, a park's grass; feature-state 'lm' set in map.js)
+// wears the theme tint of its stop, like a landmark building.
+const withLandmark = (colour) => ['case',
+  ['==', ['typeof', ['feature-state', 'lm']], 'string'], ['to-color', ['feature-state', 'lm']], colour];
+const colourByKind = withLandmark(['match', ['get', 'kind'], ...KINDS.flatMap((kind) => [kind, C[kind]]), C.pavement]);
 
 const fill = (source, kind, filter) => ({
   id: `${source}-${kind}`, type: 'fill', source, filter,
-  paint: { 'fill-color': C[kind], 'fill-antialias': false },
+  paint: { 'fill-color': source === DETAIL_SOURCE && kind === 'green' ? withLandmark(C[kind]) : C[kind], 'fill-antialias': false },
 });
 
 // Thin edge on the ground shapes. Only from close by: far away the lines would turn into noise.

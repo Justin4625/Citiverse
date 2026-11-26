@@ -16,16 +16,16 @@ Characters, facts, problems and secrets for all 10 stops live in `js/stops.js`. 
 
 | Stop | Theme | Minigame | How you play | What the AI does |
 | --- | --- | --- | --- | --- |
-| Rotterdam Centraal | Privacy | Spoorloos | Sneak game on a station map: walk to your train past sweeping cameras, wifi and beacon zones; the private route (ticket machine, queue gate) costs time | Privy turns your traces into a profile |
+| Rotterdam Centraal | Privacy | Wat hebben ze nodig? | Four station forms (wifi, bike shed, lost property, ticket app): tick only the data the service really needs; the end shows what you gave away | No AI: fixed forms (data minimisation, AVG) |
 | Markthal | Fair | Koopjesjacht | 15 seconds per stall; drag a magnifying glass over the small print; receipt at the end | Writes the slogans of the trick offers |
-| Kubuswoningen | Freedom | Moderator | Live stream with a chat that speeds up; tap hate away before it's published, leave criticism | Freely reflects on how you moderated (comments are hand-written) |
+| Kubuswoningen | Freedom | Moderator | Reactions under Freely's live stream come in one at a time, no clock: keep criticism and jokes, remove hate, threats, spam and private details; Freely explains each choice | Freely reflects on how you moderated (comments are hand-written) |
 | Erasmusbrug | Everybody | Iedereen over de brug | Rewrite a message; people walk across the bridge when they understand it; live marks show what trips them up | Voices the readers' reactions (rules decide who understands) |
 | Rechtbank | Rules | Kruisverhoor | Collect evidence, then shout "Bezwaar!" when Sanne's testimony contradicts it | Answers your own questions in the witness's role |
 | Euromast | Opinion | Overtuig de stad | Debate battle: play argument cards against a timer, pull the audience your way; cards flip to show the fallacy | Scores a joker argument you write yourself |
 | Het Park | Healthy | Ontsnap uit de app | Switch off five tricks in a fake app's settings within 60 s while pop-ups lure you back | Writes the lure pop-ups |
 | Politiebureau | Safe | Nep of echt | Swipe notifications on a lock screen with a streak multiplier; harder messages at higher levels | Writes extra fake messages within fixed templates |
-| Stadhuis | Active | Pitch in de raad | Pitch your idea in the council chamber; vote lamps light up per member | Council members ask about your idea and vote on your answer |
-| Centrale Bibliotheek | Chances | Jij bent het algoritme | Set sliders and watch applicants re-sort live; then repair a biased model by switching data off and retraining live | A real logistic regression trains in the browser (no language model needed) |
+| Stadhuis | Active | Pitch in de raad | Pitch your idea in the council chamber; vote lamps light up per member | Each topic has its own council questions; pick the answer that really solves it |
+| Centrale Bibliotheek | Chances | Jij bent het algoritme | A model picks 3 of 12 applicants and skips everyone from Zuid; repair it by switching data off and retraining live | A real logistic regression trains in the browser (no language model needed) |
 
 Every game also works without AI, with fixed content in place of the AI part.
 

@@ -100,7 +100,6 @@ export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAc
         <div class="stop-tile">
           <small>Minigame</small>
           <strong>${escapeHtml(stop.card.title)}</strong>
-          <span>±3 minuten</span>
         </div>
         <div class="stop-tile stop-tile--prize${collected ? ' is-done' : ''}">
           <img src="${stampUrl(loc.id)}" alt="">
@@ -118,14 +117,17 @@ export function createStopPanel(root, { onCollect, onPlayed, getDifficulty, onAc
           : `<button class="btn btn--action btn--play" data-go="route">
               Route naar ${escapeHtml(loc.name)}<small>Spelen kan alleen op de plek zelf</small>
             </button>`}
-        <button class="btn-link" data-go="chat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>Stel ${stop.character.name} een vraag</button>
+        <button class="btn-link" data-go="chat" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>Stel ${stop.character.name} een vraag</button>
       </div>`,
       { hero: true },
     );
     // The minigame is only played at the place itself; from afar you get the way there.
     body.querySelector('[data-go="help"]')?.addEventListener('click', game ? showGame : showCard);
     body.querySelector('[data-go="route"]')?.addEventListener('click', () => onRoute(loc));
-    body.querySelector('[data-go="chat"]').addEventListener('click', showChat);
+    // The chat only shows when the AI model is reachable (it runs on a laptop, not on a phone).
+    const chatBtn = body.querySelector('[data-go="chat"]');
+    chatBtn.addEventListener('click', showChat);
+    isAvailable().then((ok) => { chatBtn.hidden = !ok; });
   }
 
   function showCard() {

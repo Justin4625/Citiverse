@@ -26,7 +26,7 @@ const ROUNDS = [
       lines: ['Op voorraad'],
       real: 11.44,
       reveal: ['Er komt nog €6,45 aan kosten bij.'],
-      fine: 'Exclusief verzendkosten (€4,95) en servicekosten (€1,50).',
+      fine: 'Let op: plus €4,95 verzendkosten en €1,50 servicekosten.',
       name: 'Verborgen kosten',
       explain: 'Pas bij het betalen komen er kosten bij.',
     },
@@ -43,7 +43,7 @@ const ROUNDS = [
       lines: [],
       real: 8.99,
       reveal: ['De "oude prijs" was verzonnen.'],
-      fine: 'Van-prijs is een adviesprijs. Hier nooit voor verkocht.',
+      fine: 'De oude prijs is nooit gevraagd. Het kostte altijd €8,99.',
       name: 'Nepkorting',
       explain: 'De oude prijs was verzonnen. Het is geen koopje.',
     },
@@ -59,7 +59,7 @@ const ROUNDS = [
       lines: ['Meld je aan in de app'],
       real: 4.99,
       reveal: ['"Gratis" was een abonnement van €4,99 per maand.'],
-      fine: 'Proefabonnement. Daarna €4,99 per maand, verlengt automatisch.',
+      fine: 'Proefabonnement: daarna €4,99 per maand. Stopt niet vanzelf.',
       name: 'Abonnementsval',
       explain: '"Gratis" was een abonnement. Daarna betaal je elke maand.',
     },
@@ -75,7 +75,7 @@ const ROUNDS = [
       lines: ['☑ Bezorgverzekering'],
       real: 8.5,
       reveal: ['Er stond al een extra van €2,50 aangevinkt.'],
-      fine: 'Bezorgverzekering €2,50 standaard aangevinkt.',
+      fine: 'Bezorgverzekering van €2,50 staat al aangevinkt.',
       name: 'Al aangevinkt',
       explain: 'Er stond al een extra aangevinkt. Dat betaal je ook.',
     },
@@ -94,7 +94,7 @@ const PRACTICE = {
     lines: [],
     real: 5.45,
     reveal: ['Er komt nog €4,95 verzendkosten bij.'],
-    fine: 'Exclusief €4,95 verzendkosten.',
+    fine: 'Let op: plus €4,95 verzendkosten.',
     name: 'Verborgen kosten',
     explain: 'Pas bij het betalen komen er kosten bij.',
   },
@@ -249,7 +249,7 @@ export function mount(el, { practice = false, onPracticeDone = () => {}, onFinis
         ? `Je staat ${euro(-budget)} rood. Trucs maken alles duurder.`
         : correct === rounds.length
           ? `Je hebt nog ${euro(budget)} over en je trapte nergens in. Jou houden ze niet voor de gek!`
-          : `Je hebt nog ${euro(budget)} over. Eerlijk kopen had je meer opgeleverd.`;
+          : `Je hebt nog ${euro(budget)} over. Bij de eerlijke kraam had je meer overgehouden.`;
     endScreen(el, {
       big: `${correct}/${rounds.length}`,
       sub: 'eerlijke keuzes',

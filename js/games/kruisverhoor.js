@@ -25,7 +25,7 @@ const WITNESSES = [
     role: 'staat op de foto',
     facts: [
       { id: 'herkomst', q: 'Waar kwam de foto vandaan?', a: 'Van mijn account. Dat is privé.', evidence: 'Privé-account' },
-      { id: 'gevolg', q: 'Wat merk je ervan?', a: 'Ik schaam me. Mensen lachen me uit.', evidence: 'Milan wordt uitgelachen' },
+      { id: 'gevolg', q: 'Wat doet het met je?', a: 'Ik schaam me. Mensen lachen me uit.', evidence: 'Milan wordt uitgelachen' },
       { id: 'zelf', q: 'Deel je zelf weleens foto\'s van anderen?', a: 'Alleen als iedereen het goed vindt.' },
     ],
   },
@@ -66,7 +66,7 @@ const VERDICTS = [
 ];
 
 const RULING =
-  'Je hebt portretrecht. Iemand mag geen foto van jou delen als je daardoor wordt uitgelachen. Vraag je of hij weg moet? Dan moet dat ook.';
+  'Je hebt portretrecht. Iemand mag geen foto van jou delen als je daardoor wordt uitgelachen. Vraag je of de foto weg moet? Dan moet hij weg.';
 
 // The practice round has its own small case, never used in the real game.
 const PRACTICE_CASE = {
@@ -126,7 +126,7 @@ export function mount(el, { practice = false, onPracticeDone = () => {}, onFinis
             ? `<div class="kv__entry kv__last${a.fact?.evidence ? ' is-key' : ''}"><small>${a.witness.name}: ${escapeHtml(a.q)}</small><p>${escapeHtml(a.a)}</p>${a.fact?.evidence ? `<b class="kv__new">Nieuw bewijs: ${escapeHtml(a.fact.evidence)}</b>` : ''}</div>`
             : '<div class="kv__entry kv__last kv__last--empty"><p>Kies een getuige en stel een vraag.</p></div>';
         })()}
-        <button class="btn ${left ? '' : 'btn--action'} g__wide" data-next ${asked.length ? '' : 'disabled'}>Naar de zitting</button>
+        <button class="btn ${left ? '' : 'btn--action'} g__wide" data-next ${asked.length ? '' : 'disabled'}>Naar de rechtszaal</button>
       </div>`;
 
     el.querySelectorAll('[data-w]').forEach((b) =>
@@ -194,7 +194,7 @@ export function mount(el, { practice = false, onPracticeDone = () => {}, onFinis
         { target: '.testimony', text: 'Lisa zegt dat ze de fiets nooit heeft aangeraakt. Klopt dat?', wait: 'ok' },
         { target: '[data-object]', text: 'Dat klopt niet met je bewijs! Roep Bezwaar.' },
         { target: '.evidence__card', text: 'Laat het bewijs zien.' },
-        { target: '.testimony', text: 'Gesnapt! Zo vang je een leugen.', wait: () => caught.size > 0, after: 1300 },
+        { target: '.testimony', text: 'Betrapt! Zo laat je zien dat iemand liegt.', wait: () => caught.size > 0, after: 1300 },
         { target: '.testimony', text: 'In de echte zaak stel je meer vragen en zoek je meer leugens.', wait: 'ok' },
       ], { onDone: onPracticeDone });
     }
@@ -271,7 +271,7 @@ export function mount(el, { practice = false, onPracticeDone = () => {}, onFinis
     const missed = C.testimony.map((s, i) => ({ s, i })).filter(({ s, i }) => s.lie && !caught.has(i));
     endScreen(el, {
       big: `${correct}/5`,
-      sub: right ? 'Goede uitspraak' : 'De rechter oordeelt anders',
+      sub: right ? 'Goede uitspraak' : 'De rechter beslist anders',
       character,
       line: escapeHtml(RULING),
       extra: missed.length

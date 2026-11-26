@@ -69,7 +69,7 @@ export function renderBook(el, locations, stamps, { position, isNear, routeTo })
   const section = (title, list) =>
     list.length ? `<h3 class="book__head">${title}</h3><ul class="cards">${list.map((loc) => card(loc, info(loc))).join('')}</ul>` : '';
   el.innerHTML =
-    section(position ? 'Nog te doen, dichtbij eerst' : 'Nog te doen', open) +
+    section('Nog te doen', open) +
     section('Verzameld', done) +
     (open.length ? '' : '<p class="book__all">Je hebt alle stempels!</p>');
 }

@@ -2,7 +2,7 @@
 // A minigame is a module with mount(element, { character, difficulty, onSite, onFinish }) that
 // calls onFinish({ correct, total, summary? }) when done and returns a cleanup function.
 
-import { mount as spoorloos } from './spoorloos.js';
+import { mount as watNodig } from './watNodig.js';
 import { mount as koopjesjacht } from './koopjesjacht.js';
 import { mount as moderator } from './moderator.js';
 import { mount as overDeBrug } from './overDeBrug.js';
@@ -14,7 +14,7 @@ import { mount as pitchInDeRaad } from './pitchInDeRaad.js';
 import { mount as algoritme } from './algoritme.js';
 
 export const GAMES = {
-  spoorloos,
+  'wat-nodig': watNodig,
   koopjesjacht,
   moderator,
   'over-de-brug': overDeBrug,

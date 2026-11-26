@@ -1,22 +1,14 @@
 // "Jij bent het algoritme" (Chances, Centrale Bibliotheek, Chancy).
-// A sandbox. First YOU are the algorithm: set how much each thing matters and watch 12 applicants
-// for a library side job re-sort live. Then a real (small) model, a logistic regression that
-// trains in your browser on 300 old applications, picks instead. The old manager was biased
-// against people from Zuid, and the model learned it: it rejects them, and you. Then you repair
-// the model by switching data off and retraining live, until you discover that travel time still
-// gives away where people live.
+// A real (small) model, a logistic regression that trains in your browser on 300 old applications,
+// picks 3 of 12 applicants for a library side job. The old manager was biased against people from
+// Zuid, and the model learned it: it rejects them, and you. Then you repair the model by switching
+// data off and retraining live, until you discover that travel time still gives away where people
+// live. (Kept short for 11-15: no weights or scores on screen, only who gets picked.)
 // Score: one question about why, finding the fix, and one question about the proxy.
 // No language model needed: here the AI is the subject.
 
 import { escapeHtml, say, endScreen, seeded, shuffle } from './kit.js';
 import { guide } from './guide.js';
-
-const SLIDERS = [
-  { key: 'ervaring', label: 'Ervaring', start: 1 },
-  { key: 'motivatie', label: 'Motivatie', start: 1 },
-  { key: 'cijfer', label: 'Cijfer', start: 1 },
-  { key: 'dichtbij', label: 'Woont dichtbij', start: 0 },
-];
 
 const FEATURES = [
   { key: 'ervaring', label: 'Ervaring' },
@@ -64,6 +56,7 @@ const APPLICANTS = [
 ];
 
 // The practice round has its own group (helpers for the book market), never used in the real game.
+// It only shows the repair screen: switch something off and watch the list change.
 const PRACTICE_APPLICANTS = [
   { naam: 'Bram', ervaring: 3, motivatie: 5, cijfer: 7.2, zuid: 0, reistijd: 10 },
   { naam: 'Zoë', ervaring: 12, motivatie: 2, cijfer: 6.4, zuid: 1, reistijd: 28 },
@@ -138,25 +131,10 @@ export function mount(el, { practice = false, onPracticeDone = () => {}, onFinis
   const pool = practice ? PRACTICE_APPLICANTS : APPLICANTS;
   let correct = 0;
   let model = null;
-  const weights = Object.fromEntries(SLIDERS.map((s) => [s.key, s.start]));
-  let myPick = [];
   const enabled = new Set(FEATURES.map((f) => f.key));
   let toggles = 0;
   let fixed = false;
   let stopGuide = false;
-
-  // Standardised applicant values for the player's own formula.
-  const stats = Object.fromEntries(
-    ['ervaring', 'motivatie', 'cijfer', 'reistijd'].map((k) => {
-      const v = pool.map((a) => a[k]);
-      const mean = v.reduce((x, y) => x + y, 0) / v.length;
-      const sd = Math.sqrt(v.reduce((x, y) => x + (y - mean) ** 2, 0) / v.length) || 1;
-      return [k, { mean, sd }];
-    }),
-  );
-  const z = (a, k) => (a[k] - stats[k].mean) / stats[k].sd;
-  const myScore = (a) =>
-    weights.ervaring * z(a, 'ervaring') + weights.motivatie * z(a, 'motivatie') + weights.cijfer * z(a, 'cijfer') - weights.dichtbij * z(a, 'reistijd');
 
   // Renders the ranking and animates rows from their old to their new place (FLIP).
   function renderRanking(box, scored, picked) {
@@ -190,87 +168,28 @@ export function mount(el, { practice = false, onPracticeDone = () => {}, onFinis
     return { scored, picked: new Set(scored.slice(0, 3).map((a) => a.naam)), zuid: scored.slice(0, 3).filter((a) => a.zuid).length };
   }
 
-  function weightBars(w) {
-    const max = Math.max(...Object.values(w).map(Math.abs), 0.01);
-    return `<ul class="weights">${FEATURES.filter((f) => f.key in w)
-      .map((f) => {
-        const v = w[f.key];
-        const pct = Math.round((Math.abs(v) / max) * 50);
-        return `<li><span class="weights__label">${f.label}</span>
-          <span class="weights__track"><i class="${v < 0 ? 'is-neg' : 'is-pos'}" style="${v < 0 ? `right:50%;width:${pct}%` : `left:50%;width:${pct}%`}"></i></span>
-          <b>${v < 0 ? '−' : '+'}${Math.abs(v).toFixed(1).replace('.', ',')}</b></li>`;
-      })
-      .join('')}</ul>`;
-  }
-
-  // How much a feature counts, as four big buttons instead of a fiddly slider.
-  const LEVELS = ['niet', 'beetje', 'belangrijk', 'heel'];
-
-  // 1. You are the algorithm.
-  function yourTurn() {
-    el.innerHTML = `
-      <div class="g">
-        ${say(character, practice ? '<p>Oefenen: wie mag helpen bij de boekenmarkt? Wat vind jij belangrijk?</p>' : '<p>De bieb zoekt 3 jongeren voor een bijbaan. Wat vind jij belangrijk?</p>')}
-        <div class="levels">${SLIDERS.map(
-          (s) => `<div class="levels__row" role="radiogroup" aria-label="${s.label}"><span>${s.label}</span>
-            <div class="levels__opts">${LEVELS.map((l, v) => `<button role="radio" aria-checked="${weights[s.key] === v}" data-k="${s.key}" data-v="${v}">${l}</button>`).join('')}</div></div>`,
-        ).join('')}</div>
-        <ol class="ranking ranking--tiles"></ol>
-        <button class="btn btn--action g__wide" data-go>Dit zijn mijn 3</button>
-      </div>`;
-    const box = el.querySelector('.ranking');
-    const update = () => {
-      const r = rank(myScore);
-      myPick = [...r.picked];
-      renderRanking(box, r.scored, r.picked);
-    };
-    el.querySelectorAll('[data-k]').forEach((b) =>
-      b.addEventListener('click', () => {
-        weights[b.dataset.k] = Number(b.dataset.v);
-        b.parentElement.querySelectorAll('button').forEach((x) => x.setAttribute('aria-checked', String(x === b)));
-        update();
-      }),
-    );
-    update();
-    el.querySelector('[data-go]').addEventListener('click', computerTurn);
-    if (practice) {
-      let tapped = false;
-      el.querySelector('.levels').addEventListener('click', () => (tapped = true));
-      stopGuide = guide(el, [
-        { target: '.levels', text: 'Tik hoe belangrijk iets is. Bijvoorbeeld motivatie: heel.', at: [0.88, 0.42], wait: () => tapped },
-        { target: '.ranking', text: 'De lijst schuift mee. De bovenste 3 krijgen de baan.', wait: 'ok' },
-        { target: '[data-go]', text: 'Tevreden? Dan kies je je 3.', wait: 'ok' },
-      ], { onDone: onPracticeDone });
-    }
-  }
-
-  // 2. The computer learns from 300 old applications.
+  // 1. The computer learns from 300 old applications and picks 3.
   function computerTurn() {
     el.innerHTML = `
       <div class="g">
-        ${say(character, '<p>Nu kiest een computer. Hij leert van wie de oude baas vroeger aannam.</p>')}
+        ${say(character, '<p>De bieb zoekt 3 jongeren voor een bijbaan. Een computer kiest. Hij leert van wie de oude baas vroeger aannam.</p>')}
         <div class="training"><span class="training__bar"><i></i></span><small class="training__txt">De computer leert…</small></div>
       </div>`;
     setTimeout(() => {
       model = train(data, FEATURES.map((f) => f.key));
       const r = rank(model.score);
-      const mine = new Set(myPick);
       el.innerHTML = `
         <div class="g">
-          <div class="compare">
-            <div><p class="g__hint">Jouw 3</p>${pool.filter((a) => mine.has(a.naam)).map((a) => `<span class="pick ${a.zuid ? 'is-zuid' : ''}">${a.naam}<small>${a.zuid ? 'Zuid' : 'Noord'}</small></span>`).join('')}</div>
-            <div><p class="g__hint">De computer</p>${r.scored.slice(0, 3).map((a) => `<span class="pick ${a.zuid ? 'is-zuid' : ''}">${a.naam}<small>${a.zuid ? 'Zuid' : 'Noord'}</small></span>`).join('')}</div>
-          </div>
-          <p class="g__title">Wat de computer leerde</p>
-          ${weightBars(model.weights)}
-          <p class="g__hint">Rechts = pluspunt. Links = minpunt.</p>
+          ${say(character, `<p>De computer koos deze 3. Hoeveel komen er van Zuid? ${r.zuid === 0 ? 'Niemand!' : r.zuid}</p>`)}
+          <ol class="ranking ranking--tiles"></ol>
           <div class="g__pop g__pop--q">${question('why')}</div>
         </div>`;
+      renderRanking(el.querySelector('.ranking'), r.scored, r.picked);
       bindQuestion('why', youRejected);
     }, 900);
   }
 
-  // 3. You apply, and get rejected.
+  // 2. You apply, and get rejected.
   function youRejected() {
     const you = model.score(YOU);
     const third = rank(model.score).scored[2].s;
@@ -280,7 +199,7 @@ export function mount(el, { practice = false, onPracticeDone = () => {}, onFinis
         ${say(character, '<p>Stel, jij solliciteert ook. Je bent beter dan bijna iedereen. Maar je woont op Zuid.</p>')}
         <div class="you-card ${you >= third ? 'is-picked' : 'is-rejected'}">
           <strong>${you >= third ? 'Uitgenodigd' : 'Afgewezen'}</strong>
-          <span>Jouw score: ${Math.round(you * 100)}. Nummer drie: ${Math.round(third * 100)}.</span>
+          <span>${you >= third ? 'Je mag op gesprek komen.' : 'Iemand die minder goed is, kreeg de plek wel.'}</span>
         </div>
         <p class="g__hint">Kun jij de computer repareren?</p>
         <button class="btn btn--action g__wide" data-go>Repareer de computer</button>
@@ -288,11 +207,11 @@ export function mount(el, { practice = false, onPracticeDone = () => {}, onFinis
     el.querySelector('[data-go]').addEventListener('click', repair);
   }
 
-  // 4. Switch data off and retrain live until the model is fair.
+  // 3. Switch data off and retrain live until the model is fair.
   function repair() {
     el.innerHTML = `
       <div class="g">
-        ${say(character, `<p>Tik dingen uit tot het eerlijk is. Wat mag de computer niet weten?</p>`)}
+        ${say(character, practice ? '<p>Oefenen: wie mag helpen bij de boekenmarkt? Jij bepaalt wat de computer mag weten.</p>' : '<p>Zet dingen uit tot het eerlijk is. Wat mag de computer niet weten?</p>')}
         <div class="chips chips--fit">${FEATURES.map((f) => `<button class="chip ${enabled.has(f.key) ? 'is-on' : ''}" data-f="${f.key}" aria-pressed="${enabled.has(f.key)}">${f.label}</button>`).join('')}</div>
         <div class="repair-status"></div>
         <ol class="ranking ranking--tiles"></ol>
@@ -309,7 +228,9 @@ export function mount(el, { practice = false, onPracticeDone = () => {}, onFinis
       renderRanking(box, r.scored, r.picked);
       const meritLeft = ['ervaring', 'motivatie', 'cijfer'].filter((k) => enabled.has(k)).length;
       const status = el.querySelector('.repair-status');
-      if (!enabled.has('zuid') && !enabled.has('reistijd') && meritLeft >= 2) {
+      if (practice) {
+        status.innerHTML = `<p class="g__hint">Van Zuid gekozen: ${r.zuid} van de 3.</p>`;
+      } else if (!enabled.has('zuid') && !enabled.has('reistijd') && meritLeft >= 2) {
         fixed = true;
         status.innerHTML = `<p class="g__verdict is-right">Eerlijk!</p>`;
         el.querySelector('.g').insertAdjacentHTML('beforeend', `<div class="g__pop g__pop--q">${question('proxy')}</div>`);
@@ -335,6 +256,13 @@ export function mount(el, { practice = false, onPracticeDone = () => {}, onFinis
       }),
     );
     retrain();
+    if (practice) {
+      stopGuide = guide(el, [
+        { target: '.ranking', text: 'De computer zet iedereen op een rij. De bovenste 3 krijgen de baan.', wait: 'ok' },
+        { target: '[data-f="cijfer"]', text: 'Zet Cijfer uit. Dan mag de computer je cijfer niet meer gebruiken.' },
+        { target: '.ranking', text: 'Zie je? De lijst schuift. Zo repareer je straks de computer.', wait: 'ok' },
+      ], { onDone: onPracticeDone });
+    }
   }
 
   function question(id) {
@@ -377,14 +305,15 @@ export function mount(el, { practice = false, onPracticeDone = () => {}, onFinis
       sub: 'punten',
       character,
       line: escapeHtml(
-        'Een computer is niet vanzelf eerlijk. Hij leert ook oneerlijke keuzes. Je mag altijd vragen waarom je bent afgewezen.',
+        'Een computer is niet vanzelf eerlijk. Hij neemt ook oneerlijke keuzes over. Je mag altijd vragen waarom je bent afgewezen.',
       ),
       extra: `<p class="g__hint">${toggles <= 6 ? `Gerepareerd in ${toggles} stappen.` : `Gerepareerd in ${toggles} stappen. Het kan ook in 2.`}</p>`,
       onDone: () => onFinish({ correct, total: 3, summary: 'punten' }),
     });
   }
 
-  yourTurn();
+  if (practice) repair();
+  else computerTurn();
   return () => {
     if (stopGuide) stopGuide();
   };

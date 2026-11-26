@@ -24,13 +24,13 @@ const FALLACY = {
   'Volwassenen zitten': 'Wijzen naar een ander',
   'Dat is gewoon een slecht': 'Geen reden',
   'Als je niks fout': 'Klinkt goed, klopt niet',
-  'Iedereen maakt weleens': 'Te klein maken',
+  'Iedereen maakt weleens': 'Het kleiner maken dan het is',
   'Dat gebeurt toch': 'Ontkennen',
   'Ik vind camera': 'Alleen een gevoel',
   'Niemand wil': 'Overdrijving',
   'Die steden': 'Schelden',
   'Ouderen weten': 'Wijzen naar een ander',
-  'Mijn ouders stemmen': 'Eén voorbeeld',
+  'Mijn ouders kiezen': 'Eén voorbeeld',
   'Ingewikkeld is geen': 'Geen reden',
   'Jongeren hebben toch': 'Alle jongeren hetzelfde',
   'Werken is iets anders': 'Geen reden',
@@ -57,7 +57,7 @@ const STATEMENTS = [
       {
         counter: 'Telefoons zijn ook handig om dingen op te zoeken in de les.',
         answers: [
-          { text: 'Daar heeft school laptops voor, en die leiden minder af met meldingen.', points: 3 },
+          { text: 'Daar heeft school laptops voor. Daar krijg je geen meldingen op.', points: 3 },
           { text: 'Je kunt ook gewoon een boek gebruiken.', points: 2, why: 'Kan, maar een boek is niet altijd handig.' },
           { text: 'Niemand zoekt echt iets op, iedereen zit op TikTok.', points: 1, why: 'Dat is overdreven. Niet iedereen zit op TikTok.' },
         ],
@@ -83,7 +83,7 @@ const STATEMENTS = [
       {
         counter: 'In de pauze zit iedereen op zijn telefoon in plaats van met elkaar te praten.',
         answers: [
-          { text: 'Op je telefoon doe je ook samen dingen, zoals een spel spelen.', points: 3 },
+          { text: 'Maak de pauze leuker, met sport of spelletjes. Daar is geen kluisje voor nodig.', points: 3 },
           { text: 'Dat moeten leerlingen zelf mogen kiezen.', points: 2, why: 'Kan, maar je reageert niet op wat Opiny zegt.' },
           { text: 'Volwassenen zitten ook de hele dag op hun telefoon.', points: 1, why: 'Naar een ander wijzen lost het probleem niet op.' },
         ],
@@ -105,7 +105,7 @@ const STATEMENTS = [
       {
         counter: 'Dan wordt iedereen de hele tijd bekeken, ook als je niks doet.',
         answers: [
-          { text: 'Alleen kijken als er iets gebeurd is, en de beelden snel wissen.', points: 3 },
+          { text: 'Ze kijken alleen als er iets gebeurd is. Daarna wissen ze de beelden snel.', points: 3 },
           { text: 'Er hangen nu ook al gewone camera\'s.', points: 2, why: 'Klopt, maar gezichtsherkenning weet ook wíe je bent.' },
           { text: 'Als je niks fout doet, heb je niks te verbergen.', points: 1, why: 'Ook als je niks fout doet, heb je recht op privacy.' },
         ],
@@ -169,9 +169,9 @@ const STATEMENTS = [
       {
         counter: 'Jongeren stemmen gewoon wat hun ouders stemmen.',
         answers: [
-          { text: 'Jongeren hebben een eigen mening, bijvoorbeeld over sportvelden.', points: 3 },
+          { text: 'Jongeren praten op school en online over politiek. Zo vormen ze hun eigen mening.', points: 3 },
           { text: 'Dat doen veel volwassenen ook.', points: 2, why: 'Misschien, maar hebben jongeren dan wel een eigen mening?' },
-          { text: 'Mijn ouders stemmen saai.', points: 1, why: 'Grappig, maar dat zegt niks over andere jongeren.' },
+          { text: 'Mijn ouders kiezen altijd een saaie partij.', points: 1, why: 'Grappig, maar dat zegt niks over andere jongeren.' },
         ],
       },
       {
@@ -203,7 +203,7 @@ const STATEMENTS = [
       {
         counter: 'In sommige landen mag het al vanaf 16, zoals in Oostenrijk.',
         answers: [
-          { text: 'Kijk eerst of het daar goed werkt.', points: 3 },
+          { text: 'Elk land is anders. Onderzoek eerst of het daar echt goed werkt.', points: 3 },
           { text: 'Nederland is geen Oostenrijk.', points: 2, why: 'Klopt, maar wat is dan het verschil?' },
           { text: 'Dat kan me niet schelen.', points: 1, why: 'Dat is geen reden. Het publiek haakt af.' },
         ],
@@ -215,13 +215,13 @@ const STATEMENTS = [
 // The practice round has its own statement with one round, never used in the real game.
 const PRACTICE_STATEMENT = {
   id: 'oefen',
-  text: 'De zomervakantie moet een week langer.',
+  text: 'Op school moet gratis wifi zijn voor alle leerlingen.',
   eens: [
     {
-      counter: 'Dan leer je minder op school.',
+      counter: 'Dan zit iedereen in de pauze alleen maar op zijn telefoon.',
       answers: [
-        { text: 'Na een goede rust leer je juist beter.', points: 3 },
-        { text: 'School is toch saai.', points: 1, why: 'Dat is geen reden. Waarom is een langere vakantie goed?' },
+        { text: 'Met wifi kun je ook je rooster en huiswerk checken. Dat is handig voor school.', points: 3 },
+        { text: 'Iedereen wil gewoon wifi.', points: 1, why: 'Dat iedereen het wil, is nog geen reden. Waarom is het goed voor school?' },
       ],
     },
   ],
@@ -278,6 +278,7 @@ export function mount(el, { practice = false, onPracticeDone = () => {}, onFinis
     arena();
     attack();
     stopGuide = guide(el, [
+          { target: '.battle__topic', text: 'Dit is de stelling. Jij bent het ermee eens. Opiny niet.', wait: 'ok' },
           { target: '.battle__speech', text: 'Opiny zegt iets terug. Het publiek loopt naar haar toe!', wait: 'ok' },
           { target: '.hand', text: 'Kies het antwoord met de beste reden.', hand: false, wait: () => !!el.querySelector('.hand [data-next]') },
           { target: '.battle__stage', text: 'Goed argument? Dan komt het publiek naar jou.', wait: 'ok' },
@@ -294,6 +295,7 @@ export function mount(el, { practice = false, onPracticeDone = () => {}, onFinis
     el.innerHTML = `
       <div class="g battle">
         <div class="g__bar"><span>${practice ? 'Oefenronde' : 'Ronde <b class="b-round">1</b>/3'}</span><span class="b-points">0 punten</span></div>
+        <p class="battle__topic"><small>Stelling · jij bent het ${side === 'eens' ? 'eens' : 'oneens'}</small>${escapeHtml(statement.text)}</p>
         <div class="battle__stage">
           <div class="fighter fighter--lotte"><span class="fighter__avatar">O</span><small>Opiny</small></div>
           <div class="battle__crowd" aria-label="Het publiek">${crowd()}</div>

@@ -19,7 +19,7 @@ const TRICKS = {
   bolletjes: { label: 'Rode bolletjes op iconen', screen: 'meldingen', explain: 'Je denkt dat je iets mist.' },
 };
 // The practice round has its own trick, never used in the real game.
-const PRACTICE_TRICK = { trillen: { label: 'Trillen bij elke like', screen: 'meldingen', explain: 'Elke tril trekt je terug naar je telefoon.' } };
+const PRACTICE_TRICK = { trillen: { label: 'Trillen bij elke like', screen: 'meldingen', explain: 'Elke keer dat hij trilt, pak je je telefoon weer.' } };
 const DECOYS = {
   donker: { label: 'Donkere modus', screen: 'weergave' },
   groot: { label: 'Grote letters', screen: 'weergave' },
@@ -214,7 +214,7 @@ export function mount(el, { practice = false, onPracticeDone = () => {}, onFinis
       line: escapeHtml(
         off === 5
           ? 'Ontsnapt! Jij bepaalt weer wat de app doet. Tijd om naar buiten te gaan!'
-          : 'De app had je nog vast. Maar de meeste trucs kun je zelf uitzetten.',
+          : 'De app hield je nog vast. Maar de meeste trucs kun je zelf uitzetten.',
       ),
       extra: `${stillOn.length ? `<ul class="traces">${stillOn.map(([, t]) => `<li class="w2"><strong>${escapeHtml(t.label)}</strong>: ${escapeHtml(t.explain)}</li>`).join('')}</ul>` : ''}
         <p class="g__hint">Erin getrapt: ${bitten} keer. Dat kost elke keer een punt.</p>

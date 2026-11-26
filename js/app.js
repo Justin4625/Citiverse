@@ -240,10 +240,15 @@ function showToast(loc, achievements = []) {
     ${achievements.map((a) => `<span class="toast__badge">Badge: ${a.name}</span>`).join('')}`;
   show(els.toast);
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => {
+  // Short, and a tap sends it away at once: the player wants to get back to the map.
+  const close = () => {
+    clearTimeout(toastTimer);
+    els.toast.removeEventListener('click', close);
     flyStampToBook(els.toast.querySelector('.toast__stamp'));
     hide(els.toast);
-  }, achievements.length ? 2600 : 1800);
+  };
+  els.toast.addEventListener('click', close);
+  toastTimer = setTimeout(close, achievements.length ? 1800 : 1200);
 }
 
 // A copy of the stamp flies from the card into the GO button, which bounces when it lands.

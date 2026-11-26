@@ -3,8 +3,9 @@ export const RADIUS_M = 80;
 
 // photo: img/<id>.jpg from Wikimedia Commons. focus: CSS object-position that keeps the landmark
 // in view when the photo is cropped to a circle. landmark: [lat, lng] inside the stop's own
-// building on the 3D Rotterdam map, which map.js paints in the theme colour (none for a park, a
-// bridge or a building the map does not have). credit: required by the CC BY-SA licences.
+// building on the 3D Rotterdam map, which map.js paints in the theme colour. ground: for a bridge
+// or a park, points on its deck ('deck') or its grass ('green'); those shapes get the tint instead.
+// credit: required by the CC BY-SA licences.
 export const LOCATIONS = [
   {
     id: 'centraal', name: 'Rotterdam Centraal', area: 'Stationsplein', lat: 51.9233, lng: 4.4695, focus: '70% 40%', landmark: [51.9246, 4.4688],
@@ -20,6 +21,7 @@ export const LOCATIONS = [
   },
   {
     id: 'erasmusbrug', name: 'Erasmusbrug', area: 'Nieuwe Maas', lat: 51.9093, lng: 4.4868, focus: '58% 40%',
+    ground: { on: 'deck', at: [[51.9112, 4.4829], [51.9096, 4.4862], [51.9080, 4.4895]] },
     credit: { author: 'Michielverbeek', license: 'CC BY-SA 4.0', url: 'https://commons.wikimedia.org/wiki/File:Rotterdam,_de_Erasmusbrug_vanaf_de_Holland-Amerikakade_IMG_1164_2022-04-17_19.32.jpg' },
   },
   {
@@ -32,6 +34,7 @@ export const LOCATIONS = [
   },
   {
     id: 'hetpark', name: 'Het Park', area: 'Parkhaven', lat: 51.9062, lng: 4.4704, focus: '50% 55%',
+    ground: { on: 'green', at: [[51.9062, 4.4704], [51.9045, 4.4690], [51.9075, 4.4722], [51.9040, 4.4725]] },
     credit: { author: 'Jan Geerling', license: 'CC BY-SA 4.0', url: 'https://commons.wikimedia.org/wiki/File:1604_Het_Park,_Rotterdam_039.jpg' },
   },
   {
@@ -43,7 +46,7 @@ export const LOCATIONS = [
     credit: { author: 'Ttzavaras', license: 'CC BY-SA 4.0', url: 'https://commons.wikimedia.org/wiki/File:Rotterdam_stadhuis_2015.JPG' },
   },
   {
-    id: 'bibliotheek', name: 'Centrale Bibliotheek', area: 'Binnenrotte', lat: 51.9223, lng: 4.4869, focus: '40% 50%', landmark: [51.9222, 4.4872],
+    id: 'bibliotheek', name: 'Centrale Bibliotheek', area: 'Binnenrotte', lat: 51.9205, lng: 4.4890, focus: '40% 50%', landmark: [51.92104, 4.48908],
     credit: { author: 'Frans Berkelaar', license: 'CC BY-SA 2.0', url: 'https://commons.wikimedia.org/wiki/File:Centrale_bibliotheek_van_Rotterdam_en_Blaaktoren_-_City_of_Rotterdam_(21999005883).jpg' },
   },
 ];

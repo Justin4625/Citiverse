@@ -34,11 +34,11 @@ export const MESSAGES = [
   {
     id: 'code-doorsturen', kind: 'whatsapp', from: 'Sam 🏀', level: 2, fake: true,
     text: 'Yo, ik heb per ongeluk een code naar jouw nummer laten sturen. Kun je me die 6 cijfers even doorsturen? Is voor mijn account',
-    tells: ['Met die code kan iemand jouw account overnemen.', 'Ook als het je vriend lijkt: zijn account kan al gehackt zijn.', 'Een verificatiecode deel je nooit, met niemand.'],
+    tells: ['Met die code kan iemand jouw account overnemen.', 'Ook als het je vriend lijkt: zijn account kan al gehackt zijn.', 'Zo\'n code deel je nooit, met niemand.'],
   },
   {
     id: 'nepnieuws-brug', kind: 'nieuws', from: 'RTM Nieuws Direct', level: 3, fake: true,
-    text: 'BREEKPUNT: Erasmusbrug gaat volgende maand voorgoed dicht, gemeente bevestigt. Deel dit snel met iedereen die naar Zuid moet!',
+    text: 'BREAKING: Erasmusbrug gaat volgende maand voorgoed dicht, gemeente bevestigt. Deel dit snel met iedereen die naar Zuid moet!',
     tells: ['Je kent deze nieuwsbron niet.', 'Schokkend nieuws met de oproep om het snel te delen.', 'Check het bij een nieuwssite die je kent: daar staat het niet.'],
   },
   {
@@ -77,7 +77,7 @@ export const MESSAGES = [
   {
     id: 'pakket-tijdvak', kind: 'sms', from: 'PakketDirect', level: 2, fake: false,
     text: 'Je pakket wordt vandaag tussen 14:00 en 16:00 bezorgd. Volg je pakket in de PakketDirect-app.',
-    why: 'Geen link en niks betalen. Je moet naar de eigen app.',
+    why: 'Geen link en niks betalen. Je kijkt gewoon in de eigen app.',
   },
   {
     id: 'bank-ontvangen', kind: 'app', from: 'MaasBank-app', level: 2, fake: false,

@@ -45,17 +45,23 @@ const MAP_BOUNDS = [[4.38, 51.86], [4.60, 51.975]];
 const MAX_PIXEL_RATIO = 2;
 // A landmark point may miss its building's outline by this much.
 const LANDMARK_M = 15;
+// Buildings with a radius above this (metres) are tinted more softly.
+const BIG_LANDMARK_M = 80;
 // Stops in the top HORIZON_SHARE of the screen are far off and fade out.
 const HORIZON_SHARE = 0.26;
 // The edge pointer keeps clear of the top buttons and the GO button (CSS pixels).
 const EDGE = { side: 38, top: 150, bottom: 180 };
 
 // The theme colour mixed with white, so landmarks stay in the soft pastel look of the map.
-function landmarkColour(id) {
-  const hex = THEMES[themeOf(id)][0];
-  const mix = (i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * 0.55 + 255 * 0.45);
+// `base` and `share` let a ground landmark keep some of its own colour: a park stays grassy.
+function landmarkColour(id, { colour = 0, base = '#ffffff', share = 0.55 } = {}) {
+  const hex = THEMES[themeOf(id)][colour];
+  const mix = (i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * share + parseInt(base.slice(i, i + 2), 16) * (1 - share));
   return `rgb(${mix(1)}, ${mix(3)}, ${mix(5)})`;
 }
+// A bridge deck lies on blue water, so it takes the theme's second colour; grass keeps most of
+// its green.
+const GROUND_TINT = { deck: { colour: 1 }, green: { base: '#86d67f', share: 0.3 } };
 
 function circlePolygon({ lat, lng }, radiusM, steps = 64) {
   const dLat = radiusM / 111320;
@@ -305,12 +311,20 @@ export function createGameMap(container, locations, radiusM) {
   let overviewLoaded = false;
   // Buildings of the detail data as outer rings, with their map id (see mapData.js).
   let buildings = [];
+  // Ground shapes that can be a landmark (bridge decks and grass, see locations.js `ground`).
+  let groundShapes = [];
   function setBuildings(features) {
     buildings = [];
+    groundShapes = [];
     features.forEach((f, id) => {
-      if (!f.properties.h) return;
       const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
       const rings = polys.map((p) => p[0]);
+      if (!f.properties.h) {
+        const { kind, level } = f.properties;
+        if (level > 0) groundShapes.push({ id, on: 'deck', rings });
+        else if (kind === 'green') groundShapes.push({ id, on: 'green', rings });
+        return;
+      }
       // A rough circle around the building, to skip the far ones quickly.
       const pts = rings.flat();
       const c = { lng: pts.reduce((a, q) => a + q[0], 0) / pts.length, lat: pts.reduce((a, q) => a + q[1], 0) / pts.length };
@@ -358,9 +372,20 @@ export function createGameMap(container, locations, radiusM) {
       let best = null;
       for (const b of buildings) {
         const d = buildingDistance({ lat, lng }, b.rings, LANDMARK_M);
-        if (d <= LANDMARK_M && (!best || d < best.d)) best = { id: b.id, d };
+        if (d <= LANDMARK_M && (!best || d < best.d)) best = { id: b.id, d, r: b.r };
       }
-      if (best) map.setFeatureState({ source: DETAIL_SOURCE, id: best.id }, { lm: landmarkColour(loc.id) });
+      // A huge building (Centraal) gets a softer tint, so it doesn't fill the screen with colour.
+      if (best) map.setFeatureState({ source: DETAIL_SOURCE, id: best.id }, { lm: landmarkColour(loc.id, { share: best.r > BIG_LANDMARK_M ? 0.25 : 0.55 }) });
+    }
+    // A bridge or a park has no building: its deck or its grass at the `ground` points is tinted.
+    for (const loc of locations) {
+      if (!loc.ground) continue;
+      const tint = landmarkColour(loc.id, GROUND_TINT[loc.ground.on]);
+      for (const s of groundShapes) {
+        if (s.on !== loc.ground.on) continue;
+        const hit = loc.ground.at.some(([lat, lng]) => buildingDistance({ lat, lng }, s.rings, LANDMARK_M) <= LANDMARK_M);
+        if (hit) map.setFeatureState({ source: DETAIL_SOURCE, id: s.id }, { lm: tint });
+      }
     }
   }
 
