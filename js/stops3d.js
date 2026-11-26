@@ -2,10 +2,10 @@
 // the very same frame as the map: no wobble, no lag, no jumps while turning.
 //
 // They keep the look of the original HTML stops (styles.css, .stop): a round photo pin in the
-// theme gradient on a little pole, the Buddy next to it and a soft shadow on the ground.
+// theme gradient star on a little pole, the Buddy next to it and a soft shadow on the ground.
 // far  = waiting: a bit smaller, softer photo, bobbing slowly, with a beam of light above it
 //        so you can spot it from far away;
-// near = awake: a spinning ring and a glow in the theme colours, ripples on the ground, the
+// near = awake: a glow in the theme colours, ripples on the ground, the
 //        Buddy hopping and calling "Help!", the name on a tag. Tap it to play;
 // done = collected: the GO stamp on the photo, calm.
 // The stop stands up as a flat card that always faces the camera, laid out in the old CSS
@@ -64,30 +64,59 @@ function drawRound(g, img, cx, cy, r, focus = '50% 50%') {
   g.restore();
 }
 
-// The pin: theme gradient ring, white edge, the photo with light falling on it like glass, and a
-// soft shadow under it. `soft` is the far look (paler photo).
+// A star with `n` points and a round, scalloped look, like the GO stars of Digital Child Rights.
+function starPath(g, cx, cy, outer, inner, n = 11) {
+  g.beginPath();
+  for (let i = 0; i < n * 2; i++) {
+    const r = i % 2 ? inner : outer;
+    const a = (i / (n * 2)) * Math.PI * 2 - Math.PI / 2;
+    const x = cx + Math.cos(a) * r;
+    const y = cy + Math.sin(a) * r;
+    if (i) g.lineTo(x, y);
+    else g.moveTo(x, y);
+  }
+  g.closePath();
+}
+
+// The pin: a star in the theme gradient (the user's choice: "sterrand"), a white edge, the photo
+// with light falling on it like glass, and a soft shadow under it. `soft` is the far look.
 const PIN_BOX = PIN + 24; // room for the shadow
+const STAR_IN = 0.84; // inner radius of the star points, as a share of the outer radius
 function pinTexture(photo, focus, [a, b], soft) {
   const [c, g] = canvas(PIN_BOX, PIN_BOX);
   const cx = PIN_BOX / 2;
   const cy = PIN_BOX / 2;
+  const R = PIN / 2 + 3;
   g.save();
-  g.shadowColor = 'rgba(22,41,92,0.35)';
+  g.shadowColor = 'rgba(90,71,144,0.35)';
   g.shadowBlur = 10;
   g.shadowOffsetY = 4;
-  const ring = g.createLinearGradient(cx - PIN / 2, 0, cx + PIN / 2, 0);
+  const ring = g.createLinearGradient(cx - R, cy - R, cx + R, cy + R);
   ring.addColorStop(0, a);
   ring.addColorStop(1, b);
   g.fillStyle = ring;
-  g.beginPath();
-  g.arc(cx, cy, PIN / 2, 0, Math.PI * 2);
+  g.lineJoin = 'round';
+  g.strokeStyle = ring;
+  g.lineWidth = 2.5; // rounds the star points a little
+  starPath(g, cx, cy, R, R * STAR_IN);
   g.fill();
+  g.stroke();
+  g.restore();
+  // A light edge on the side of the sun (west = left), so the star reads as a thick badge.
+  g.save();
+  starPath(g, cx, cy, R, R * STAR_IN);
+  g.clip();
+  const sheen = g.createLinearGradient(cx - R, cy - R, cx + R * 0.2, cy + R * 0.2);
+  sheen.addColorStop(0, 'rgba(255,255,255,0.35)');
+  sheen.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = sheen;
+  g.fillRect(cx - R, cy - R, 2 * R, 2 * R);
   g.restore();
   g.fillStyle = '#fff';
   g.beginPath();
-  g.arc(cx, cy, PIN / 2 - 4, 0, Math.PI * 2);
+  g.arc(cx, cy, PIN / 2 - 5, 0, Math.PI * 2);
   g.fill();
-  const r = PIN / 2 - 6;
+  const r = PIN / 2 - 7.5;
   if (soft && 'filter' in g) g.filter = 'saturate(0.55) brightness(1.05)';
   drawRound(g, photo, cx, cy, r, focus);
   g.filter = 'none';
@@ -106,6 +135,38 @@ function pinTexture(photo, focus, [a, b], soft) {
   g.fill();
   return texture(c);
 }
+
+// The pole: a rounded stick, white to lilac with the light from the west (left), a collar in the
+// theme colour under the pin and a small round foot on the ground.
+const POLE_W = 12;
+const POLE_H = POLE + 3;
+function poleTexture([a, b]) {
+  const [c, g] = canvas(POLE_W, POLE_H);
+  const x = POLE_W / 2;
+  // Foot: a flat disc seen at an angle.
+  const foot = g.createLinearGradient(0, 0, POLE_W, 0);
+  foot.addColorStop(0, '#ffffff');
+  foot.addColorStop(1, b);
+  g.fillStyle = foot;
+  g.beginPath();
+  g.ellipse(x, POLE_H - 2, 5.5, 2, 0, 0, Math.PI * 2);
+  g.fill();
+  // Stick.
+  const stick = g.createLinearGradient(x - 2.5, 0, x + 2.5, 0);
+  stick.addColorStop(0, '#ffffff');
+  stick.addColorStop(0.45, '#e9e4fb');
+  stick.addColorStop(1, '#9d90cf');
+  g.fillStyle = stick;
+  g.beginPath();
+  g.roundRect(x - 2.5, 0, 5, POLE_H - 2, 2.5);
+  g.fill();
+  // Collar under the pin.
+  g.fillStyle = a;
+  g.beginPath();
+  g.roundRect(x - 3.5, 0, 7, 3, 1.5);
+  g.fill();
+  return texture(c);
+}
 // The ring that turns round the pin of the stop you are at.
 function ringTexture([a, b]) {
   const d = PIN + 14;
@@ -116,8 +177,7 @@ function ringTexture([a, b]) {
   fill.addColorStop(0.66, '#ffffff');
   fill.addColorStop(1, a);
   g.fillStyle = fill;
-  g.beginPath();
-  g.arc(d / 2, d / 2, d / 2, 0, Math.PI * 2);
+  starPath(g, d / 2, d / 2, d / 2, (d / 2) * STAR_IN);
   g.fill();
   return texture(c);
 }
@@ -187,7 +247,7 @@ function labelTexture(text, [a, b]) {
 const HELP = { w: 62, h: 36 };
 function helpTexture() {
   const [c, g] = canvas(HELP.w, HELP.h);
-  g.shadowColor = 'rgba(22,41,92,0.3)';
+  g.shadowColor = 'rgba(90,71,144,0.3)';
   g.shadowBlur = 8;
   g.shadowOffsetY = 3;
   g.fillStyle = '#fff';
@@ -248,15 +308,16 @@ function buildStop(loc, shared) {
   p.card = new THREE.Group();
   p.beam = sprite(BEAM.w, BEAM.h, 0.5, 0, beamTexture(colours));
   p.beam.position.y = PIN_Y;
-  p.pole = sprite(3, POLE, 0.5, 0);
-  p.pole.material.color.set(NAVY);
+  p.pole = sprite(POLE_W, POLE_H, 0.5, 0, poleTexture(colours));
+  p.pole.position.y = -2; // the foot sits on the ground
   p.buddy = sprite(BUDDY * BUDDY_RATIO, BUDDY, 0, 0);
   p.buddy.position.x = 6;
   // Everything that floats goes in `pin`, which bobs.
   p.pin = new THREE.Group();
   p.pin.position.y = PIN_Y;
-  p.glow = sprite(PIN + 70, PIN + 70, 0.5, 0.5, glowTexture(colours[0]));
+  p.glow = sprite(PIN + 44, PIN + 44, 0.5, 0.5, glowTexture(colours[0]));
   p.ring = sprite(PIN + 14, PIN + 14, 0.5, 0.5, ringTexture(colours));
+  p.ring.visible = false;
   p.face = sprite(PIN_BOX, PIN_BOX, 0.5, 0.5);
   p.face.position.y = -2; // the texture's shadow hangs a little below
   p.check = sprite(28, 28, 0.5, 0.5);
@@ -289,7 +350,7 @@ function buildStop(loc, shared) {
 }
 
 // ---------- The layer ----------
-export function createStops3D(map, locations, { origin, onFrame = () => {} }) {
+export function createStops3D(map, locations, { origin, onFrame = () => {}, player = () => null }) {
   const ref = maplibregl.MercatorCoordinate.fromLngLat(origin, 0);
   const metre = ref.meterInMercatorCoordinateUnits();
   // Local space: x east, y up, z south, in metres from `origin`.
@@ -305,7 +366,7 @@ export function createStops3D(map, locations, { origin, onFrame = () => {} }) {
   const shared = {
     plane: new THREE.PlaneGeometry(1, 1),
     ripple: new THREE.RingGeometry(0.92, 1, 48),
-    shadow: groundTexture([[0, 'rgba(22,41,92,0.42)'], [0.6, 'rgba(22,41,92,0.2)'], [1, 'rgba(22,41,92,0)']]),
+    shadow: groundTexture([[0, 'rgba(90,71,144,0.42)'], [0.6, 'rgba(90,71,144,0.2)'], [1, 'rgba(90,71,144,0)']]),
     help: null,
     fontsReady: Promise.all([
       document.fonts.load('850 13px "Roboto Slab"'),
@@ -327,6 +388,26 @@ export function createStops3D(map, locations, { origin, onFrame = () => {} }) {
     scene.add(s.p.ground, s.p.card);
     stops.set(loc.id, s);
   }
+  // The player's soft shadow lies on the map here, in the same frame as the map (a GeoJSON layer
+  // lagged a few frames behind the walking Twinny). Buildings in front of it hide it, like the
+  // stops' own shadows. About 12 m round at the play zoom, nudged east (away from the sun).
+  const playerShadow = new THREE.Mesh(
+    shared.plane,
+    new THREE.MeshBasicMaterial({ map: groundTexture([[0, 'rgba(90,71,144,0.5)'], [0.5, 'rgba(90,71,144,0.26)'], [1, 'rgba(90,71,144,0)']]), transparent: true, depthWrite: false }),
+  );
+  playerShadow.rotation.x = -Math.PI / 2;
+  playerShadow.scale.set(24, 24, 1);
+  playerShadow.visible = false;
+  scene.add(playerShadow);
+  function placePlayerShadow() {
+    const pos = player();
+    playerShadow.visible = Boolean(pos);
+    if (!pos) return;
+    playerShadow.position.copy(localOf(pos));
+    playerShadow.position.x += 1.6;
+    playerShadow.position.y = 0.05;
+  }
+
   function applyState(s) {
     const { p, state } = s;
     if (p.photo) setMap(p.face, state === 'far' ? p.photo.far : p.photo.sharp);
@@ -369,15 +450,15 @@ export function createStops3D(map, locations, { origin, onFrame = () => {} }) {
       p.card.rotation.set(-lookDown, -bearing, 0, 'YXZ');
       p.card.scale.setScalar(k);
       p.ground.scale.setScalar(k);
-      p.shadow.position.copy(right).multiplyScalar(8);
+      // The shadow falls east, away from the low western sun, like the buildings' shadows.
+      p.shadow.position.set(9, 0, 1);
 
       const phase = t + s.seed;
       const period = near ? 1.6 : done ? 4.5 : 3.2;
       p.pin.position.y = PIN_Y - 2.5 + 2.5 * Math.cos((phase * 2 * Math.PI) / period);
-      p.ring.visible = p.glow.visible = s.near > 0.02;
-      p.ring.rotation.z = -t * ((2 * Math.PI) / 2.2);
-      p.ring.material.opacity = s.near;
-      p.glow.material.opacity = s.near * (0.6 + 0.4 * Math.sin((phase * 2 * Math.PI) / 1.6));
+      // No turning ring (the user found it too busy): only the glow says you are there.
+      p.glow.visible = s.near > 0.02;
+      p.glow.material.opacity = s.near * (0.32 + 0.12 * Math.sin((phase * 2 * Math.PI) / 1.6));
       p.glow.scale.setScalar(1 + 0.15 * Math.sin((phase * 2 * Math.PI) / 1.6));
       p.label.visible = s.near > 0.02;
       p.label.material.opacity = s.near;
@@ -424,6 +505,7 @@ export function createStops3D(map, locations, { origin, onFrame = () => {} }) {
     },
     render(gl, matrix) {
       animate(performance.now());
+      placePlayerShadow();
       projection.fromArray(matrix).multiply(toLocal);
       camera.projectionMatrix.copy(projection);
       camera.projectionMatrixInverse.copy(projection).invert();

@@ -63,6 +63,11 @@ export function setPlayerThemes(el, themes) {
   else el.innerHTML = twinnySvg(themes);
 }
 
+/** Turns the light on the Twinny with the map (bearing in degrees). */
+export function setPlayerBearing(el, deg) {
+  el.twinny.three?.setBearing(deg);
+}
+
 /** Walk animation on or off; angle in radians on screen, 0 = towards the viewer. */
 export function setPlayerWalking(el, on, angle) {
   el.twinny.three?.setWalking(on, angle);

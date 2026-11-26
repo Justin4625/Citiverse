@@ -46,7 +46,7 @@ export const LOCATIONS = [
     credit: { author: 'Ttzavaras', license: 'CC BY-SA 4.0', url: 'https://commons.wikimedia.org/wiki/File:Rotterdam_stadhuis_2015.JPG' },
   },
   {
-    id: 'bibliotheek', name: 'Centrale Bibliotheek', area: 'Binnenrotte', lat: 51.9205, lng: 4.4890, focus: '40% 50%', landmark: [51.92104, 4.48908],
+    id: 'bibliotheek', name: 'Centrale Bibliotheek', area: 'Binnenrotte', lat: 51.92115, lng: 4.4891, focus: '40% 50%', landmark: [51.92115, 4.4891],
     credit: { author: 'Frans Berkelaar', license: 'CC BY-SA 2.0', url: 'https://commons.wikimedia.org/wiki/File:Centrale_bibliotheek_van_Rotterdam_en_Blaaktoren_-_City_of_Rotterdam_(21999005883).jpg' },
   },
 ];

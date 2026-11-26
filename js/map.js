@@ -1,6 +1,6 @@
 import { mapStyle, DETAIL_SOURCE, NEW_SOURCE, buildingPaint } from './mapStyle.js';
 import { loadIndex, keepDetailLoaded, prefetch } from './mapData.js';
-import { stopElement, setStopState, playerElement, setPlayerThemes, setPlayerWalking } from './markers.js';
+import { stopElement, setStopState, playerElement, setPlayerThemes, setPlayerWalking, setPlayerBearing } from './markers.js';
 import { distanceM } from './geo.js';
 import { THEMES, themeOf, buddyUrl, themeVars } from './brand.js';
 
@@ -274,6 +274,8 @@ export function createGameMap(container, locations, radiusM) {
   let lastPos = null;
   let playerMarker = null;
   const playerEl = playerElement();
+  // The light on the Twinny turns with the view (twinny3d.js setBearing).
+  map.on('rotate', () => setPlayerBearing(playerEl, map.getBearing()));
 
   map.on('load', () => {
     loaded = true;
@@ -297,8 +299,8 @@ export function createGameMap(container, locations, radiusM) {
           map.setPaintProperty('buildings-new', 'fill-extrusion-height', paint['fill-extrusion-height']);
           map.setPaintProperty('buildings-new', 'fill-extrusion-opacity', paint['fill-extrusion-opacity']);
         },
-        onData: (features) => {
-          setBuildings(features);
+        prepare: tintLandmarks,
+        onData: () => {
           if (!overviewLoaded) {
             overviewLoaded = true;
             setTimeout(() => map.getSource('overview').setData('data/overview.geojson'), 1500);
@@ -309,32 +311,6 @@ export function createGameMap(container, locations, radiusM) {
   });
 
   let overviewLoaded = false;
-  // Buildings of the detail data as outer rings, with their map id (see mapData.js).
-  let buildings = [];
-  // Ground shapes that can be a landmark (bridge decks and grass, see locations.js `ground`).
-  let groundShapes = [];
-  function setBuildings(features) {
-    buildings = [];
-    groundShapes = [];
-    features.forEach((f, id) => {
-      const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
-      const rings = polys.map((p) => p[0]);
-      if (!f.properties.h) {
-        const { kind, level } = f.properties;
-        if (level > 0) groundShapes.push({ id, on: 'deck', rings });
-        else if (kind === 'green') groundShapes.push({ id, on: 'green', rings });
-        return;
-      }
-      // A rough circle around the building, to skip the far ones quickly.
-      const pts = rings.flat();
-      const c = { lng: pts.reduce((a, q) => a + q[0], 0) / pts.length, lat: pts.reduce((a, q) => a + q[1], 0) / pts.length };
-      const r = Math.max(...pts.map((q) => distanceM(c, { lng: q[0], lat: q[1] })));
-      buildings.push({ id, h: f.properties.h, rings, c, r });
-    });
-    // New data means new ids: start over.
-    map.removeFeatureState({ source: DETAIL_SOURCE });
-    markLandmarks();
-  }
   // Metres from (0, 0) to the segment a-b, all in metres.
   function segmentDistance(ax, ay, bx, by) {
     const dx = bx - ax;
@@ -363,31 +339,43 @@ export function createGameMap(container, locations, radiusM) {
     }
     return d;
   }
-  // The landmark of each stop (the building at its landmark point, see locations.js) is painted
-  // in a light tint of the stop's theme, so Markthal or Centraal stand out from the lilac city.
-  function markLandmarks() {
-    for (const loc of locations) {
-      if (!loc.landmark) continue;
-      const [lat, lng] = loc.landmark;
-      let best = null;
-      for (const b of buildings) {
-        const d = buildingDistance({ lat, lng }, b.rings, LANDMARK_M);
-        if (d <= LANDMARK_M && (!best || d < best.d)) best = { id: b.id, d, r: b.r };
+  // The landmark of each stop is painted in a light tint of the stop's theme, so Markthal or
+  // Centraal stand out from the lilac city: the building its landmark point lies in, or for a
+  // bridge or a park the deck or grass at its `ground` points (see locations.js). The colour is
+  // written once into the feature itself (property lm, read by mapStyle.js), so it can never
+  // blink off when new map cells arrive. Each feature is checked only once.
+  const tinted = new WeakSet();
+  function tintLandmarks(features) {
+    for (const f of features) {
+      if (tinted.has(f)) continue;
+      tinted.add(f);
+      const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+      const rings = polys.map((p) => p[0]);
+      if (f.properties.h) {
+        for (const loc of locations) {
+          if (!loc.landmark) continue;
+          const [lat, lng] = loc.landmark;
+          if (buildingDistance({ lat, lng }, rings, 0) > 0) continue;
+          // A huge building (Centraal) gets a softer tint, so it doesn't fill the screen.
+          const pts = rings.flat();
+          const c = { lng: pts.reduce((a, q) => a + q[0], 0) / pts.length, lat: pts.reduce((a, q) => a + q[1], 0) / pts.length };
+          const r = Math.max(...pts.map((q) => distanceM(c, { lng: q[0], lat: q[1] })));
+          f.properties.lm = landmarkColour(loc.id, { share: r > BIG_LANDMARK_M ? 0.25 : 0.55 });
+        }
+        continue;
       }
-      // A huge building (Centraal) gets a softer tint, so it doesn't fill the screen with colour.
-      if (best) map.setFeatureState({ source: DETAIL_SOURCE, id: best.id }, { lm: landmarkColour(loc.id, { share: best.r > BIG_LANDMARK_M ? 0.25 : 0.55 }) });
-    }
-    // A bridge or a park has no building: its deck or its grass at the `ground` points is tinted.
-    for (const loc of locations) {
-      if (!loc.ground) continue;
-      const tint = landmarkColour(loc.id, GROUND_TINT[loc.ground.on]);
-      for (const s of groundShapes) {
-        if (s.on !== loc.ground.on) continue;
-        const hit = loc.ground.at.some(([lat, lng]) => buildingDistance({ lat, lng }, s.rings, LANDMARK_M) <= LANDMARK_M);
-        if (hit) map.setFeatureState({ source: DETAIL_SOURCE, id: s.id }, { lm: tint });
+      const { kind, level } = f.properties;
+      const on = level > 0 ? 'deck' : kind === 'green' ? 'green' : null;
+      if (!on) continue;
+      for (const loc of locations) {
+        if (loc.ground?.on !== on) continue;
+        if (loc.ground.at.some(([lat, lng]) => buildingDistance({ lat, lng }, rings, LANDMARK_M) <= LANDMARK_M)) {
+          f.properties.lm = landmarkColour(loc.id, GROUND_TINT[on]);
+        }
       }
     }
   }
+
 
 
   function updateReach(pos) {
@@ -416,7 +404,7 @@ export function createGameMap(container, locations, radiusM) {
   function loadStops3D() {
     import('./stops3d.js')
       .then(({ createStops3D }) => {
-        stops3d = createStops3D(map, locations, { origin: START, onFrame: updatePointer });
+        stops3d = createStops3D(map, locations, { origin: START, onFrame: updatePointer, player: () => playerMarker?.getLngLat() });
         map.addLayer(stops3d.layer);
         for (const [id, state] of states) stops3d.setState(id, state);
         if (lastPos) showNearbyStops(lastPos);

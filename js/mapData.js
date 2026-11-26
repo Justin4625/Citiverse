@@ -72,7 +72,7 @@ function cellKeysAround(index, pos) {
   return cells.sort((a, b) => a.d - b.d).slice(0, MAX_CELLS).map((c) => c.key);
 }
 
-export function keepDetailLoaded(map, sourceId, newSourceId, index, { around, grow, onData = () => {} }) {
+export function keepDetailLoaded(map, sourceId, newSourceId, index, { around, grow, prepare = () => {}, onData = () => {} }) {
   const size = 180 / 2 ** index.zoom;
   const available = new Set(index.cells);
   let shown = []; // cells in the detail source
@@ -108,7 +108,11 @@ export function keepDetailLoaded(map, sourceId, newSourceId, index, { around, gr
     arriveTimer = setTimeout(update, 120);
   };
   const ready = (key) => Array.isArray(cache.get(key));
-  const setSource = (id, features) => map.getSource(id).setData({ type: 'FeatureCollection', features });
+  // prepare() may add properties to the features (map.js: landmark tints) before they are drawn.
+  const setSource = (id, features) => {
+    prepare(features);
+    map.getSource(id).setData({ type: 'FeatureCollection', features });
+  };
 
   function update() {
     if (rising) return; // the next update runs when the new buildings have risen

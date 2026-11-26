@@ -63,11 +63,22 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
   height: 56%;
   pointer-events: none;
   background: linear-gradient(to bottom,
-    rgba(226, 246, 255, 0.97) 0%,
-    rgba(226, 246, 255, 0.9) 22%,
-    rgba(226, 246, 255, 0.6) 42%,
-    rgba(226, 246, 255, 0.22) 62%,
-    rgba(226, 246, 255, 0) 100%);
+    rgba(216, 236, 251, 0.97) 0%,
+    rgba(216, 236, 251, 0.88) 22%,
+    rgba(201, 228, 250, 0.55) 42%,
+    rgba(1, 153, 216, 0.08) 62%,
+    rgba(1, 153, 216, 0) 100%);
+}
+/* Light over the whole map, the stops and the Twinny alike, so they sit in one scene: a soft
+   glow from the left (west, where the map's sun is) and a vignette in the Citiverse navy. Plain
+   translucent gradients, no blend modes, so it costs next to nothing on a phone. */
+.grade {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 80% at 0% 35%, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 60%),
+    radial-gradient(140% 100% at 50% 55%, rgba(37, 73, 151, 0) 55%, rgba(37, 73, 151, 0.16) 100%);
 }
 /* The game handles every finger on the map itself (swipe turns, pinch zooms). MapLibre leaves
    pan-x pan-y here, so a phone took a sideways swipe as a page pan and cancelled it. */

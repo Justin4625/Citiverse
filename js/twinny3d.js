@@ -77,9 +77,11 @@ export function createTwinny3D(container) {
   const feetY = ((1 - feet.y) / 2) * SIZE.height;
   camera.setViewOffset(SIZE.width, SIZE.height, 0, feetY - (SIZE.height - FEET_PX), SIZE.width, SIZE.height);
 
-  scene.add(new THREE.HemisphereLight('#ffffff', '#8a9bb8', 1.6));
-  const sun = new THREE.DirectionalLight('#ffffff', 2.2);
-  sun.position.set(-3, 5, 4);
+  // Lit like the map: soft sky light, a soft violet bounce from the lilac buildings, and the same
+  // low sun from the west (left on screen when you look north).
+  scene.add(new THREE.HemisphereLight('#f2f8ff', '#a996d8', 1.55));
+  const sun = new THREE.DirectionalLight('#fff4e6', 2.3);
+  sun.position.set(-5, 4, 2.5);
   scene.add(sun);
 
   // Every coloured part shares one material; colours come from vertex colours, set per stamp.
@@ -99,13 +101,15 @@ export function createTwinny3D(container) {
   shadowCanvas.width = shadowCanvas.height = 64;
   const sg = shadowCanvas.getContext('2d');
   const grad = sg.createRadialGradient(32, 32, 0, 32, 32, 32);
-  grad.addColorStop(0, 'rgba(22, 41, 92, 0.55)');
-  grad.addColorStop(0.55, 'rgba(22, 41, 92, 0.28)');
-  grad.addColorStop(1, 'rgba(22, 41, 92, 0)');
+  // A tight, dark contact shadow right under the feet; the soft shadow around the player lies on
+  // the map itself (map.js player-spot), so the Twinny stands on the ground instead of above it.
+  grad.addColorStop(0, 'rgba(70, 52, 120, 0.7)');
+  grad.addColorStop(0.45, 'rgba(70, 52, 120, 0.4)');
+  grad.addColorStop(1, 'rgba(70, 52, 120, 0)');
   sg.fillStyle = grad;
   sg.fillRect(0, 0, 64, 64);
   const shadow = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.9, 1.9),
+    new THREE.PlaneGeometry(1.25, 1.25),
     new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(shadowCanvas), transparent: true, depthWrite: false }),
   );
   shadow.rotation.x = -Math.PI / 2;
@@ -207,8 +211,18 @@ export function createTwinny3D(container) {
   }
   requestAnimationFrame(frame);
 
+  // The map's sun stands in the west (mapStyle.js light). When the view turns, the sun on the
+  // Twinny turns with it, and its shadow falls the same way as the shadows of the buildings.
+  function setBearing(deg) {
+    const rel = ((270 - deg) * Math.PI) / 180; // the sun's direction seen from the camera
+    sun.position.set(Math.sin(rel) * 5, 4, -Math.cos(rel) * 5 + 1.5);
+    shadow.position.set(-Math.sin(rel) * 0.06, 0.01, Math.cos(rel) * 0.06);
+  }
+  setBearing(0);
+
   return {
     setThemes,
+    setBearing,
     /** @param {boolean} on @param {number} [angle] radians, 0 = towards the viewer, + = to the right */
     setWalking(on, angle = heading) {
       walking = on;

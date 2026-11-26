@@ -5,29 +5,34 @@
 //             and building outlines with their height h in metres
 // The look is a cartoon city: soft fills with a slightly darker edge line, like an inked drawing,
 // buildings that cast a soft shadow on the ground and are lit by one fixed sun.
+// One soft sunny palette: soft pastels that share a little sunlight, so the ground,
+// the buildings, the stops and the Twinny look like one world.
 const C = {
-  land: '#b4e6a2',
-  plot: '#c4ecb4',
-  green: '#86d67f',
-  water: '#5ccaf2',
-  road: '#fff3c2',
-  pavement: '#e8f5cf',
-  cycle: '#ffb0a3',
-  rail: '#d6cfe9',
-  sand: '#ffe6a0',
-  building: '#e3d9ff',
-  buildingTall: '#c9b7fb',
-  sky: '#7fd3f7',
-  horizon: '#e2f6ff',
+  land: '#c6e8a8',
+  plot: '#d3eeb6',
+  green: '#98d982',
+  water: '#7dcdee',
+  road: '#fff4d6',
+  pavement: '#eef3d6',
+  cycle: '#ffbfa9',
+  rail: '#ddd3ea',
+  sand: '#ffe4a8',
+  building: '#eee6ff',
+  buildingTall: '#d3c3fa',
+  sky: '#4fb3ea',
+  // The haze is the light blue of the Citiverse logo (navy #254997 to sky #0199d8).
+  horizon: '#d8ecfb',
 };
+// The colour of every shadow in the game (buildings, stops, Twinny): a warm violet, never grey.
+export const SHADOW = '#5a4790';
 
 // Edge lines: the same colour family, a step darker, so every shape reads without hard black ink.
 const EDGE = {
-  water: '#2fa6d8',
-  green: '#5fbf5c',
-  road: '#ead79a',
-  cycle: '#f08d80',
-  rail: '#b6acd6',
+  water: '#4fb0dc',
+  green: '#74c46a',
+  road: '#ecd9a6',
+  cycle: '#f19b86',
+  rail: '#bdb2d9',
 };
 
 export const ATTRIBUTION = '<a href="https://www.3drotterdam.nl/" target="_blank" rel="noopener">3D Rotterdam</a> © Gemeente Rotterdam (CC BY 4.0)';
@@ -37,10 +42,10 @@ export const NEW_SOURCE = 'detail-new';
 // The buildings' paint; `grow` (0..1) raises them out of the ground and fades them in.
 export function buildingPaint(grow) {
   return {
-    // A stop's landmark (feature-state 'lm', a colour set in map.js) wears its theme tint.
+    // A stop's landmark (property 'lm', a colour set in map.js) wears its theme tint.
     // Taller blocks are a step deeper lilac, so a busy street still has some variety.
     'fill-extrusion-color': ['case',
-      ['==', ['typeof', ['feature-state', 'lm']], 'string'], ['to-color', ['feature-state', 'lm']],
+      ['has', 'lm'], ['to-color', ['get', 'lm']],
       ['interpolate', ['linear'], ['get', 'h'], 6, C.building, 40, C.buildingTall]],
     // Every block keeps one fixed height once it is there, so nothing changes while you walk or
     // turn. Towers are capped at MAX_HEIGHT, so one high block never fills the screen.
@@ -53,10 +58,9 @@ export function buildingPaint(grow) {
 // Drawn bottom to top, so roads lie over pavements and water over everything on the ground.
 const KINDS = ['plot', 'pavement', 'sand', 'green', 'rail', 'road', 'cycle', 'water'];
 const OVERVIEW_KINDS = ['green', 'road', 'water'];
-// A landmark shape on the ground (a bridge deck, a park's grass; feature-state 'lm' set in map.js)
+// A landmark shape on the ground (a bridge deck, a park's grass; property 'lm' set in map.js)
 // wears the theme tint of its stop, like a landmark building.
-const withLandmark = (colour) => ['case',
-  ['==', ['typeof', ['feature-state', 'lm']], 'string'], ['to-color', ['feature-state', 'lm']], colour];
+const withLandmark = (colour) => ['case', ['has', 'lm'], ['to-color', ['get', 'lm']], colour];
 const colourByKind = withLandmark(['match', ['get', 'kind'], ...KINDS.flatMap((kind) => [kind, C[kind]]), C.pavement]);
 
 const fill = (source, kind, filter) => ({
@@ -87,12 +91,11 @@ export const mapStyle = {
     // Filled by map.js once the streets around the player are in: the overview is only seen
     // far off under the haze, so it must not hold up the start.
     overview: { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, tolerance: 0.5, maxzoom: 12, attribution: ATTRIBUTION },
-    // generateId: a feature's id is its place in the data, so map.js can lower single buildings.
     // maxzoom 14: MapLibre cuts GeoJSON into tiles and only makes a tile when it comes into view.
     // With its default (18) turning the view kept asking for new small tiles, and buildings
     // vanished and popped back while they were made. A z14 tile is ~2.4 km wide, so the few tiles
     // around the player cover everything and are reused while you turn (detail stays ~0.6 m).
-    [DETAIL_SOURCE]: { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, tolerance: 0.2, maxzoom: 14, generateId: true },
+    [DETAIL_SOURCE]: { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, tolerance: 0.2, maxzoom: 14 },
     [NEW_SOURCE]: { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, tolerance: 0.2, maxzoom: 14 },
   },
   sky: {
@@ -101,12 +104,12 @@ export const mapStyle = {
     'sky-horizon-blend': 0.6,
     // The ground fades into the horizon, so far away is a soft haze instead of the whole city.
     'fog-color': C.horizon,
-    'fog-ground-blend': 0.35,
-    'horizon-fog-blend': 0.8,
+    'fog-ground-blend': 0.3,
+    'horizon-fog-blend': 0.85,
   },
-  // One sun fixed to the map (from the south-west, fairly high), so the walls keep the same
-  // light and shade while the view turns, like a real afternoon.
-  light: { anchor: 'map', position: [1.4, 210, 40], color: '#ffffff', intensity: 0.32 },
+  // One sun fixed to the map, low in the west, so the walls keep the same light and shade
+  // while the view turns, like a late afternoon. Shadows (buildings, stops, Twinny) fall east.
+  light: { anchor: 'map', position: [1.5, 270, 50], color: '#fff7ec', intensity: 0.38 },
   layers: [
     { id: 'land', type: 'background', paint: { 'background-color': C.land } },
     ...OVERVIEW_KINDS.map((kind) => fill('overview', kind, ['==', ['get', 'kind'], kind])),
@@ -127,9 +130,9 @@ export const mapStyle = {
     {
       id: 'building-shadow', type: 'fill', source: DETAIL_SOURCE, filter: ['has', 'h'], minzoom: 14.5,
       paint: {
-        'fill-color': '#5b4d9c',
-        'fill-opacity': ['interpolate', ['linear'], ['zoom'], 14.5, 0, 15.5, 0.16],
-        'fill-translate': [5, 7],
+        'fill-color': SHADOW,
+        'fill-opacity': ['interpolate', ['linear'], ['zoom'], 14.5, 0, 15.5, 0.2],
+        'fill-translate': [9, 2],
         'fill-translate-anchor': 'map',
         'fill-antialias': false,
       },

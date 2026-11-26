@@ -504,7 +504,7 @@ function showFinale() {
 const debug = new URLSearchParams(location.search).has('debug');
 setTestMode(debug);
 // For test scripts: collect a stamp without playing the minigame.
-if (debug) window.citiverse = { collect: (id) => collect(LOCATIONS.find((l) => l.id === id), { onSite: false }), finale: showFinale, tapStop: onStopTapped };
+if (debug) window.citiverse = { collect: (id) => collect(LOCATIONS.find((l) => l.id === id), { onSite: false }), finale: showFinale, tapStop: onStopTapped, where: () => position ?? lastPosition };
 
 renderCredits(els.credits, LOCATIONS);
 requestPersistence();
