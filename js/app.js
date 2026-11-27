@@ -10,6 +10,7 @@ import { loadProgress, clearProgress, recordGame, recordStamps, levelFor } from 
 import { renderProgress } from './progressView.js';
 import { fetchRoute, progressOn } from './route.js';
 import { show, hide, setOrigin } from './ui.js';
+import { initTts } from './tts.js';
 
 // Test mode: GPS off, tap the map to move the player, plus a reset button. ?debug starts in it.
 const TEST_STATUS = 'Tik op de kaart om te lopen';
@@ -508,6 +509,7 @@ if (debug) window.citiverse = { collect: (id) => collect(LOCATIONS.find((l) => l
 
 renderCredits(els.credits, LOCATIONS);
 requestPersistence();
+initTts();
 renderLevel();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 render();
